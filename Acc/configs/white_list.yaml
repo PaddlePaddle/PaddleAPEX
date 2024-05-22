@@ -1,0 +1,10 @@
+# White List Sample format
+
+functional:
+  -  conv2d
+
+paddle:
+  -  add
+
+tensor:
+  -  abs
