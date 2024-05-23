@@ -1,8 +1,9 @@
 # path should be real path, relative path is not supported yet.
-op_target_path: "./Acc/configs/op_target.yaml"
+op_target_path: "./PaddleAPEX/Acc/configs/op_target.yaml"
 dump_root_path: "./dump_info"
 
-white_list: "./Acc/configs/white_list.yaml"
+white_list: None
+# white_list: "./Acc/configs/white_list.yaml"
 
 # mode must be chosen from ["real_data", "random"]
 dump_mode: "real_data"
