@@ -1,7 +1,7 @@
 # 定义比对算法及比对标准
-import torch
+import paddle
 import numpy as np
-from api_accuracy_checker.compare.compare_utils import CompareConst, check_dtype_comparable
+from compare_utils import CompareConst, check_dtype_comparable
 
 
 #cos
@@ -124,7 +124,7 @@ def get_small_value_mask(abs_bench, both_finite_mask, small_value_threshold):
 
 def get_abs_bench_with_eps(bench, dtype):
     abs_bench = np.abs(bench)
-    eps = np.finfo(bench.dtype).eps if dtype != torch.bfloat16 else CompareConst.BFLOAT16_EPS
+    eps = np.finfo(bench.dtype).eps if dtype != paddle.bfloat16 else CompareConst.BFLOAT16_EPS
     abs_bench_with_eps = abs_bench + eps
     return abs_bench, abs_bench_with_eps
 
@@ -142,8 +142,8 @@ def check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol):
     '''
     abs_gpu, abs_gpu_with_eps = get_abs_bench_with_eps(bench_output, dtype)
     golden_same_dtype = bench_output.astype(device_output.dtype)
-    a_min = np.finfo(device_output.dtype).min if dtype != torch.bfloat16 else CompareConst.BFLOAT16_MIN
-    a_max = np.finfo(device_output.dtype).max if dtype != torch.bfloat16 else CompareConst.BFLOAT16_MAX
+    a_min = np.finfo(device_output.dtype).min if dtype != paddle.bfloat16 else CompareConst.BFLOAT16_MIN
+    a_max = np.finfo(device_output.dtype).max if dtype != paddle.bfloat16 else CompareConst.BFLOAT16_MAX
     golden_clip = np.clip(golden_same_dtype, a_min, a_max)
     npu_clip = np.clip(device_output, a_min, a_max)
     clipped_abs_ae = np.abs(npu_clip - golden_clip)

@@ -28,12 +28,12 @@ def seed_all(seed=1234):
     paddle.seed(seed)
     # 分布式场景需额外加上
     # 环境版本貌似不对，跑不了
-    # global_seed, local_seed = seed,seed #ok?
-    # tracker = paddle.get_rng_state_tracker()
-    # # tracker = paddle.distributed.fleet.meta_parallel.get_rng_state_tracker()
-    # tracker.add("global_seed",global_seed)
-    # tracker.add("local_seed",local_seed)
-
+    global_seed, local_seed = seed,seed #ok?
+    tracker = paddle.get_rng_state_tracker()
+    # tracker = paddle.distributed.fleet.meta_parallel.get_rng_state_tracker()
+    tracker.add("global_seed",global_seed)
+    tracker.add("local_seed",local_seed)
+    # torch的种子设置
     # torch.manual_seed(seed)
     # torch.use_deterministic_algorithms(mode)
     # if IS_GPU:
@@ -569,3 +569,5 @@ class Config:
 # yaml_path = os.path.join(cur_path, "config.yaml")
 yaml_path = os.path.join("config.yaml")
 msCheckerConfig = Config(yaml_path)
+
+seed_all()
