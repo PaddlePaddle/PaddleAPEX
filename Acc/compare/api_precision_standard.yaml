@@ -1,0 +1,108 @@
+# Copyright (c) 2024 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+AbsoluteThreshStandard:
+  - mul
+  - mul_
+  - __mul__
+  - __imul__
+  - __rmul__
+  - add
+  - add_
+  - __add__
+  - __iadd__
+  - __radd__
+  - div
+  - div_
+  - __div__
+  - __idiv__
+  - divide
+  - divide_
+  - leaky_relu
+  - leaky_relu_
+  - prelu
+  - reciprocal
+  - reciprocal_
+  - rsqrt
+  - rsqrt_
+  - square
+  - square_
+  - sub
+  - sub_
+  - rsub
+  - __isub__
+  - __sub__
+
+BinaryCompareStandard:
+  - abs
+  - abs_
+  - absolute
+  - absolute_
+  - argmin
+  - bitwise_and
+  - bitwise_and_
+  - broadcast_to
+  - ceil
+  - ceil_
+  - equal
+  - fill_
+  - flatten
+  - floor
+  - floor_
+  - gather
+  - greater
+  - greater_
+  - greater_equal
+  - greater_equal_
+  - isfinite
+  - isnan
+  - less
+  - less_
+  - less_equal
+  - less_equal_
+  - logical_and
+  - logical_and_
+  - logical_not
+  - logical_not_
+  - logical_or
+  - logical_or_
+  - masked_fill
+  - masked_fill_
+  - max_pool3d
+  - maximum
+  - minimum
+  - neg
+  - neg_
+  - nonzero
+  - not_equal
+  - not_equal_
+  - one_hot
+  - pad
+  - relu
+  - reshape
+  - round
+  - round_
+  - select
+  - sign
+  - sign_
+  - sort
+  - tile
+  - topk
+  - transpose
+  - transpose_
+  - tril
+  - tril_
+  - triu
+  - triu_
