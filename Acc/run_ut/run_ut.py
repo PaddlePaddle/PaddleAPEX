@@ -1,8 +1,9 @@
 import json
-
+import os
 import paddle
-from utils import Const, print_warn_log, api_info_preprocess
-from data_generate import gen_api_params
+import paddle.nn.functional as F
+from utils import Const, print_warn_log, api_info_preprocess, get_json_contents
+from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 
 
@@ -134,11 +135,37 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     cpu_args, cpu_kwargs = generate_cpu_params(args, kwargs, need_backward, api_name)
     device_args, device_kwargs = generate_device_params(args, kwargs, need_backward, api_name)
     bench_grad_out, device_grad_out = None, None
+    out = exec(api_name, api_type)(*cpu_args, **cpu_kwargs)
+    device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
 
-    print('*'*100)
-    print(cpu_args)
-    print('*'*100)
-    print(device_args)
+    # print('*'*200)
+    # print(out)
+    # # print(cpu_args)
+    # print('*'*200)
+    # # print(device_args)
+    # print(device_out)
+
+    # current_path = os.path.dirname(os.path.realpath(__file__))
+    # ut_setting_path = os.path.join(current_path, "torch_ut_setting.json")
+    # api_setting_dict = get_json_contents(ut_setting_path)
+    # grad_input_index = api_setting_dict.get(api_name)
+    # grad_index = None
+    grad, bench_grad = None, None
+    # if grad_input_index is not None:
+    #     grad_index = grad_input_index.get('grad_index')
+    #
+    # if need_backward:
+    #     if need_to_backward(grad_index, out):
+    #         backward_args = backward_content[api_full_name]
+    #         grad = gen_args(backward_args, api_name, real_data_path=real_data_path)[0]
+    #         bench_grad, _ = generate_cpu_params(grad, {}, False, api_name)
+    #         bench_grad_out = run_backward(cpu_args, bench_grad, grad_index, out)
+    #         device_grad = grad.clone().detach().to(current_device)
+    #         device_grad_out = run_backward(device_args, device_grad, grad_index, device_out)
+    #     else:
+    #         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+
+    return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, bench_grad, in_fwd_data_list, backward_message)
 
 
 def get_api_info(api_info_dict, api_name, real_data_path):
@@ -148,6 +175,63 @@ def get_api_info(api_info_dict, api_name, real_data_path):
         need_grad = False
     args, kwargs = gen_api_params(api_info_dict, api_name, need_grad, convert_type, real_data_path)
     return args, kwargs, need_grad
+
+
+def need_to_backward(grad_index, out):
+    if grad_index is None and isinstance(out, (list, tuple)):
+        return False
+    return True
+
+
+def run_backward(args, grad, grad_index, out):
+
+    if grad_index is not None:
+        out[grad_index].backward(grad)
+    else:
+        out.backward(grad)
+    args_grad = []
+    for arg in args:
+        if isinstance(arg, paddle.Tensor):
+            args_grad.append(arg.grad)
+    grad_out = args_grad
+
+    return grad_out
+
+
+def exec(op_name, api_type):
+    if "unction" in api_type:
+        return getattr(F, op_name)
+    elif "addle" in api_type:
+        return getattr(paddle, op_name)
+    elif "Tensor" in api_type:
+        return getattr(paddle.Tensor, op_name)
+    else:
+        print("In Exec: Undefined api type!")
+
+
+class UtDataInfo:
+    def __init__(self, bench_grad, device_grad, device_output, bench_output, grad_in, in_fwd_data_list,
+                 backward_message, rank=0):
+        self.bench_grad = bench_grad
+        self.device_grad = device_grad
+        self.device_output = device_output
+        self.bench_output = bench_output
+        self.grad_in = grad_in
+        self.in_fwd_data_list = in_fwd_data_list
+        self.backward_message = backward_message
+        self.rank = rank
+
+
+
+# if __name__ == "__main__":
+#     tensor_x = paddle.randn([8192, 5120])
+#     tensor_x.to("bfloat16")
+#
+#     args = [tensor_x]
+#     kwargs = {"axes": [0], "starts": [1024], "ends": [2048]}
+#     # 传入方法名称和分类，有paddle、functional、tensor 大小写不区分.
+#     ret = exec("slice", "paddle")(*args, **kwargs)
+#     print(ret.shape)
 
 
 if __name__ == '__main__':
@@ -160,3 +244,4 @@ if __name__ == '__main__':
             real_data_path = ''
             backward_content = ''
             result = run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict)
+            print(result)

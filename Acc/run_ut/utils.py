@@ -4,6 +4,9 @@ import paddle
 import stat
 import time
 import sys
+import json
+
+from file_check_util import FileOpen
 
 
 class Const:
@@ -166,6 +169,23 @@ def check_file_or_directory_path(path, isdir=False):
         print_error_log(
             'The path {} does not have permission to read. Please check the path permission'.format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+
+def get_json_contents(file_path):
+    ops = get_file_content_bytes(file_path)
+    try:
+        json_obj = json.loads(ops)
+    except ValueError as error:
+        print_error_log('Failed to load "%s". %s' % (file_path, str(error)))
+        raise CompareException(CompareException.INVALID_FILE_ERROR) from error
+    if not isinstance(json_obj, dict):
+        print_error_log('Json file %s, content is not a dictionary!' % file_path)
+        raise CompareException(CompareException.INVALID_FILE_ERROR)
+    return json_obj
+
+def get_file_content_bytes(file):
+    with FileOpen(file, 'rb') as file_handle:
+        return file_handle.read()
 
 
 def check_need_convert(api_name):
