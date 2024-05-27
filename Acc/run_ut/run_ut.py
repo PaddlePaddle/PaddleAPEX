@@ -378,9 +378,9 @@ def _run_ut(parser=None):
     if not parser:
         parser = argparse.ArgumentParser()
     _run_ut_parser(parser)
-    # args = parser.parse_args(sys.argv[1:])
-    tmp = ['-forward', './dump.json']
-    args = parser.parse_args(tmp)
+    args = parser.parse_args(sys.argv[1:])
+    # tmp = ['-forward', './dump.json']
+    # args = parser.parse_args(tmp)
     run_ut_command(args)
 
 
