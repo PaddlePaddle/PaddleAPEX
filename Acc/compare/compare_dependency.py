@@ -471,9 +471,9 @@ class CompareException(Exception):
     def __str__(self):
         return self.error_info
 
-# cur_path = os.path.dirname(os.path.realpath(__file__))
-# yaml_path = os.path.join(os.path.dirname(cur_path),'hook_module', "support_wrap_ops.yaml")
-yaml_path = os.path.join("support_wrap_ops.yaml")
+
+cur_path = os.path.dirname(os.path.realpath(__file__))
+yaml_path = os.path.join(cur_path,"configs","op_target.yaml") # paddle提供的文件
 with FileOpen(yaml_path, 'r') as f:
     Ops = yaml.safe_load(f)
     WrapFunctionalOps = Ops.get('functional')
