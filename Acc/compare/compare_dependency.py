@@ -27,24 +27,14 @@ def seed_all(seed=1234):
     np.random.seed(seed)
     paddle.seed(seed)
     # 分布式场景需额外加上
-    # 环境版本貌似不对，跑不了
-    global_seed, local_seed = seed,seed #ok?
+    global_seed, local_seed = seed,seed # 这样ok?
     tracker = paddle.get_rng_state_tracker()
     # tracker = paddle.distributed.fleet.meta_parallel.get_rng_state_tracker()
-    tracker.add("global_seed",global_seed)
-    tracker.add("local_seed",local_seed)
-    # torch的种子设置
-    # torch.manual_seed(seed)
-    # torch.use_deterministic_algorithms(mode)
-    # if IS_GPU:
-    #     torch.cuda.manual_seed_all(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     torch.backends.cudnn.deterministic = True
-    #     torch.backends.cudnn.enable = False
-    #     torch.backends.cudnn.benchmark = False
-    # else:
-    #     torch_npu.npu.manual_seed_all(seed)
-    #     torch_npu.npu.manual_seed(seed)
+    try:
+        tracker.add("global_seed",global_seed)
+        tracker.add("local_seed",local_seed)
+    except Exception as err:
+        print('paddle tracker.add("global_seed",global_seed)', str(err))
 
 class Const:
     """
