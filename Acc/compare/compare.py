@@ -1,12 +1,11 @@
 # 进行比对及结果展示
 import os
 import csv
-# import torch
 import paddle
 import numpy as np
 from rich.table import Table
 from rich.console import Console
-# from api_accuracy_checker.common.utils import get_json_contents, write_csv, print_warn_log
+
 from compare_utils import CompareConst, check_dtype_comparable, DETAIL_TEST_ROWS, \
     precision_configs, BENCHMARK_COMPARE_SUPPORT_LIST, AbsoluteStandardApi, BinaryStandardApi, apis_threshold
 from compare_column import CompareColumn
@@ -14,8 +13,6 @@ from algorithm import get_rmse, get_error_balance, get_max_rel_err, get_mean_rel
     get_rel_err, get_abs_err, get_max_abs_err, get_rel_err_ratio, cosine_sim, get_rel_err_origin, \
     get_small_value_err_ratio, get_finite_and_infinite_mask, get_small_value_mask, check_inf_nan_value, \
     check_small_value, check_norm_value, get_abs_bench_with_eps
-# from api_accuracy_checker.common.config import msCheckerConfig
-# from ptdbg_ascend.src.python.ptdbg_ascend.common.file_check_util import FileOpen
 
 from compare_dependency import get_json_contents, write_csv, print_warn_log
 from compare_dependency import msCheckerConfig

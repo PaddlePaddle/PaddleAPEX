@@ -1,4 +1,4 @@
-from api_accuracy_checker.compare.compare_utils import CompareConst
+from compare_utils import CompareConst
 
 
 class CompareColumn:

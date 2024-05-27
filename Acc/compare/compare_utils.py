@@ -1,11 +1,10 @@
 import time
 import os
 import numpy as np
-# import torch
+
 import paddle
 import yaml
-# from api_accuracy_checker.common.utils import Const, print_warn_log, CompareException
-# from ptdbg_ascend.src.python.ptdbg_ascend.common.file_check_util import FileOpen
+
 from compare_dependency import Const, print_warn_log, CompareException
 from compare_dependency import FileOpen
 

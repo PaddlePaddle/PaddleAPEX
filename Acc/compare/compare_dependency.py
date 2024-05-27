@@ -1,12 +1,4 @@
-# 把下面的依赖copy到这个文件里面，要不然太复杂了，其他文件里面对paddle的依赖太多了
-# api_accuracy_checker.common.uitls
-# ptdbg_ascend.src.python.ptdbg_ascend.common.file_check_util
-
-# from api_accuracy_checker.common.uitls import get_json_contents, write_csv, print_warn_log,Const,CompareException
-# from ptdbg_ascend.src.python.ptdbg_ascend.common.file_check_util import FileOpen
-# from api_accuracy_checker.common.config import msCheckerConfig
-
-# config.yaml和hook_module.support_wrap_ops.yaml这两个配置文件要拿过来吧，要不然多两个层级的目录
+# config.yaml和hook_module.support_wrap_ops.yaml这两个配置文件需要统一
 
 import numpy as np
 import os
