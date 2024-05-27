@@ -14,7 +14,7 @@ from utils import Const, print_warn_log, api_info_preprocess, get_json_contents,
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
-# from ..compare.compare import Comparator
+# from compare.compare import Comparator
 
 
 current_device = 'npu'
