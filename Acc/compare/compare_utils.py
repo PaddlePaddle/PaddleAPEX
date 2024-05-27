@@ -5,8 +5,8 @@ import numpy as np
 import paddle
 import yaml
 
-from compare_dependency import Const, print_warn_log, CompareException
-from compare_dependency import FileOpen
+from compare.compare_dependency import Const, print_warn_log, CompareException
+from compare.compare_dependency import FileOpen
 
 
 current_time = time.strftime("%Y%m%d%H%M%S")

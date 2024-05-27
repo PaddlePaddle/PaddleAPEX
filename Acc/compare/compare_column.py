@@ -1,4 +1,4 @@
-from compare_utils import CompareConst
+from compare.compare_utils import CompareConst
 
 
 class CompareColumn:

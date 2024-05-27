@@ -12,6 +12,7 @@ import random
 import csv
 
 import paddle
+from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
 def seed_all(seed=1234):
     random.seed(seed)
@@ -20,8 +21,7 @@ def seed_all(seed=1234):
     paddle.seed(seed)
     # 分布式场景需额外加上
     global_seed, local_seed = seed,seed # 这样ok?
-    tracker = paddle.get_rng_state_tracker()
-    # tracker = paddle.distributed.fleet.meta_parallel.get_rng_state_tracker()
+    tracker = get_rng_state_tracker()
     try:
         tracker.add("global_seed",global_seed)
         tracker.add("local_seed",local_seed)
@@ -508,7 +508,7 @@ class CompareException(Exception):
 
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
-yaml_path = os.path.join(cur_path,"configs","op_target.yaml") # paddle提供的文件
+yaml_path = os.path.join(os.path.dirname(cur_path),"configs","op_target.yaml") # paddle提供的文件
 with FileOpen(yaml_path, 'r') as f:
     Ops = yaml.safe_load(f)
     WrapFunctionalOps = Ops.get('functional')
@@ -582,9 +582,9 @@ class Config:
                 raise ValueError(f"Invalid key '{key}'")
 
 
-# cur_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-# yaml_path = os.path.join(cur_path, "config.yaml")
-yaml_path = os.path.join("config.yaml")
+cur_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+yaml_path = os.path.join(cur_path, "config.yaml")
+
 msCheckerConfig = Config(yaml_path)
 
 seed_all()

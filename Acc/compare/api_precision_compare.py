@@ -6,17 +6,17 @@ import math
 from collections import namedtuple
 import pandas as pd
 
-from compare_utils import CompareConst, API_PRECISION_COMPARE_RESULT_FILE_NAME, \
+from compare.compare_utils import CompareConst, API_PRECISION_COMPARE_RESULT_FILE_NAME, \
 API_PRECISION_COMPARE_DETAILS_FILE_NAME, BENCHMARK_COMPARE_SUPPORT_LIST, API_PRECISION_COMPARE_UNSUPPORT_LIST, \
     ApiPrecisionCompareColumn, AbsoluteStandardApi, BinaryStandardApi, BINARY_COMPARE_UNSUPPORT_LIST, \
     convert_str_to_float, CompareMessage
-from compare_column import ApiPrecisionOutputColumn
+from compare.compare_column import ApiPrecisionOutputColumn
 from run_ut.run_ut import get_validated_result_csv_path
 
-from compare_dependency import print_info_log, print_warn_log, print_error_log, write_csv, CompareException, create_directory
-from compare_dependency import msCheckerConfig
-from compare_dependency import FileCheckConst, FileChecker, change_mode
-from compare_dependency import check_path_before_create
+from compare.compare_dependency import print_info_log, print_warn_log, print_error_log, write_csv, CompareException, create_directory
+from compare.compare_dependency import msCheckerConfig
+from compare.compare_dependency import FileCheckConst, FileChecker, change_mode
+from compare.compare_dependency import check_path_before_create
 
 
 CompareConfig = namedtuple('CompareConfig', ['npu_csv_path', 'gpu_csv_path', 'result_csv_path', 'details_csv_path'])
