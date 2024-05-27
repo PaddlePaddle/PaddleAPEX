@@ -134,6 +134,41 @@ def check_file_or_directory_path(path, isdir=False):
             'The path {} does not have permission to read. Please check the path permission'.format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
 
+def create_directory(dir_path):
+    """
+    Function Description:
+        creating a directory with specified permissions in a thread-safe manner
+    Parameter:
+        dir_path: directory path
+    Exception Description:
+        when invalid data throw exception
+    """
+    try:
+        os.makedirs(dir_path, mode=FileCheckConst.DATA_DIR_AUTHORITY, exist_ok=True)
+    except OSError as ex:
+        print_error_log(
+            'Failed to create {}. Please check the path permission or disk space. {}'.format(dir_path, str(ex)))
+        raise CompareException(CompareException.INVALID_PATH_ERROR) from ex
+
+def check_path_before_create(path):
+    if len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH or len(os.path.basename(path)) > \
+            Const.FILE_NAME_LENGTH:
+        print_error_log('The file path length exceeds limit.')
+        raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+    if not re.match(Const.FILE_PATTERN, os.path.realpath(path)):
+        print_error_log('The file path {} contains special characters.'.format(path))
+        raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+def change_mode(path, mode):
+    if not os.path.exists(path) or os.path.islink(path):
+        return
+    try:
+        os.chmod(path, mode)
+    except PermissionError as ex:
+        print_error_log('Failed to change {} authority. {}'.format(path, str(ex)))
+        raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR) from ex
+
 def _print_log(level, msg, end='\n'):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
     pid = os.getgid()
