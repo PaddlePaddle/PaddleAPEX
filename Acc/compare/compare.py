@@ -377,6 +377,17 @@ class Comparator:
         rtol = apis_threshold.get(api_name).get(dtype).get('rtol')
         return small_value_threshold, small_value_atol, rtol
 
+
+# 在GPU上测试后增加
+device = paddle.device.get_device()
+if device[0:3] == 'npu':
+    IS_NPU = True
+    current_device = 'npu'
+else:
+    IS_NPU = False
+    current_device = 'gpu'
+
+
 def gen_test_input_data():
     def gen_tensor_shape_type_place(shape, dtype, place='npu'):
         paddle.set_device(place)
@@ -385,7 +396,7 @@ def gen_test_input_data():
 
     def gen_tensor_pair(name, shape, dtypes):
         type1, type2 = dtypes
-        t1 = gen_tensor_shape_type_place(shape, type1, 'npu')
+        t1 = gen_tensor_shape_type_place(shape, type1, current_device)
         paddle.set_device('cpu')
         t2 = t1.clone()
         t2 = t2.cpu().astype(type2)
@@ -395,11 +406,11 @@ def gen_test_input_data():
         paddle.set_device(place)
         return paddle.to_tensor(value, dtype=dtype)
 
-    inpt1 = ['Tensor*add_*0', gen_scalar_tensor(2,place='npu',dtype='int64'), paddle.to_tensor(1,dtype='int64',place=paddle.CPUPlace())]
-    inpt2 = ['Functional*batch_norm*0',gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float32,place='npu'),gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float64,place='cpu')]
-    inpt3 = ['Functional*relu*1',gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float32,place='npu'),gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float64,place='cpu')]
+    inpt1 = ['Tensor*add_*0', gen_scalar_tensor(2,place=current_device,dtype='int64'), paddle.to_tensor(1,dtype='int64',place=paddle.CPUPlace())]
+    inpt2 = ['Functional*batch_norm*0',gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float32,place=current_device),gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float64,place='cpu')]
+    inpt3 = ['Functional*relu*1',gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float32,place=current_device),gen_tensor_shape_type_place(shape=[32,64,32,32],dtype=paddle.float64,place='cpu')]
     inpt4 = gen_tensor_pair(name='Functional*max_pooled*0',shape=[32,64,16,16],dtypes=(paddle.float32,paddle.float64))
-    inpt5 = ['Functional*conv2d*1',gen_tensor_shape_type_place(shape=[32,64,16,16],dtype=paddle.float32,place='npu'),gen_tensor_shape_type_place(shape=[32,64,16,16],dtype=paddle.float64,place='cpu')]
+    inpt5 = ['Functional*conv2d*1',gen_tensor_shape_type_place(shape=[32,64,16,16],dtype=paddle.float32,place=current_device),gen_tensor_shape_type_place(shape=[32,64,16,16],dtype=paddle.float64,place='cpu')]
     return [inpt1,inpt2,inpt3,inpt4,inpt5]
 
 def test():
