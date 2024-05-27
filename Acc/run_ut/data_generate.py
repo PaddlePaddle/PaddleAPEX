@@ -8,9 +8,9 @@ from run_ut_utils import hf_32_standard_api
 
 TENSOR_DATA_LIST_PADDLE = ["paddle.Tensor", "paddle.create_parameter"]
 PADDLE_TYPE = ["paddle.CPUPlace", "paddle.Tensor.dtype"]
-FLOAT_TYPE_PADDLE = ['FP32', 'FP64', 'BF16', 'paddle.float', 'paddle.float64', 'paddle.double', 'paddle.float16',
+FLOAT_TYPE_PADDLE = ['FP16', 'FP32', 'FP64', 'BF16', 'paddle.float', 'paddle.float64', 'paddle.double', 'paddle.float16',
                      'paddle.half', 'paddle.bfloat16']
-REAL_TYPE_PADDLE = {'FP64': 'paddle.float64', 'FP32': 'paddle.float32', 'BF16': 'paddle.bfloat16',
+REAL_TYPE_PADDLE = {'FP64': 'paddle.float64', 'FP32': 'paddle.float32', 'BF16': 'paddle.bfloat16', 'FP16': 'paddle.float16',
                     'BOOL': 'paddle.bool', 'UINT8': 'paddle.uint8', 'INT16': 'paddle.int16', 'INT32': 'paddle.int32',
                     'INT64': 'paddle.int64'}
 NUMPY_TYPE = ["numpy.int8", "numpy.int16", "numpy.int32", "numpy.int64", "numpy.uint8", "numpy.uint16", "numpy.uint32",
@@ -257,13 +257,13 @@ def gen_kwargs(api_info, convert_type=None, real_data_path=None):
         elif value.get('type') in TENSOR_DATA_LIST_PADDLE or value.get('type').startswith("numpy"):
             kwargs_params[key] = gen_data(value, True, convert_type, real_data_path)
         elif value.get('type') in PADDLE_TYPE:
-            gen_torch_kwargs(kwargs_params, key, value)
+            gen_paddle_kwargs(kwargs_params, key, value)
         else:
             kwargs_params[key] = value.get('value')
     return kwargs_params
 
 
-def gen_torch_kwargs(kwargs_params, key, value):
+def gen_paddle_kwargs(kwargs_params, key, value):
     if value.get('type') != "paddle.CPUPlace":
         kwargs_params[key] = eval(value.get('value'))
 

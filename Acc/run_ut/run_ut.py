@@ -14,8 +14,7 @@ from utils import Const, print_warn_log, api_info_preprocess, get_json_contents,
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
-# from config import msCheckerConfig
-# from api_info import APIInfo
+# from ..compare.compare import Comparator
 
 
 current_device = 'npu'
@@ -63,7 +62,7 @@ def raise_bench_data_dtype(api_name, arg, raise_dtype=None):
         return arg
     if raise_dtype is None or arg.dtype not in Const.RAISE_PRECISION_PADDLE or raise_dtype == arg.dtype:
         return arg
-    return arg.type(raise_dtype)
+    return arg.astype(raise_dtype)
 
 
 def retain_grad(tensor):
@@ -164,6 +163,11 @@ def run_ut(config):
             data_info = run_paddle_api(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
             print("*"*200)
             print(data_info)
+            # is_fwd_success, is_bwd_success = compare.compare_output(app_full_name,
+            #                                                         data_info.bench_output,
+            #                                                         data_info.device_output,
+            #                                                         data_info.bench_grad,
+            #                                                         data_info.device_grad)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
             if "expected scalar type Long" in str(err):
@@ -208,7 +212,7 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     # print(device_out)
 
     # current_path = os.path.dirname(os.path.realpath(__file__))
-    # ut_setting_path = os.path.join(current_path, "torch_ut_setting.json")
+    # ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
     # api_setting_dict = get_json_contents(ut_setting_path)
     # grad_input_index = api_setting_dict.get(api_name)
     # grad_index = None
@@ -385,18 +389,6 @@ def _run_ut(parser=None):
 
 
 def run_ut_command(args):
-    # if not is_gpu:
-    #     torch.npu.set_compile_mode(jit_compile=args.jit_compile)
-    # used_device = current_device + ":" + str(args.device_id[0])
-    # try:
-    #     if is_gpu:
-    #         torch.cuda.set_device(used_device)
-    #     else:
-    #         torch.npu.set_device(used_device)
-    # except Exception as error:
-    #     print_error_log(f"Set device id failed. device id is: {args.device_id}")
-    #     raise NotImplementedError from error
-
     check_link(args.forward_input_file)
     forward_file = os.path.realpath(args.forward_input_file)
     check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
@@ -432,7 +424,6 @@ def run_ut_command(args):
             time_info = result_csv_path.split('.')[0].split('_')[-1]
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
-        # initialize_save_error_data()
     run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
                                 args.result_csv_path, args.real_data_path)
     run_ut(run_ut_config)
