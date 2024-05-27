@@ -5,7 +5,7 @@ import stat
 import time
 import sys
 import json
-
+import re
 from file_check_util import FileOpen
 
 
@@ -63,6 +63,42 @@ class Const:
     }
 
 
+class FileCheckConst:
+    """
+    Class for file check const
+    """
+    READ_ABLE = "read"
+    WRITE_ABLE = "write"
+    READ_WRITE_ABLE = "read and write"
+    DIRECTORY_LENGTH = 4096
+    FILE_NAME_LENGTH = 255
+    FILE_VALID_PATTEN = r"^[a-zA-Z0-9_.:/-]+$"
+    PKL_SUFFIX = ".pkl"
+    NUMPY_SUFFIX = ".npy"
+    JSON_SUFFIX = ".json"
+    PT_SUFFIX = ".pt"
+    CSV_SUFFIX = ".csv"
+    YAML_SUFFIX = ".yaml"
+    MAX_PKL_SIZE = 1 * 1024 * 1024 * 1024
+    MAX_NUMPY_SIZE = 10 * 1024 * 1024 * 1024
+    MAX_JSON_SIZE = 1 * 1024 * 1024 * 1024
+    MAT_PT_SIZE = 10 * 1024 * 1024 * 1024
+    MAX_CSV_SIZE = 1 * 1024 * 1024 * 1024
+    MAX_YAML_SIZE = 10 * 1024 * 1024 * 1024
+    DIR = "dir"
+    FILE = "file"
+    DATA_DIR_AUTHORITY = 0o750
+    DATA_FILE_AUTHORITY = 0o640
+    FILE_SIZE_DICT = {
+        PKL_SUFFIX: MAX_PKL_SIZE,
+        NUMPY_SUFFIX: MAX_NUMPY_SIZE,
+        JSON_SUFFIX: MAX_JSON_SIZE,
+        PT_SUFFIX: MAT_PT_SIZE,
+        CSV_SUFFIX: MAX_CSV_SIZE,
+        YAML_SUFFIX: MAX_YAML_SIZE
+    }
+
+
 class CompareException(Exception):
     """
     Class for Accuracy Compare Exception
@@ -110,6 +146,16 @@ def print_error_log(error_msg):
         error_msg: the error message.
     """
     _print_log("ERROR", error_msg)
+
+
+def print_info_log(info_msg, end='\n'):
+    """
+    Function Description:
+        print info log.
+    Parameter:
+        info_msg: the info message.
+    """
+    _print_log("INFO", info_msg, end=end)
 
 
 def print_warn_log(warn_msg):
@@ -169,6 +215,168 @@ def check_file_or_directory_path(path, isdir=False):
         print_error_log(
             'The path {} does not have permission to read. Please check the path permission'.format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+
+def _check_pkl(pkl_file_handle, file_name):
+    tensor_line = pkl_file_handle.readline()
+    if len(tensor_line) == 0:
+        print_error_log("dump file {} have empty line!".format(file_name))
+        raise CompareException(CompareException.INVALID_DUMP_FILE)
+    pkl_file_handle.seek(0, 0)
+
+
+def check_file_mode(npu_pkl, bench_pkl, stack_mode):
+    npu_pkl_name = os.path.split(npu_pkl)[-1]
+    bench_pkl_name = os.path.split(bench_pkl)[-1]
+
+    if not npu_pkl_name.startswith("api_stack") and not bench_pkl_name.startswith("api_stack"):
+        if stack_mode:
+            print_error_log("The current file does not contain stack information, please turn off the stack_mode")
+            raise CompareException(CompareException.INVALID_COMPARE_MODE)
+    elif npu_pkl_name.startswith("api_stack") and bench_pkl_name.startswith("api_stack"):
+        if not stack_mode:
+            print_error_log("The current file contains stack information, please turn on the stack_mode")
+            raise CompareException(CompareException.INVALID_COMPARE_MODE)
+    else:
+        print_error_log("The dump mode of the two files is not same, please check the dump files")
+        raise CompareException(CompareException.INVALID_COMPARE_MODE)
+
+
+def check_file_size(input_file, max_size):
+    try:
+        file_size = os.path.getsize(input_file)
+    except OSError as os_error:
+        print_error_log('Failed to open "%s". %s' % (input_file, str(os_error)))
+        raise CompareException(CompareException.INVALID_FILE_ERROR) from os_error
+    if file_size > max_size:
+        print_error_log('The size (%d) of %s exceeds (%d) bytes, tools not support.'
+                        % (file_size, input_file, max_size))
+        raise CompareException(CompareException.INVALID_FILE_ERROR)
+
+
+def get_dump_data_path(dump_dir):
+    """
+    Function Description:
+        traverse directories and obtain the absolute path of dump data
+    Parameter:
+        dump_dir: dump data directory
+    Return Value:
+        dump data path,file is exist or file is not exist
+    """
+    dump_data_path = None
+    file_is_exist = False
+
+    check_file_or_directory_path(dump_dir, True)
+    for dir_path, sub_paths, files in os.walk(dump_dir):
+        if len(files) != 0:
+            dump_data_path = dir_path
+            file_is_exist = True
+            break
+        dump_data_path = dir_path
+    return dump_data_path, file_is_exist
+
+
+def modify_dump_path(dump_path, mode):
+    if mode == Const.ALL:
+        return dump_path
+    file_name = os.path.split(dump_path)
+    mode_file_name = mode + "_" + file_name[-1]
+    return os.path.join(file_name[0], mode_file_name)
+
+
+def create_directory(dir_path):
+    """
+    Function Description:
+        creating a directory with specified permissions in a thread-safe manner
+    Parameter:
+        dir_path: directory path
+    Exception Description:
+        when invalid data throw exception
+    """
+    try:
+        os.makedirs(dir_path, mode=FileCheckConst.DATA_DIR_AUTHORITY, exist_ok=True)
+    except OSError as ex:
+        print_error_log(
+            'Failed to create {}. Please check the path permission or disk space. {}'.format(dir_path, str(ex)))
+        raise CompareException(CompareException.INVALID_PATH_ERROR) from ex
+
+
+# def execute_command(cmd):
+#     """
+#     Function Description:
+#         run the following command
+#     Parameter:
+#         cmd: command
+#     Exception Description:
+#         when invalid command throw exception
+#     """
+#     print_info_log('Execute command:%s' % cmd)
+#     process = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#     while process.poll() is None:
+#         line = process.stdout.readline()
+#         line = line.strip()
+#         if line:
+#             print(line)
+#     if process.returncode != 0:
+#         print_error_log('Failed to execute command:%s' % " ".join(cmd))
+#         raise CompareException(CompareException.INVALID_DATA_ERROR)
+
+
+def save_numpy_data(file_path, data):
+    """
+    save_numpy_data
+    """
+    if not os.path.exists(os.path.dirname(file_path)):
+        os.makedirs(os.path.dirname(file_path))
+    np.save(file_path, data)
+
+
+def parse_arg_value(values):
+    """
+    parse dynamic arg value of atc cmdline
+    """
+    value_list = []
+    for item in values.split(Const.SEMICOLON):
+        value_list.append(parse_value_by_comma(item))
+    return value_list
+
+
+def parse_value_by_comma(value):
+    """
+    parse value by comma, like '1,2,4,8'
+    """
+    value_list = []
+    value_str_list = value.split(Const.COMMA)
+    for value_str in value_str_list:
+        value_str = value_str.strip()
+        if value_str.isdigit() or value_str == '-1':
+            value_list.append(int(value_str))
+        else:
+            print_error_log("please check your input shape.")
+            raise CompareException(CompareException.INVALID_PARAM_ERROR)
+    return value_list
+
+
+def get_data_len_by_shape(shape):
+    data_len = 1
+    for item in shape:
+        if item == -1:
+            print_error_log("please check your input shape, one dim in shape is -1.")
+            return -1
+        data_len = data_len * item
+    return data_len
+
+
+def add_time_as_suffix(name):
+    return '{}_{}.csv'.format(name, time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
+
+
+# def get_time():
+#     return datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+
+def format_value(value):
+    return '{:.6f}'.format(value)
 
 
 def get_json_contents(file_path):
@@ -231,8 +439,29 @@ def cross_entropy_process(api_info_dict):
     return api_info_dict
 
 
+# def initialize_save_path(save_path, dir_name):
+#     data_path = os.path.join(save_path, dir_name)
+#     if os.path.exists(data_path):
+#         print_warn_log(f"{data_path} already exists, it will be overwritten")
+#     else:
+#         os.mkdir(data_path, mode=FileCheckConst.DATA_DIR_AUTHORITY)
+#     data_path_checker = FileChecker(data_path, FileCheckConst.DIR)
+#     data_path_checker.common_check()
+
+
 def get_full_data_path(data_path, real_data_path):
     if not data_path:
         return data_path
     full_data_path = os.path.join(real_data_path, data_path)
     return os.path.realpath(full_data_path)
+
+
+def check_path_before_create(path):
+    if len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH or len(os.path.basename(path)) > \
+            Const.FILE_NAME_LENGTH:
+        print_error_log('The file path length exceeds limit.')
+        raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+    if not re.match(Const.FILE_PATTERN, os.path.realpath(path)):
+        print_error_log('The file path {} contains special characters.'.format(path))
+        raise CompareException(CompareException.INVALID_PATH_ERROR)

@@ -1,10 +1,21 @@
+import argparse
 import json
 import os
+import sys
+import time
+import csv
+import gc
+import re
+from collections import namedtuple
+from tqdm import tqdm
 import paddle
 import paddle.nn.functional as F
-from utils import Const, print_warn_log, api_info_preprocess, get_json_contents
+from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, print_error_log, check_path_before_create
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
+from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
+# from config import msCheckerConfig
+# from api_info import APIInfo
 
 
 current_device = 'npu'
@@ -12,6 +23,26 @@ current_device = 'npu'
 not_raise_dtype_set = {'type_as'}
 not_detach_set = {'resize_', 'resize_as_', 'set_', 'transpose_', 't_', 'squeeze_', 'unsqueeze_'}
 not_backward_list = ['repeat_interleave']
+current_time = time.strftime("%Y%m%d%H%M%S")
+RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
+DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
+RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'backward_content', 'result_csv_path', 'details_csv_path',
+                                         'save_error_data', 'is_continue_run_ut', 'real_data_path'])
+
+tqdm_params = {
+    'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
+    'desc': 'Processing',   # 进度条前的描述文字
+    'leave': True,      # 迭代完成后保留进度条的显示
+    'ncols': 75,        # 进度条的固定宽度
+    'mininterval': 0.1,     # 更新进度条的最小间隔秒数
+    'maxinterval': 1.0,     # 更新进度条的最大间隔秒数
+    'miniters': 1,  # 更新进度条之间的最小迭代次数
+    'ascii': None,  # 根据环境自动使用ASCII或Unicode字符
+    'unit': 'it',   # 迭代单位
+    'unit_scale': True,     # 自动根据单位缩放
+    'dynamic_ncols': True,  # 动态调整进度条宽度以适应控制台
+    'bar_format': '{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'   # 自定义进度条输出
+}
 
 
 def deal_detach(arg, to_detach=True):
@@ -113,6 +144,37 @@ def generate_device_params(input_args, input_kwargs, need_backward, api_name):
     return device_args, device_kwargs
 
 
+def run_ut(config):
+    print_info_log("start UT test")
+    print_info_log(f"UT task result will be saved in {config.result_csv_path}")
+    print_info_log(f"UT task details will be saved in {config.details_csv_path}")
+    # if config.save_error_data:
+    #     error_data_path = os.path.abspath(os.path.join(msCheckerConfig.error_data_path, UT_ERROR_DATA_DIR))
+    #     print_info_log(f"UT task error_datas will be saved in {error_data_path}")
+    # compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
+    # with FileOpen(config.result_csv_path, 'r') as file:
+    #     csv_reader = csv.reader(file)
+    #     next(csv_reader)
+    #     api_name_set = {row[0] for row in csv_reader}
+    for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
+        # if api_full_name in api_name_set:
+        #     continue
+        try:
+            print(api_full_name)
+            data_info = run_paddle_api(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            print("*"*200)
+            print(data_info)
+        except Exception as err:
+            [_, api_name, _] = api_full_name.split("*")
+            if "expected scalar type Long" in str(err):
+                print_warn_log(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
+                               f"'int32_to_int64' list in accuracy_tools/api_accuracy_check/common/utils.py file")
+            else:
+                print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
+        finally:
+            gc.collect()
+
+
 def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict):
     in_fwd_data_list = []
     backward_message = ''
@@ -209,6 +271,173 @@ def exec(op_name, api_type):
         print("In Exec: Undefined api type!")
 
 
+def get_validated_result_csv_path(result_csv_path, mode):
+    if mode not in ['result', 'detail']:
+        raise ValueError("The csv mode must be result or detail")
+    result_csv_path_checker = FileChecker(result_csv_path, FileCheckConst.FILE, ability=FileCheckConst.READ_WRITE_ABLE,
+                                          file_type=FileCheckConst.CSV_SUFFIX)
+    validated_result_csv_path = result_csv_path_checker.common_check()
+    if mode == 'result':
+        result_csv_name = os.path.basename(validated_result_csv_path)
+        pattern = r"^accuracy_checking_result_\d{14}\.csv$"
+        if not re.match(pattern, result_csv_name):
+            raise ValueError("When continue run ut, please do not modify the result csv name.")
+    return validated_result_csv_path
+
+
+def get_validated_details_csv_path(validated_result_csv_path):
+    result_csv_name = os.path.basename(validated_result_csv_path)
+    details_csv_name = result_csv_name.replace('result', 'details')
+    details_csv_path = os.path.join(os.path.dirname(validated_result_csv_path), details_csv_name)
+    details_csv_path_checker = FileChecker(details_csv_path, FileCheckConst.FILE,
+                                           ability=FileCheckConst.READ_WRITE_ABLE, file_type=FileCheckConst.CSV_SUFFIX)
+    validated_details_csv_path = details_csv_path_checker.common_check()
+    return validated_details_csv_path
+
+
+def _run_ut_parser(parser):
+    parser.add_argument("-forward", "--forward_input_file", dest="forward_input_file", default="", type=str,
+                        help="<Optional> The api param tool forward result file: generate from api param tool, "
+                             "a json file.",
+                        required=False)
+    parser.add_argument("-backward", "--backward_input_file", dest="backward_input_file", default="", type=str,
+                        help="<Optional> The api param tool backward result file: generate from api param tool, "
+                             "a json file.",
+                        required=False)
+    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
+                        help="<optional> The ut task result out path.",
+                        required=False)
+    parser.add_argument('-save_error_data', dest="save_error_data", action="store_true",
+                        help="<optional> Save compare failed api output.", required=False)
+    parser.add_argument("-j", "--jit_compile", dest="jit_compile", action="store_true",
+                        help="<optional> whether to turn on jit compile", required=False)
+
+    class UniqueDeviceAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            unique_values = set(values)
+            if len(values) != len(unique_values):
+                parser.error("device id must be unique")
+            for device_id in values:
+                if not 0 <= device_id:
+                    parser.error("device id must be greater than or equal to 0")
+            setattr(namespace, self.dest, values)
+
+    parser.add_argument("-d", "--device", dest="device_id", nargs='+', type=int,
+                        help="<optional> set device id to run ut, must be unique and in range 0-7",
+                        default=[0], required=False, action=UniqueDeviceAction)
+    parser.add_argument("-csv_path", "--result_csv_path", dest="result_csv_path", default="", type=str,
+                        help="<optional> The path of accuracy_checking_result_{timestamp}.csv, "
+                             "when run ut is interrupted, enter the file path to continue run ut.",
+                        required=False)
+    parser.add_argument("-real_data_path", dest="real_data_path", nargs="?", const="", default="", type=str,
+                        help="<optional> In real data mode, the root directory for storing real data "
+                             "must be configured.",
+                        required=False)
+    parser.add_argument("-f", "--filter_api", dest="filter_api", action="store_true",
+                        help="<optional> Whether to filter the api in the forward_input_file.", required=False)
+
+
+def preprocess_forward_content(forward_content):
+    processed_content = {}
+    base_keys_variants = {}
+    arg_cache = {}
+
+    for key, value in forward_content.items():
+        base_key = key.rsplit(Const.DELIMITER, 1)[0]
+
+        if key not in arg_cache:
+            new_args = value['args']
+            new_kwargs = value['kwargs']
+            filtered_new_args = [
+                {k: v for k, v in arg.items() if k not in ['Max', 'Min']}
+                for arg in new_args if isinstance(arg, dict)
+            ]
+            arg_cache[key] = (filtered_new_args, new_kwargs)
+
+        filtered_new_args, new_kwargs = arg_cache[key]
+
+        if base_key not in base_keys_variants:
+            processed_content[key] = value
+            base_keys_variants[base_key] = {key}
+        else:
+            is_duplicate = False
+            for variant in base_keys_variants[base_key]:
+                existing_args, existing_kwargs = arg_cache[variant]
+                if existing_args == filtered_new_args and existing_kwargs == new_kwargs:
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                processed_content[key] = value
+                base_keys_variants[base_key].add(key)
+
+    return processed_content
+
+
+def _run_ut(parser=None):
+    if not parser:
+        parser = argparse.ArgumentParser()
+    _run_ut_parser(parser)
+    # args = parser.parse_args(sys.argv[1:])
+    tmp = ['-forward', './dump.json']
+    args = parser.parse_args(tmp)
+    run_ut_command(args)
+
+
+def run_ut_command(args):
+    # if not is_gpu:
+    #     torch.npu.set_compile_mode(jit_compile=args.jit_compile)
+    # used_device = current_device + ":" + str(args.device_id[0])
+    # try:
+    #     if is_gpu:
+    #         torch.cuda.set_device(used_device)
+    #     else:
+    #         torch.npu.set_device(used_device)
+    # except Exception as error:
+    #     print_error_log(f"Set device id failed. device id is: {args.device_id}")
+    #     raise NotImplementedError from error
+
+    check_link(args.forward_input_file)
+    forward_file = os.path.realpath(args.forward_input_file)
+    check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
+    out_path = os.path.realpath(args.out_path) if args.out_path else "./"
+    check_path_before_create(out_path)
+    create_directory(out_path)
+    out_path_checker = FileChecker(out_path, FileCheckConst.DIR, ability=FileCheckConst.WRITE_ABLE)
+    out_path = out_path_checker.common_check()
+    save_error_data = args.save_error_data
+    forward_content = {}
+    if args.forward_input_file:
+        check_link(args.forward_input_file)
+        forward_file = os.path.realpath(args.forward_input_file)
+        check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
+        forward_content = get_json_contents(forward_file)
+    if args.filter_api:
+        print_info_log("Start filtering the api in the forward_input_file.")
+        forward_content = preprocess_forward_content(forward_content)
+        print_info_log("Finish filtering the api in the forward_input_file.")
+    backward_content = {}
+    if args.backward_input_file:
+        check_link(args.backward_input_file)
+        backward_file = os.path.realpath(args.backward_input_file)
+        check_file_suffix(backward_file, FileCheckConst.JSON_SUFFIX)
+        backward_content = get_json_contents(backward_file)
+    result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
+    details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
+    if args.result_csv_path:
+        result_csv_path = get_validated_result_csv_path(args.result_csv_path, 'result')
+        details_csv_path = get_validated_details_csv_path(result_csv_path)
+    if save_error_data:
+        if args.result_csv_path:
+            time_info = result_csv_path.split('.')[0].split('_')[-1]
+            global UT_ERROR_DATA_DIR
+            UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
+        # initialize_save_error_data()
+    run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
+                                args.result_csv_path, args.real_data_path)
+    run_ut(run_ut_config)
+
+
 class UtDataInfo:
     def __init__(self, bench_grad, device_grad, device_output, bench_output, grad_in, in_fwd_data_list,
                  backward_message, rank=0):
@@ -222,7 +451,6 @@ class UtDataInfo:
         self.rank = rank
 
 
-
 # if __name__ == "__main__":
 #     tensor_x = paddle.randn([8192, 5120])
 #     tensor_x.to("bfloat16")
@@ -234,14 +462,19 @@ class UtDataInfo:
 #     print(ret.shape)
 
 
-if __name__ == '__main__':
-    json_path = r'./dump.json'
-    with open(json_path, 'r') as json_f:
-        data = json.load(json_f)
-        for key, value in data.items():
-            api_full_name = key
-            api_info_dict = value
-            real_data_path = ''
-            backward_content = ''
-            result = run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict)
-            print(result)
+# if __name__ == '__main__':
+#     json_path = r'./dump.json'
+#     with open(json_path, 'r') as json_f:
+#         data = json.load(json_f)
+#         for key, value in data.items():
+#             api_full_name = key
+#             api_info_dict = value
+#             real_data_path = ''
+#             backward_content = ''
+#             result = run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict)
+#             print(result)
+
+
+if __name__ == "__main__":
+    _run_ut()
+    print_info_log("UT task completed")
