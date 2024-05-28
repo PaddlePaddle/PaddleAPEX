@@ -6,7 +6,9 @@ import time
 import sys
 import json
 import re
+import random
 from file_check_util import FileOpen
+from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
 
 class Const:
@@ -301,27 +303,6 @@ def create_directory(dir_path):
         raise CompareException(CompareException.INVALID_PATH_ERROR) from ex
 
 
-# def execute_command(cmd):
-#     """
-#     Function Description:
-#         run the following command
-#     Parameter:
-#         cmd: command
-#     Exception Description:
-#         when invalid command throw exception
-#     """
-#     print_info_log('Execute command:%s' % cmd)
-#     process = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#     while process.poll() is None:
-#         line = process.stdout.readline()
-#         line = line.strip()
-#         if line:
-#             print(line)
-#     if process.returncode != 0:
-#         print_error_log('Failed to execute command:%s' % " ".join(cmd))
-#         raise CompareException(CompareException.INVALID_DATA_ERROR)
-
-
 def save_numpy_data(file_path, data):
     """
     save_numpy_data
@@ -369,10 +350,6 @@ def get_data_len_by_shape(shape):
 
 def add_time_as_suffix(name):
     return '{}_{}.csv'.format(name, time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
-
-
-# def get_time():
-#     return datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
 def format_value(value):
@@ -439,16 +416,6 @@ def cross_entropy_process(api_info_dict):
     return api_info_dict
 
 
-# def initialize_save_path(save_path, dir_name):
-#     data_path = os.path.join(save_path, dir_name)
-#     if os.path.exists(data_path):
-#         print_warn_log(f"{data_path} already exists, it will be overwritten")
-#     else:
-#         os.mkdir(data_path, mode=FileCheckConst.DATA_DIR_AUTHORITY)
-#     data_path_checker = FileChecker(data_path, FileCheckConst.DIR)
-#     data_path_checker.common_check()
-
-
 def get_full_data_path(data_path, real_data_path):
     if not data_path:
         return data_path
@@ -465,3 +432,18 @@ def check_path_before_create(path):
     if not re.match(Const.FILE_PATTERN, os.path.realpath(path)):
         print_error_log('The file path {} contains special characters.'.format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
+
+def seed_all(seed=1234):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    paddle.seed(seed)
+    # 分布式场景需额外加上
+    global_seed, local_seed = seed,seed # 这样ok?
+    tracker = get_rng_state_tracker()
+    try:
+        tracker.add("global_seed",global_seed)
+        tracker.add("local_seed",local_seed)
+    except Exception as err:
+        print('paddle tracker.add("global_seed",global_seed)', str(err))

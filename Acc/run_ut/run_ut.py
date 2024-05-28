@@ -10,15 +10,13 @@ from collections import namedtuple
 from tqdm import tqdm
 import paddle
 import paddle.nn.functional as F
-from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, print_error_log, check_path_before_create
+from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, print_error_log, check_path_before_create, seed_all
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
 # from compare.compare import Comparator
 
-
-current_device = 'npu'
-
+seed_all()
 not_raise_dtype_set = {'type_as'}
 not_detach_set = {'resize_', 'resize_as_', 'set_', 'transpose_', 't_', 'squeeze_', 'unsqueeze_'}
 not_backward_list = ['repeat_interleave']
@@ -136,6 +134,7 @@ def generate_device_params(input_args, input_kwargs, need_backward, api_name):
         else:
             return arg_in
 
+    current_device = paddle.device.get_device()
     is_detach = api_name not in not_detach_set
     device_args = recursive_arg_to_device(input_args, is_detach)
     device_kwargs = \
@@ -204,13 +203,6 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     out = exec(api_name, api_type)(*cpu_args, **cpu_kwargs)
     device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
 
-    # print('*'*200)
-    # print(out)
-    # # print(cpu_args)
-    # print('*'*200)
-    # # print(device_args)
-    # print(device_out)
-
     # current_path = os.path.dirname(os.path.realpath(__file__))
     # ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
     # api_setting_dict = get_json_contents(ut_setting_path)
@@ -232,6 +224,111 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     #         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
     return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, bench_grad, in_fwd_data_list, backward_message)
+
+
+def _run_ut_save(parser=None):
+    if not parser:
+        parser = argparse.ArgumentParser()
+    _run_ut_parser(parser)
+    args = parser.parse_args(sys.argv[1:])
+    # tmp = ['-forward', './dump.json']
+    # args = parser.parse_args(tmp)
+    run_ut_command_save(args)
+
+
+def run_ut_command_save(args):
+    check_link(args.forward_input_file)
+    forward_file = os.path.realpath(args.forward_input_file)
+    check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
+    out_path = os.path.realpath(args.out_path) if args.out_path else "./"
+    check_path_before_create(out_path)
+    create_directory(out_path)
+    out_path_checker = FileChecker(out_path, FileCheckConst.DIR, ability=FileCheckConst.WRITE_ABLE)
+    out_path = out_path_checker.common_check()
+    save_error_data = args.save_error_data
+    forward_content = {}
+    if args.forward_input_file:
+        check_link(args.forward_input_file)
+        forward_file = os.path.realpath(args.forward_input_file)
+        check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
+        forward_content = get_json_contents(forward_file)
+    if args.filter_api:
+        print_info_log("Start filtering the api in the forward_input_file.")
+        forward_content = preprocess_forward_content(forward_content)
+        print_info_log("Finish filtering the api in the forward_input_file.")
+    backward_content = {}
+    if args.backward_input_file:
+        check_link(args.backward_input_file)
+        backward_file = os.path.realpath(args.backward_input_file)
+        check_file_suffix(backward_file, FileCheckConst.JSON_SUFFIX)
+        backward_content = get_json_contents(backward_file)
+    result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
+    details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
+    if args.result_csv_path:
+        result_csv_path = get_validated_result_csv_path(args.result_csv_path, 'result')
+        details_csv_path = get_validated_details_csv_path(result_csv_path)
+    if save_error_data:
+        if args.result_csv_path:
+            time_info = result_csv_path.split('.')[0].split('_')[-1]
+            global UT_ERROR_DATA_DIR
+            UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
+    run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
+                                args.result_csv_path, args.real_data_path)
+    run_ut_save(run_ut_config)
+
+
+def run_ut_save(config):
+    print_info_log("start UT save")
+    for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
+        try:
+            print(api_full_name)
+            data_info = run_paddle_api_save(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            print("*"*200)
+            print(data_info)
+        except Exception as err:
+            [_, api_name, _] = api_full_name.split("*")
+            if "expected scalar type Long" in str(err):
+                print_warn_log(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
+                               f"'int32_to_int64' list in accuracy_tools/api_accuracy_check/common/utils.py file")
+            else:
+                print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
+        finally:
+            gc.collect()
+
+
+def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_info_dict):
+    in_fwd_data_list = []
+    backward_message = ''
+    [api_type, api_name, _] = api_full_name.split('*')
+    args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
+    in_fwd_data_list.append(args)
+    in_fwd_data_list.append(kwargs)
+    # need_backward = api_full_name in backward_content
+    need_backward = True
+    if not need_grad:
+        print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
+        backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
+    if api_name in not_backward_list:
+        need_grad = False
+        print_warn_log(f"{api_full_name} {Backward_Message.NO_BACKWARD_RESULT_MESSAGE.format(api_full_name)}")
+        backward_message += Backward_Message.NO_BACKWARD_RESULT_MESSAGE
+    need_backward = need_backward and need_grad
+    if kwargs.get("device"):
+        del kwargs["device"]
+    device_args, device_kwargs = generate_device_params(args, kwargs, need_backward, api_name)
+    device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
+
+    device_str = paddle.device.get_device()
+    if device_str[0:3] == "npu":
+        output_folder = "npu_output"
+    else:
+        output_folder = "gpu_output"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder))
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = output_dir + '/' + f'{api_full_name}'
+    paddle.save(device_out, output_path)
+    return
 
 
 def get_api_info(api_info_dict, api_name, real_data_path):
