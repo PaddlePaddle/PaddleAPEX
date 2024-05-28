@@ -233,8 +233,6 @@ paddle:
   -  frac
   -  frac_
   -  frexp
-  -  full
-  -  full_like
   -  gather
   -  gather_nd
   -  gcd

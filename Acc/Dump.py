@@ -84,15 +84,14 @@ class Dump:
             self.dump_api_dict.update(api_info_dict)
 
     def dump(self):
-        if not self.rank:
+        if self.rank:
             directory = os.path.join(
                 self.data_route, f"rank{self.rank}_step{cfg.global_step}"
             )
         else:
             directory = self.data_route
-
         create_directory(directory)
-        if not self.rank:
+        if self.rank:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
         else:
             write_json(directory, self.dump_api_dict, rank=None, mode="forward")
