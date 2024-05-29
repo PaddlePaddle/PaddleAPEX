@@ -282,9 +282,8 @@ def run_ut_save(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            data_info = run_paddle_api_save(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            run_paddle_api_save(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
             print("*"*200)
-            print(data_info)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
             if "expected scalar type Long" in str(err):
