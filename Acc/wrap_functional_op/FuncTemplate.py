@@ -1,3 +1,16 @@
+# Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from ..api_info import API
 from .. import config
 import paddle.nn as nn
@@ -30,7 +43,7 @@ class FunctionalOPTemplate(nn.Layer):
         if cfg.dump_state:
             api_recorder = API(cfg.dump_mode)
             rank = dist.get_rank()
-            api_recorder.update_APIInfo(config.prefix_functional_op_name_, rank)
+            api_recorder.update_APIInfo(cfg.prefix_functional_op_name_, rank)
             output = getattr(HookFunctionalOp, "wrap_" + str(self.op_name_))(
                 *inputs, **kwargs
             )

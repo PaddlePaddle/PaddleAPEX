@@ -1,21 +1,20 @@
+# Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import json
 import os
-from . import config
-import paddle
-
-cfg = config.cfg
-
-
-def write_pt(file_path, tensor):
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        print(
-            f"File {file_path} already exists, tool has overwritten it automatically."
-        )
-    paddle.save(tensor, file_path)
-    full_path = os.path.realpath(file_path)
-    return full_path
-
+from .config import cfg
+from .Async_save_data import *
 
 def create_directory(data_route):
     try:
@@ -35,14 +34,20 @@ def write_json(file_path, data, rank=None, mode="forward"):
     with open(json_pth, mode="a+") as f:
         json.dump(data, f, indent=2)
 
-
 class Dump:
-    def __init__(self, mode="real_data"):
+    def __init__(self, mode="real_data", Async_save=True):
         self.api_info = {}
         self.data_route = cfg.dump_root_path
         self.mode = mode
         self.rank = None
         self.dump_api_dict = None
+        self.Async_save = Async_save
+
+        if self.Async_save:
+            self.pool = ThreadPool()
+        else:
+            pass
+
 
     """
         Dump tensor object to disk.
@@ -54,8 +59,18 @@ class Dump:
         directory = os.path.join(self.data_route, f"rank{rank}_step{cfg.global_step}")
         file_path = os.path.join(directory, f"{api_args}.pt")
         create_directory(directory)
-        pt_path = write_pt(file_path, tensor)
-        return pt_path
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(
+                f"File {file_path} already exists, tool has overwritten it automatically."
+            )
+        full_path = os.path.realpath(file_path)
+        tensor_np = tensor.numpy()
+        if self.Async_save:
+            self.pool.safe_parellel_save(tensor_np,file_path)
+        else:
+            save_tensor(tensor_np,file_path)
+        return full_path
 
     """
         Get Api_info dict, update self.dump_api_dict
@@ -69,7 +84,7 @@ class Dump:
             self.dump_api_dict.update(api_info_dict)
 
     def dump(self):
-        if self.rank is not None:
+        if not self.rank:
             directory = os.path.join(
                 self.data_route, f"rank{self.rank}_step{cfg.global_step}"
             )
@@ -77,7 +92,7 @@ class Dump:
             directory = self.data_route
 
         create_directory(directory)
-        if self.rank is not None:
+        if not self.rank:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
         else:
             write_json(directory, self.dump_api_dict, rank=None, mode="forward")
