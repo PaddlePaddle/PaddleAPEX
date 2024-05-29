@@ -407,10 +407,10 @@ tqdm_params = {
 def _compare_parser(parser):
     parser.add_argument("-gpu","--gpu_data_dir",dest='gpu_data_dir',type=str,
                         help='The executed output api tensor path directory',
-                        require=True)
+                        required=True)
     parser.add_argument("-npu","--npu_data_dir",dest='npu_data_dir',type=str,
                         help='The executed output api tensor path directory',
-                        require=True)
+                        required=True)
     parser.add_argument('-o','--out_path',dest="out_path",default="",type=str,
                         help='<Optional> The result out path')
 
