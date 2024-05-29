@@ -36,8 +36,7 @@ def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
     """
     check_object_type(info, dict)
     data_type = info.get('type')
-    data_path = info.get('datapath')
-    data_path = get_full_data_path(data_path, real_data_path)
+    data_path = info.get('real_data_path')
     if data_type in TENSOR_DATA_LIST_PADDLE:
         if data_path:
             data = gen_real_tensor(data_path, convert_type)

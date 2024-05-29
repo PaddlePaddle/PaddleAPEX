@@ -79,7 +79,7 @@ def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
                 arg_in.stop_gradient = False
                 temp_arg_in = arg_in * 1
                 arg_in = temp_arg_in.astype(arg_in.dtype)
-                retain_grad(arg_in)
+                # retain_grad(arg_in)
                 return arg_in
             else:
                 return deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype=raise_dtype), to_detach)
@@ -113,6 +113,7 @@ def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
     raise_dtype = None if api_name in not_raise_dtype_set else raise_dtype
     is_detach = api_name not in not_detach_set
     cpu_args = recursive_arg_to_cpu(input_args, is_detach, raise_dtype=raise_dtype)
+    # cpu_args.stop_gradient = False
     cpu_kwargs = {key: recursive_arg_to_cpu(value, key != "out" and is_detach, raise_dtype=raise_dtype) for key, value in input_kwargs.items()}
     return cpu_args, cpu_kwargs
 
@@ -127,7 +128,7 @@ def generate_device_params(input_args, input_kwargs, need_backward, api_name):
                 arg_in.stop_gradient = False
                 temp_arg_in = arg_in * 1
                 arg_in = temp_arg_in.astype(arg_in.dtype)
-                retain_grad(arg_in)
+                # retain_grad(arg_in)
                 return arg_in
             else:
                 return deal_detach(arg_in.clone(), to_detach).to(current_device)
@@ -187,11 +188,12 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     in_fwd_data_list.append(kwargs)
     # need_backward = api_full_name in backward_content
     need_backward = True
+    need_grad = True
     if not need_grad:
         print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
     if api_name in not_backward_list:
-        need_grad = False
+        # need_grad = False
         print_warn_log(f"{api_full_name} {Backward_Message.NO_BACKWARD_RESULT_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.NO_BACKWARD_RESULT_MESSAGE
     need_backward = need_backward and need_grad
@@ -203,27 +205,22 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
     out = exec(api_name, api_type)(*cpu_args, **cpu_kwargs)
     device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
 
-    # current_path = os.path.dirname(os.path.realpath(__file__))
-    # ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
-    # api_setting_dict = get_json_contents(ut_setting_path)
-    # grad_input_index = api_setting_dict.get(api_name)
-    # grad_index = None
-    grad, bench_grad = None, None
-    # if grad_input_index is not None:
-    #     grad_index = grad_input_index.get('grad_index')
-    #
-    # if need_backward:
-    #     if need_to_backward(grad_index, out):
-    #         backward_args = backward_content[api_full_name]
-    #         grad = gen_args(backward_args, api_name, real_data_path=real_data_path)[0]
-    #         bench_grad, _ = generate_cpu_params(grad, {}, False, api_name)
-    #         bench_grad_out = run_backward(cpu_args, bench_grad, grad_index, out)
-    #         device_grad = grad.clone().detach().to(current_device)
-    #         device_grad_out = run_backward(device_args, device_grad, grad_index, device_out)
-    #     else:
-    #         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
+    api_setting_dict = get_json_contents(ut_setting_path)
+    grad_input_index = api_setting_dict.get(api_name)
+    grad_index = None
+    if grad_input_index is not None:
+        grad_index = grad_input_index.get('grad_index')
 
-    return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, bench_grad, in_fwd_data_list, backward_message)
+    if need_backward:
+        if need_to_backward(grad_index, out):
+            bench_grad_out = run_backward(cpu_args, grad_index, out)
+            device_grad_out = run_backward(device_args, grad_index, device_out)
+        else:
+            backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+
+    return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, in_fwd_data_list, backward_message)
 
 
 def _run_ut_save(parser=None):
@@ -304,11 +301,12 @@ def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_inf
     in_fwd_data_list.append(kwargs)
     # need_backward = api_full_name in backward_content
     need_backward = True
+    need_grad = True
     if not need_grad:
         print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
     if api_name in not_backward_list:
-        need_grad = False
+        # need_grad = False
         print_warn_log(f"{api_full_name} {Backward_Message.NO_BACKWARD_RESULT_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.NO_BACKWARD_RESULT_MESSAGE
     need_backward = need_backward and need_grad
@@ -327,6 +325,25 @@ def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_inf
     os.makedirs(output_dir, exist_ok=True)
     output_path = output_dir + '/' + f'{api_full_name}'
     paddle.save(device_out, output_path)
+
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
+    api_setting_dict = get_json_contents(ut_setting_path)
+    grad_input_index = api_setting_dict.get(api_name)
+    grad_index = None
+    if grad_input_index is not None:
+        grad_index = grad_input_index.get('grad_index')
+
+    if need_backward:
+        if need_to_backward(grad_index, device_out):
+            device_grad_out = run_backward(device_args, grad_index, device_out)
+        else:
+            backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+
+    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder + "_backward"))
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = output_dir + '/' + f'{api_full_name}'
+    paddle.save(device_grad_out, output_path)
     return
 
 
@@ -345,12 +362,12 @@ def need_to_backward(grad_index, out):
     return True
 
 
-def run_backward(args, grad, grad_index, out):
+def run_backward(args, grad_index, out):
 
     if grad_index is not None:
-        out[grad_index].backward(grad)
+        out[grad_index].backward()
     else:
-        out.backward(grad)
+        out.backward()
     args_grad = []
     for arg in args:
         if isinstance(arg, paddle.Tensor):
@@ -478,9 +495,9 @@ def _run_ut(parser=None):
     if not parser:
         parser = argparse.ArgumentParser()
     _run_ut_parser(parser)
-    args = parser.parse_args(sys.argv[1:])
-    # tmp = ['-forward', './dump.json']
-    # args = parser.parse_args(tmp)
+    # args = parser.parse_args(sys.argv[1:])
+    tmp = ['-forward', './dump.json']
+    args = parser.parse_args(tmp)
     run_ut_command(args)
 
 
@@ -526,13 +543,12 @@ def run_ut_command(args):
 
 
 class UtDataInfo:
-    def __init__(self, bench_grad, device_grad, device_output, bench_output, grad_in, in_fwd_data_list,
+    def __init__(self, bench_grad, device_grad, device_output, bench_output, in_fwd_data_list,
                  backward_message, rank=0):
         self.bench_grad = bench_grad
         self.device_grad = device_grad
         self.device_output = device_output
         self.bench_output = bench_output
-        self.grad_in = grad_in
         self.in_fwd_data_list = in_fwd_data_list
         self.backward_message = backward_message
         self.rank = rank
