@@ -437,9 +437,6 @@ def _run_ut_parser(parser):
                         help="<optional> In real data mode, the root directory for storing real data "
                              "must be configured.",
                         required=False)
-    parser.add_argument("-f", "--filter_api", dest="filter_api", action="store_true",
-                        help="<optional> Whether to filter the api in the forward_input_file.", required=False)
-
 
 def preprocess_forward_content(forward_content):
     processed_content = {}
@@ -504,10 +501,6 @@ def run_ut_command(args):
         forward_file = os.path.realpath(args.forward_input_file)
         check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
         forward_content = get_json_contents(forward_file)
-    if args.filter_api:
-        print_info_log("Start filtering the api in the forward_input_file.")
-        forward_content = preprocess_forward_content(forward_content)
-        print_info_log("Finish filtering the api in the forward_input_file.")
     backward_content = {}
     if args.backward_input_file:
         check_link(args.backward_input_file)
