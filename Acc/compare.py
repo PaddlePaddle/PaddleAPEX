@@ -405,19 +405,19 @@ tqdm_params = {
 }
 
 def _compare_parser(parser):
-    parser.add_argument("-gpu","--gpu_data_dir",dest='gpu_data_dir',type=str,
+    parser.add_argument("-gpu","--input_path1",dest='gpu_data_dir',type=str,
                         help='The executed output api tensor path directory on GPU',
                         required=True)
-    parser.add_argument("-gpu_back","--gpu_backward_dir",dest='gpu_back_dir', default='',type=str,
-                        help='The api param tool backward result directory on GPU',
-                        required=False)
-    parser.add_argument("-npu_back","--npu_backward_dir",dest='npu_back_dir', default='',type=str,
-                        help='The api param tool backward result directory on NPU',
-                        required=False)
-    parser.add_argument("-npu","--npu_data_dir",dest='npu_data_dir',type=str,
+    parser.add_argument("-npu","--input_path2",dest='npu_data_dir',type=str,
                         help='The executed output api tensor path directory on NPU',
                         required=True)
-    parser.add_argument('-o','--out_path',dest="out_path",default="",type=str,
+    parser.add_argument("-gpu_back","--input_backward_path1",dest='gpu_back_dir', default='',type=str,
+                        help='The api param tool backward result directory on GPU',
+                        required=False)
+    parser.add_argument("-npu_back","--input_backward_path2",dest='npu_back_dir', default='',type=str,
+                        help='The api param tool backward result directory on NPU',
+                        required=False)
+    parser.add_argument('-o','--output_path',dest="out_path",default="",type=str,
                         help='<Optional> The result out path')
 
 def compare_command(args):
