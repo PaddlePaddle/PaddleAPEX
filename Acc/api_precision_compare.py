@@ -374,11 +374,11 @@ def _api_precision_compare_command(args):
 
 
 def _api_precision_compare_parser(parser):
-    parser.add_argument("-npu", "--npu_csv_path", dest="npu_csv_path", default="", type=str,
+    parser.add_argument("-npu", "--detail1", dest="npu_csv_path", default="", type=str,
                         help="<Required> , Accuracy_checking_details.csv generated on the NPU by using the "
                              "api_accuracy_checker tool.",
                         required=True)
-    parser.add_argument("-gpu", "--gpu_csv_path", dest="gpu_csv_path", default="", type=str,
+    parser.add_argument("-gpu", "--detail2", dest="gpu_csv_path", default="", type=str,
                         help="<Required> Accuracy_checking_details.csv generated on the GPU by using the "
                              "api_accuracy_checker tool.",
                         required=False)
