@@ -444,15 +444,15 @@ def compare_npu_gpu(result_csv_path, details_csv_path, gpu_data_dir,npu_data_dir
             gpu_pt_path = os.path.join(gpu_data_dir,api_file)
             npu_pt_path = os.path.join(npu_data_dir,api_file)
             gpu_out_tensor = paddle.load(gpu_pt_path)
-            npu_out_tensor = paddle.load(npu_pt_path)
-            gpu_grad_tensor,npu_grad_tensor = None, None
+            gpu_grad_tensor_list = paddle.load(npu_pt_path)
+            gpu_grad_tensor_list,npu_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:
                 gpu_grad_path = os.path.join(gpu_grad_dir, api_file)
                 npu_grad_path = os.path.join(npu_grad_dir, api_file)
-                gpu_grad_tensor = paddle.load(gpu_grad_path)
-                npu_grad_tensor = paddle.load(npu_grad_path)
+                gpu_grad_tensor_list = paddle.load(gpu_grad_path)
+                npu_grad_tensor_list = paddle.load(npu_grad_path)
             is_fwd_success, is_bwd_success = compare.compare_output(api_file,gpu_out_tensor,npu_out_tensor,
-                                                                    gpu_grad_tensor,gpu_grad_tensor)
+                                                                    gpu_grad_tensor_list, npu_grad_tensor_list)
         except Exception as err:
             print(err)
 
