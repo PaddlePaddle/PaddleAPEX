@@ -77,9 +77,7 @@ def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
             if need_backward and not arg_in.stop_gradient:
                 arg_in = deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype), to_detach)
                 arg_in.stop_gradient = False
-                # temp_arg_in = arg_in * 1
-                # arg_in = temp_arg_in.astype(arg_in.dtype)
-                # retain_grad(arg_in)
+
                 return arg_in
             else:
                 return deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype=raise_dtype), to_detach)
@@ -147,27 +145,10 @@ def run_ut(config):
     print_info_log("start UT test")
     print_info_log(f"UT task result will be saved in {config.result_csv_path}")
     print_info_log(f"UT task details will be saved in {config.details_csv_path}")
-    # if config.save_error_data:
-    #     error_data_path = os.path.abspath(os.path.join(msCheckerConfig.error_data_path, UT_ERROR_DATA_DIR))
-    #     print_info_log(f"UT task error_datas will be saved in {error_data_path}")
-    # compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
-    # with FileOpen(config.result_csv_path, 'r') as file:
-    #     csv_reader = csv.reader(file)
-    #     next(csv_reader)
-    #     api_name_set = {row[0] for row in csv_reader}
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
-        # if api_full_name in api_name_set:
-        #     continue
         try:
             print(api_full_name)
             data_info = run_paddle_api(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
-            print("*"*200)
-            print(data_info)
-            # is_fwd_success, is_bwd_success = compare.compare_output(app_full_name,
-            #                                                         data_info.bench_output,
-            #                                                         data_info.device_output,
-            #                                                         data_info.bench_grad,
-            #                                                         data_info.device_grad)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
             if "expected scalar type Long" in str(err):
@@ -413,16 +394,22 @@ def get_validated_details_csv_path(validated_result_csv_path):
 
 
 def _run_ut_parser(parser):
-    parser.add_argument("-forward", "--forward_input_file", dest="forward_input_file", default="", type=str,
+    parser.add_argument("-f", "--forward", dest="forward_input_file", default="", type=str,
                         help="<Optional> The api param tool forward result file: generate from api param tool, "
                              "a json file.",
-                        required=False)
-    parser.add_argument("-backward", "--backward_input_file", dest="backward_input_file", default="", type=str,
+                        required=True)
+    parser.add_argument("-backward", "--backward", dest="backward_input_file", default="", type=str,
                         help="<Optional> The api param tool backward result file: generate from api param tool, "
                              "a json file.",
                         required=False)
-    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
+    parser.add_argument("-o", "--dump_path", dest="out_path", default="", type=str,
                         help="<optional> The ut task result out path.",
+                        required=False)
+    parser.add_argument("--backend", dest="backend", default="", type=str,
+                        help="<optional> The running device NPU or GPU.",
+                        required=False)
+    parser.add_argument("--mode", dest="mode", default="random", type=str,
+                        help="<optional> The running mode (real/random).",
                         required=False)
     parser.add_argument('-save_error_data', dest="save_error_data", action="store_true",
                         help="<optional> Save compare failed api output.", required=False)
@@ -552,31 +539,6 @@ class UtDataInfo:
         self.in_fwd_data_list = in_fwd_data_list
         self.backward_message = backward_message
         self.rank = rank
-
-
-# if __name__ == "__main__":
-#     tensor_x = paddle.randn([8192, 5120])
-#     tensor_x.to("bfloat16")
-#
-#     args = [tensor_x]
-#     kwargs = {"axes": [0], "starts": [1024], "ends": [2048]}
-#     # 传入方法名称和分类，有paddle、functional、tensor 大小写不区分.
-#     ret = exec("slice", "paddle")(*args, **kwargs)
-#     print(ret.shape)
-
-
-# if __name__ == '__main__':
-#     json_path = r'./dump.json'
-#     with open(json_path, 'r') as json_f:
-#         data = json.load(json_f)
-#         for key, value in data.items():
-#             api_full_name = key
-#             api_info_dict = value
-#             real_data_path = ''
-#             backward_content = ''
-#             result = run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict)
-#             print(result)
-
 
 if __name__ == "__main__":
     _run_ut()
