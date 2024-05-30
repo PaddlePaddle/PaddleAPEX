@@ -44,12 +44,7 @@ def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
             data = gen_random_tensor(info, convert_type)
         if api_name in hf_32_standard_api and data.dtype == paddle.float32:
             data = fp32_to_hf32_to_fp32(data)
-        # if not info.get('stop_gradient') and need_grad:
-        #     data.stop_gradient = False
-        #     temp_data = data * 1
-        #     data = temp_data.astype(data.dtype)
-        #     retain_grad(data)
-        if need_grad:
+        if not info.get('stop_gradient') and need_grad:
             data.stop_gradient = False
             temp_data = data * 1
             data = temp_data.astype(data.dtype)
@@ -112,7 +107,7 @@ def gen_random_tensor(info, convert_type):
     if not isinstance(low, (int, float)) or not isinstance(high, (int, float)):
         error_info = f'Data info Min: {low} , Max: {high}, info type must be int or float.'
         raise CompareException(CompareException.INVALID_PARAM_ERROR, error_info)
-    if data_dtype == "paddle.bool":
+    if data_dtype == "paddle.bool" or data_dtype == "BOOL":
         data = gen_bool_tensor(low, high, shape)
     else:
         data = gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type)
@@ -260,6 +255,8 @@ def gen_kwargs(api_info, convert_type=None, real_data_path=None):
     check_object_type(api_info, dict)
     kwargs_params = api_info.get("kwargs")
     for key, value in kwargs_params.items():
+        if value is None:
+            continue
         if isinstance(value, (list, tuple)):
             kwargs_params[key] = gen_list_kwargs(value, convert_type, real_data_path)
         elif value.get('type') in TENSOR_DATA_LIST_PADDLE or value.get('type').startswith("numpy"):
