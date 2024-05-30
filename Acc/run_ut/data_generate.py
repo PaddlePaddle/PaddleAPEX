@@ -38,17 +38,21 @@ def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
     data_type = info.get('type')
     data_path = info.get('real_data_path')
     if data_type in TENSOR_DATA_LIST_PADDLE:
-        if data_path:
+        if data_path and os.path.exists(data_path):
             data = gen_real_tensor(data_path, convert_type)
         else:
             data = gen_random_tensor(info, convert_type)
         if api_name in hf_32_standard_api and data.dtype == paddle.float32:
             data = fp32_to_hf32_to_fp32(data)
-        if not info.get('stop_gradient') and need_grad:
+        # if not info.get('stop_gradient') and need_grad:
+        #     data.stop_gradient = False
+        #     temp_data = data * 1
+        #     data = temp_data.astype(data.dtype)
+        #     retain_grad(data)
+        if need_grad:
             data.stop_gradient = False
             temp_data = data * 1
             data = temp_data.astype(data.dtype)
-            retain_grad(data)
     elif data_type.startswith("numpy"):
         if data_type not in NUMPY_TYPE:
             raise Exception("{} is not supported now".format(data_type))
