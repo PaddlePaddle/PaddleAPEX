@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 import os
+import paddle
 from .config import cfg
 from .Async_save_data import *
 
@@ -34,8 +35,10 @@ def write_json(file_path, data, rank=None, mode="forward"):
     with open(json_pth, mode="a+") as f:
         json.dump(data, f, indent=2)
 
+
+
 class Dump:
-    def __init__(self, mode="real_data", Async_save=True):
+    def __init__(self, mode="real_data", Async_save=False):
         self.api_info = {}
         self.data_route = cfg.dump_root_path
         self.mode = mode
@@ -65,11 +68,14 @@ class Dump:
                 f"File {file_path} already exists, tool has overwritten it automatically."
             )
         full_path = os.path.realpath(file_path)
-        tensor_np = tensor.numpy()
         if self.Async_save:
-            self.pool.safe_parellel_save(tensor_np,file_path)
+            remote_path = "/root/paddlejob/workspace/PaddleAPEX_dump/"
+            remote_repo = os.path.join(remote_path, f"rank{rank}_step{cfg.global_step}")
+            create_directory(remote_repo)
+            self.pool.safe_parellel_save(tensor, file_path, remote_repo)
         else:
-            save_tensor(tensor_np,file_path)
+            save_tensor(tensor,file_path)
+
         return full_path
 
     """

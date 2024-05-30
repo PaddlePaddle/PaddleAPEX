@@ -11,14 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import paddle
 import multiprocessing
 import time
+import os
+import shutil
+import paddle
 
-def save_tensor(tensor_np, file_path):
-    tensor = paddle.to_tensor(tensor_np)
+def save_tensor(tensor, file_path):
     paddle.save(tensor, file_path)
     print(file_path," Finished!")
+
+# def move_to_remote(src, dst):
+#     shutil.copyfile(src, dst)
+
+ctx = multiprocessing.get_context("fork")
 
 class ThreadPool:
     def __init__(self, max_process_num=3) -> None:
@@ -27,13 +33,15 @@ class ThreadPool:
     def __del__(self):
         self.async_exit()
 
-    def safe_parellel_save(self, tensor_np, file_path):
-        launcher = multiprocessing.get_context("spawn")
+    def safe_parellel_save(self, tensor, file_path, remote_path):
         self.allocate_subprocess()
-        sub_process = launcher.Process(target=save_tensor,args=(tensor_np, file_path))
-        print(f"Async save tensor:{file_path}")
-        sub_process.start()
-        event_queue.append(sub_process)
+        name = file_path.split('/')
+        remote_path = os.path.join(remote_path, name[-1])
+        print(f"Async save tensor:{remote_path}")
+
+        p = ctx.Process(target=save_tensor, args=(tensor, remote_path))
+        p.start()
+        event_queue.append(p)
 
     def allocate_subprocess(self):
         """
