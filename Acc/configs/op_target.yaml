@@ -353,7 +353,7 @@ paddle:
   -  sinh_
   -  slice
   -  sort
-  -  split
+  # -  split
   -  sqrt
   -  square
   -  square_
@@ -376,8 +376,8 @@ paddle:
   -  tensordot
   -  tile
   -  topk
-  -  transpose
-  -  transpose_
+#   -  transpose
+#   -  transpose_
   -  trapezoid
   -  tril
   -  tril_
@@ -397,7 +397,7 @@ paddle:
   -  unsqueeze_
   -  unstack
   -  vander
-  -  vsplit
+  # -  vsplit
   -  where
   -  where_
   -  zeros
@@ -670,7 +670,7 @@ tensor:
   -  slice
   -  solve
   -  sort
-  -  split
+  # -  split
   -  sqrt
   -  sqrt_
   -  square
@@ -698,8 +698,8 @@ tensor:
   -  top_p_sampling
   -  topk
   -  trace
-  -  transpose
-  -  transpose_
+#   -  transpose
+#   -  transpose_
   -  trapezoid
   -  tril
   -  tril_
@@ -718,7 +718,7 @@ tensor:
   -  unstack
   -  vander
   -  var
-  -  vsplit
+  # -  vsplit
   -  where
   -  where_
   -  zero_

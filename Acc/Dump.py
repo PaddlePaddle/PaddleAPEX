@@ -69,8 +69,7 @@ class Dump:
             )
         full_path = os.path.realpath(file_path)
         if self.Async_save:
-            remote_path = "/root/paddlejob/workspace/PaddleAPEX_dump/"
-            remote_repo = os.path.join(remote_path, f"rank{rank}_step{cfg.global_step}")
+            remote_repo = os.path.join(cfg.remote_path, f"rank{rank}_step{cfg.global_step}")
             create_directory(remote_repo)
             self.pool.safe_parellel_save(tensor, file_path, remote_repo)
         else:

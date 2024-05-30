@@ -141,7 +141,8 @@ class API:
         single_arg.update(
             {"Min_origin": transfer_types(min_origin, str(arg.dtype.name))}
         )
-        single_arg.update({"stop_gradient": bool(arg.stop_gradient)})
+        stop_gradient = not bool(arg.stop_gradient)
+        single_arg.update({"stop_gradient": stop_gradient})
         # single_arg.update({'place': arg.place})
 
         if self.mode == "real_data":

@@ -4,6 +4,9 @@
 op_target_path: "./PaddleAPEX/Acc/configs/op_target.yaml"
 dump_root_path: "./dump_info"
 
+# Remote Path
+remote_path: "/root/paddlejob/workspace/PaddleAPEX_dump/"
+
 # API to be omitted.
 white_list: None
 # white_list: "./Acc/configs/white_list.yaml"
