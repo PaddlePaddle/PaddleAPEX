@@ -408,10 +408,10 @@ def _compare_parser(parser):
     parser.add_argument("-gpu","--gpu_data_dir",dest='gpu_data_dir',type=str,
                         help='The executed output api tensor path directory on GPU',
                         required=True)
-    parser.add_argument("-gpu_grad","--gpu_gradient_dir",dest='gpu_grad_dir', default='',type=str,
+    parser.add_argument("-gpu_back","--gpu_backward_dir",dest='gpu_back_dir', default='',type=str,
                         help='The api param tool backward result directory on GPU',
                         required=False)
-    parser.add_argument("-npu_grad","--npu_gradient_dir",dest='npu_grad_dir', default='',type=str,
+    parser.add_argument("-npu_back","--npu_backward_dir",dest='npu_back_dir', default='',type=str,
                         help='The api param tool backward result directory on NPU',
                         required=False)
     parser.add_argument("-npu","--npu_data_dir",dest='npu_data_dir',type=str,
@@ -427,7 +427,7 @@ def compare_command(args):
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
     compare_npu_gpu(result_csv_path,details_csv_path, args.gpu_data_dir,args.npu_data_dir,
-                    args.gpu_grad_dir,args.npu_grad_dir)
+                    args.gpu_back_dir,args.npu_back_dir)
 
 def compare_npu_gpu(result_csv_path, details_csv_path, gpu_data_dir,npu_data_dir, gpu_grad_dir=None, npu_grad_dir=None):
     compare = Comparator(result_csv_path,details_csv_path,False)
