@@ -85,6 +85,19 @@ def write_csv(data, filepath):
         writer = csv.writer(f)
         writer.writerows(data)
 
+def get_validated_result_csv_path(result_csv_path, mode):
+    if mode not in ['result', 'detail']:
+        raise ValueError("The csv mode must be result or detail")
+    result_csv_path_checker = FileChecker(result_csv_path, FileCheckConst.FILE, ability=FileCheckConst.READ_WRITE_ABLE,
+                                          file_type=FileCheckConst.CSV_SUFFIX)
+    validated_result_csv_path = result_csv_path_checker.common_check()
+    if mode == 'result':
+        result_csv_name = os.path.basename(validated_result_csv_path)
+        pattern = r"^accuracy_checking_result_\d{14}\.csv$"
+        if not re.match(pattern, result_csv_name):
+            raise ValueError("When continue run ut, please do not modify the result csv name.")
+    return validated_result_csv_path
+
 def get_file_content_bytes(file):
     with FileOpen(file, 'rb') as file_handle:
         return file_handle.read()
