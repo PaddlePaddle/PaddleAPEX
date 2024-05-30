@@ -214,11 +214,11 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
         grad_index = grad_input_index.get('grad_index')
 
     if need_backward:
-        if need_to_backward(grad_index, out):
-            bench_grad_out = run_backward(cpu_args, grad_index, out)
-            device_grad_out = run_backward(device_args, grad_index, device_out)
-        else:
-            backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+        # if need_to_backward(grad_index, out):
+        bench_grad_out = run_backward(cpu_args, grad_index, out)
+        device_grad_out = run_backward(device_args, grad_index, device_out)
+    else:
+        backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
     return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, in_fwd_data_list, backward_message)
 
@@ -335,10 +335,10 @@ def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_inf
         grad_index = grad_input_index.get('grad_index')
 
     if need_backward:
-        if need_to_backward(grad_index, device_out):
-            device_grad_out = run_backward(device_args, grad_index, device_out)
-        else:
-            backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
+        # if need_to_backward(grad_index, device_out):
+        device_grad_out = run_backward(device_args, grad_index, device_out)
+    else:
+        backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
     output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder + "_backward"))
     os.makedirs(output_dir, exist_ok=True)
@@ -364,10 +364,10 @@ def need_to_backward(grad_index, out):
 
 def run_backward(args, grad_index, out):
 
-    if grad_index is not None:
-        out[grad_index].backward()
-    else:
-        out.backward()
+    # if grad_index is not None:
+    #     out[grad_index].backward()
+    # else:
+    out.backward()
     args_grad = []
     for arg in args:
         if isinstance(arg, paddle.Tensor):
