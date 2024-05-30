@@ -178,7 +178,7 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
         else:
             rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))), place=paddle.CPUPlace())
             tensor = rand01 * scale + low_scale
-    elif 'int' in data_dtype or 'long' in data_dtype:
+    elif 'int' in data_dtype or 'long' in data_dtype or 'INT' in data_dtype or 'LONG' in data_dtype:
         low, high = int(low), int(high)
         tensor = paddle.randint(low, high + 1, shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
     else:
