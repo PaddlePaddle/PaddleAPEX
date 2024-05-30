@@ -171,8 +171,13 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
             low_scale = dtype_finfo.min
 
         scale = high_scale - low_scale
-        rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))), place=paddle.CPUPlace())
-        tensor = rand01 * scale + low_scale
+        if data_dtype == "BF16":
+            rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval("paddle.float32")), place=paddle.CPUPlace())
+            tmp = paddle.cast(rand01, dtype='bfloat16')
+            tensor = tmp * scale + low_scale
+        else:
+            rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))), place=paddle.CPUPlace())
+            tensor = rand01 * scale + low_scale
     elif 'int' in data_dtype or 'long' in data_dtype:
         low, high = int(low), int(high)
         tensor = paddle.randint(low, high + 1, shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
