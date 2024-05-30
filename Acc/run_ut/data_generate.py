@@ -214,7 +214,10 @@ def gen_bool_tensor(low, high, shape):
     if low > high:
         low, high = high, low
     tensor = paddle.randint(low, high + 1, shape)
-    data = paddle.greater_than(tensor, 0)
+    if isinstance(tensor, int):
+        data = tensor > 0
+    else:
+        data = paddle.greater_than(tensor, paddle.to_tensor(0))
     return data
 
 
