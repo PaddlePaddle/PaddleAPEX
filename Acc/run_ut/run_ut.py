@@ -70,7 +70,6 @@ def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
             if need_backward and not arg_in.stop_gradient:
                 arg_in = deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype), to_detach)
                 arg_in.stop_gradient = False
-
                 return arg_in
             else:
                 return deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype=raise_dtype), to_detach)
