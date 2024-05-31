@@ -14,10 +14,9 @@ from compare.compare_column import ApiPrecisionOutputColumn
 from compare.compare_dependency import get_validated_result_csv_path
 
 from compare.compare_dependency import print_info_log, print_warn_log, print_error_log, write_csv, CompareException, create_directory
-from compare.compare_dependency import msCheckerConfig
-from compare.compare_dependency import FileCheckConst, FileChecker, change_mode
-from compare.compare_dependency import check_path_before_create
+from compare.compare_dependency import FileCheckConst, FileChecker, change_mode, check_path_before_create
 
+PRECISION = 14
 
 CompareConfig = namedtuple('CompareConfig', ['npu_csv_path', 'gpu_csv_path', 'result_csv_path', 'details_csv_path'])
 unsupported_message = 'This data type does not support benchmark compare.'
@@ -143,7 +142,7 @@ class BenchmarkStandard:
 
 def write_detail_csv(content, save_path):
     rows = []
-    content = ["{:.{}f}".format(item, msCheckerConfig.precision) \
+    content = ["{:.{}f}".format(item, PRECISION) \
         if isinstance(item, float) else item for item in content]
     rows.append(content)
     write_csv(rows, save_path)
