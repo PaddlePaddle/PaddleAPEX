@@ -339,10 +339,10 @@ def need_to_backward(grad_index, out):
 
 def run_backward(args, grad_index, out):
 
-    # if grad_index is not None:
-    #     out[grad_index].backward()
-    # else:
-    out.backward()
+    if grad_index is not None:
+        out[grad_index].backward()
+    else:
+        out.backward()
     args_grad = []
     for arg in args:
         if isinstance(arg, paddle.Tensor):
