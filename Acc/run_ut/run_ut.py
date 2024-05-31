@@ -142,10 +142,20 @@ def run_ut(config):
     print_info_log("start UT test")
     print_info_log(f"UT task result will be saved in {config.result_csv_path}")
     print_info_log(f"UT task details will be saved in {config.details_csv_path}")
+    # compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
+    # with FileOpen(config.result_csv_path, 'r') as file:
+    #     csv_reader = csv.reader(file)
+    #     next(csv_reader)
+    #     api_name_set = {row[0] for row in csv_reader}
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
             data_info = run_paddle_api(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            # is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
+            #                                                         data_info.bench_output,
+            #                                                         data_info.device_output,
+            #                                                         data_info.bench_grad,
+            #                                                         data_info.device_grad)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
             if "expected scalar type Long" in str(err):
