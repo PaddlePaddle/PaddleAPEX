@@ -2,3 +2,4 @@ demo.py
 **/__pycache__
 */.DS_Store
 */.dump_info
+.idea
