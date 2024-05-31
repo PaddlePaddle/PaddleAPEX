@@ -329,7 +329,6 @@ def need_to_backward(grad_index, out):
 
 
 def run_backward(args, grad_index, out):
-
     if grad_index is not None:
         out[grad_index].backward()
     else:
@@ -339,7 +338,6 @@ def run_backward(args, grad_index, out):
         if isinstance(arg, paddle.Tensor):
             args_grad.append(arg.grad)
     grad_out = args_grad
-
     return grad_out
 
 
@@ -424,10 +422,8 @@ def preprocess_forward_content(forward_content):
     processed_content = {}
     base_keys_variants = {}
     arg_cache = {}
-
     for key, value in forward_content.items():
         base_key = key.rsplit(Const.DELIMITER, 1)[0]
-
         if key not in arg_cache:
             new_args = value['args']
             new_kwargs = value['kwargs']
@@ -436,9 +432,7 @@ def preprocess_forward_content(forward_content):
                 for arg in new_args if isinstance(arg, dict)
             ]
             arg_cache[key] = (filtered_new_args, new_kwargs)
-
         filtered_new_args, new_kwargs = arg_cache[key]
-
         if base_key not in base_keys_variants:
             processed_content[key] = value
             base_keys_variants[base_key] = {key}
@@ -449,11 +443,9 @@ def preprocess_forward_content(forward_content):
                 if existing_args == filtered_new_args and existing_kwargs == new_kwargs:
                     is_duplicate = True
                     break
-
             if not is_duplicate:
                 processed_content[key] = value
                 base_keys_variants[base_key].add(key)
-
     return processed_content
 
 
