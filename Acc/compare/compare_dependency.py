@@ -1,5 +1,3 @@
-# config.yaml和hook_module.support_wrap_ops.yaml这两个配置文件需要统一
-
 import numpy as np
 import os
 import stat
@@ -20,7 +18,7 @@ def seed_all(seed=1234):
     np.random.seed(seed)
     paddle.seed(seed)
     # 分布式场景需额外加上
-    global_seed, local_seed = seed,seed # 这样ok?
+    global_seed, local_seed = seed,seed+1
     tracker = get_rng_state_tracker()
     try:
         tracker.add("global_seed",global_seed)
@@ -521,7 +519,7 @@ class CompareException(Exception):
 
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
-yaml_path = os.path.join(os.path.dirname(cur_path),"configs","op_target.yaml") # paddle提供的文件
+yaml_path = os.path.join(os.path.dirname(cur_path),"configs","op_target.yaml")
 with FileOpen(yaml_path, 'r') as f:
     Ops = yaml.safe_load(f)
     WrapFunctionalOps = Ops.get('functional')
