@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import paddle
-import paddle.nn
 import numpy as np
 from .Dump import dump_util
 
@@ -130,6 +129,8 @@ class API:
         single_arg.update({"type": "paddle.Tensor"})
         single_arg.update({"dtype": str(arg.dtype.name)})
         single_arg.update({"shape": arg.shape})
+        if arg.dtype.name=="BF16":
+            arg = paddle.cast(arg,"float32")
         max_handle, max_origin = get_tensor_extremum(arg, "max")
         single_arg.update({"Max": transfer_types(max_handle, str(arg.dtype.name))})
         single_arg.update(
@@ -140,12 +141,13 @@ class API:
         single_arg.update(
             {"Min_origin": transfer_types(min_origin, str(arg.dtype.name))}
         )
-        single_arg.update({"stop_gradient": bool(arg.stop_gradient)})
+        stop_gradient = not bool(arg.stop_gradient)
+        single_arg.update({"stop_gradient": stop_gradient})
         # single_arg.update({'place': arg.place})
 
         if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)
-            pt_path = dump_util.dump_real_data(api_args, arg.cpu().detach(), self.rank)
+            pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
             single_arg.update({"real_data_path": pt_path})
         return single_arg
