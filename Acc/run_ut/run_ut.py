@@ -63,12 +63,6 @@ def raise_bench_data_dtype(api_name, arg, raise_dtype=None):
     return arg.astype(raise_dtype)
 
 
-def retain_grad(tensor):
-    def hook(grad):
-        tensor.grad = grad
-    tensor.register_hook(hook)
-
-
 def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
     def recursive_arg_to_cpu(arg_in, to_detach, raise_dtype=None):
         if isinstance(arg_in, (list, tuple)):
@@ -111,7 +105,6 @@ def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
     raise_dtype = None if api_name in not_raise_dtype_set else raise_dtype
     is_detach = api_name not in not_detach_set
     cpu_args = recursive_arg_to_cpu(input_args, is_detach, raise_dtype=raise_dtype)
-    # cpu_args.stop_gradient = False
     cpu_kwargs = {key: recursive_arg_to_cpu(value, key != "out" and is_detach, raise_dtype=raise_dtype) for key, value in input_kwargs.items()}
     return cpu_args, cpu_kwargs
 
@@ -150,7 +143,7 @@ def run_ut(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            data_info = run_paddle_api(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            data_info = run_paddle_api(api_full_name, config.real_data_path, api_info_dict)
             # is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
             #                                                         data_info.bench_output,
             #                                                         data_info.device_output,
@@ -167,14 +160,13 @@ def run_ut(config):
             gc.collect()
 
 
-def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dict):
+def run_paddle_api(api_full_name, real_data_path, api_info_dict):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
     args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
-    # need_backward = api_full_name in backward_content
     need_backward = True
     need_grad = True
     if not need_grad:
@@ -216,8 +208,6 @@ def _run_ut_save(parser=None):
         parser = argparse.ArgumentParser()
     _run_ut_parser(parser)
     args = parser.parse_args(sys.argv[1:])
-    # tmp = ['-forward', './dump.json']
-    # args = parser.parse_args(tmp)
     run_ut_command_save(args)
 
 
@@ -263,7 +253,7 @@ def run_ut_save(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            run_paddle_api_save(api_full_name, config.real_data_path, config.backward_content, api_info_dict)
+            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict)
             print("*"*200)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
@@ -276,14 +266,13 @@ def run_ut_save(config):
             gc.collect()
 
 
-def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_info_dict):
+def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
     args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
-    # need_backward = api_full_name in backward_content
     need_backward = True
     need_grad = True
     if not need_grad:
