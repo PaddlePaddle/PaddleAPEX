@@ -126,9 +126,6 @@ def generate_device_params(input_args, input_kwargs, need_backward, api_name):
             if need_backward and not arg_in.stop_gradient:
                 arg_in = deal_detach(arg_in.clone(), to_detach).to(current_device)
                 arg_in.stop_gradient = False
-                temp_arg_in = arg_in * 1
-                arg_in = temp_arg_in.astype(arg_in.dtype)
-                # retain_grad(arg_in)
                 return arg_in
             else:
                 return deal_detach(arg_in.clone(), to_detach).to(current_device)
