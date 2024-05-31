@@ -88,4 +88,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     _compare_parser(parser)
     args = parser.parse_args(sys.argv[1:])
+    paddle.set_device('cpu')
     compare_command(args)
