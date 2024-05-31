@@ -1,9 +1,8 @@
+from utils import print_info_log
 import argparse
-import json
 import os
 import sys
 import time
-import csv
 import gc
 import re
 from collections import namedtuple
@@ -14,8 +13,7 @@ from utils import Const, print_warn_log, api_info_preprocess, get_json_contents,
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
-# from compare.compare import Comparator
-
+from Async_save_data import *
 seed_all()
 not_raise_dtype_set = {'type_as'}
 not_detach_set = {'resize_', 'resize_as_', 'set_', 'transpose_', 't_', 'squeeze_', 'unsqueeze_'}
@@ -24,7 +22,8 @@ current_time = time.strftime("%Y%m%d%H%M%S")
 RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
 DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
 RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'backward_content', 'result_csv_path', 'details_csv_path',
-                                         'save_error_data', 'is_continue_run_ut', 'real_data_path'])
+                                         'save_error_data', 'is_continue_run_ut', 'real_data_path', 'out_path'])
+
 
 tqdm_params = {
     'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
@@ -63,63 +62,26 @@ def raise_bench_data_dtype(api_name, arg, raise_dtype=None):
     return arg.astype(raise_dtype)
 
 
-def generate_cpu_params(input_args, input_kwargs, need_backward, api_name):
-    def recursive_arg_to_cpu(arg_in, to_detach, raise_dtype=None):
-        if isinstance(arg_in, (list, tuple)):
-            return type(arg_in)(recursive_arg_to_cpu(arg, to_detach, raise_dtype=raise_dtype) for arg in arg_in)
-        elif isinstance(arg_in, paddle.Tensor):
-            if need_backward and not arg_in.stop_gradient:
-                arg_in = deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype), to_detach)
-                arg_in.stop_gradient = False
-
-                return arg_in
-            else:
-                return deal_detach(raise_bench_data_dtype(api_name, arg_in.clone(), raise_dtype=raise_dtype), to_detach)
-        else:
-            return arg_in
-
-    def is_tensor_with_raise_precision(arg_in, check_kwargs=False):
-        if arg_in.dtype in Const.RAISE_PRECISION_PADDLE:
-            return True
-        if check_kwargs and arg_in.dtype in [paddle.float16, paddle.bfloat16]:
-            return True
-        return False
-
-    def recursive_find_dtypes(arg_in, kwargs=None, check_kwargs=False):
-        if isinstance(arg_in, (list, tuple)):
-            return set().union(*tuple(recursive_find_dtypes(arg, kwargs, check_kwargs=check_kwargs) for arg in arg_in))
-        elif isinstance(arg_in, paddle.Tensor) and is_tensor_with_raise_precision(arg_in, check_kwargs):
-            return set([arg_in.dtype])
-        elif isinstance(arg_in, dict) and check_kwargs:
-            return set().union(*tuple(recursive_find_dtypes(v, kwargs, check_kwargs=True) for v in arg_in.values()))
-        return set()
-
-    raise_dtype = None
-    need_raise_dtypes = recursive_find_dtypes(input_args)
-    need_raise_dtypes.update(recursive_find_dtypes(input_kwargs, check_kwargs=True))
-    if len(need_raise_dtypes) == 1:
-        raise_dtype = Const.RAISE_PRECISION_PADDLE.get(need_raise_dtypes.pop(), paddle.float32)
-    elif len(need_raise_dtypes) >= 2:
-        raise_dtype = paddle.float32
-
-    raise_dtype = None if api_name in not_raise_dtype_set else raise_dtype
-    is_detach = api_name not in not_detach_set
-    cpu_args = recursive_arg_to_cpu(input_args, is_detach, raise_dtype=raise_dtype)
-    cpu_kwargs = {key: recursive_arg_to_cpu(value, key != "out" and is_detach, raise_dtype=raise_dtype) for key, value in input_kwargs.items()}
-    return cpu_args, cpu_kwargs
-
-
 def generate_device_params(input_args, input_kwargs, need_backward, api_name):
+    current_device = paddle.device.get_device()
     def recursive_arg_to_device(arg_in, to_detach):
         if isinstance(arg_in, (list, tuple)):
             return type(arg_in)(recursive_arg_to_device(arg, to_detach) for arg in arg_in)
         elif isinstance(arg_in, paddle.Tensor):
             if need_backward and not arg_in.stop_gradient:
-                arg_in = deal_detach(arg_in.clone(), to_detach).to(current_device)
-                arg_in.stop_gradient = False
+                if "gpu" in current_device:
+                    arg_in = deal_detach(arg_in.clone(), to_detach).cuda()
+                    arg_in.stop_gradient = False
+                elif "npu" in current_device:
+                    arg_in = deal_detach(arg_in.clone(), to_detach).to(current_device)
+                    arg_in.stop_gradient = False
                 return arg_in
             else:
-                return deal_detach(arg_in.clone(), to_detach).to(current_device)
+                if "gpu" in current_device:
+                    arg_in = deal_detach(arg_in.clone(), to_detach).cuda()
+                elif "npu" in current_device:
+                    arg_in = deal_detach(arg_in.clone(), to_detach).to(current_device)
+                return arg_in
         else:
             return arg_in
 
@@ -129,78 +91,6 @@ def generate_device_params(input_args, input_kwargs, need_backward, api_name):
     device_kwargs = \
         {key: recursive_arg_to_device(value, key != "out" and is_detach) for key, value in input_kwargs.items()}
     return device_args, device_kwargs
-
-
-def run_ut(config):
-    print_info_log("start UT test")
-    print_info_log(f"UT task result will be saved in {config.result_csv_path}")
-    print_info_log(f"UT task details will be saved in {config.details_csv_path}")
-    # compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
-    # with FileOpen(config.result_csv_path, 'r') as file:
-    #     csv_reader = csv.reader(file)
-    #     next(csv_reader)
-    #     api_name_set = {row[0] for row in csv_reader}
-    for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
-        try:
-            print(api_full_name)
-            data_info = run_paddle_api(api_full_name, config.real_data_path, api_info_dict)
-            # is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
-            #                                                         data_info.bench_output,
-            #                                                         data_info.device_output,
-            #                                                         data_info.bench_grad,
-            #                                                         data_info.device_grad)
-        except Exception as err:
-            [_, api_name, _] = api_full_name.split("*")
-            if "expected scalar type Long" in str(err):
-                print_warn_log(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
-                               f"'int32_to_int64' list in accuracy_tools/api_accuracy_check/common/utils.py file")
-            else:
-                print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
-        finally:
-            gc.collect()
-
-
-def run_paddle_api(api_full_name, real_data_path, api_info_dict):
-    in_fwd_data_list = []
-    backward_message = ''
-    [api_type, api_name, _] = api_full_name.split('*')
-    args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
-    in_fwd_data_list.append(args)
-    in_fwd_data_list.append(kwargs)
-    need_backward = True
-    need_grad = True
-    if not need_grad:
-        print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
-        backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
-    if api_name in not_backward_list:
-        # need_grad = False
-        print_warn_log(f"{api_full_name} {Backward_Message.NO_BACKWARD_RESULT_MESSAGE.format(api_full_name)}")
-        backward_message += Backward_Message.NO_BACKWARD_RESULT_MESSAGE
-    need_backward = need_backward and need_grad
-    if kwargs.get("device"):
-        del kwargs["device"]
-    cpu_args, cpu_kwargs = generate_cpu_params(args, kwargs, need_backward, api_name)
-    device_args, device_kwargs = generate_device_params(args, kwargs, need_backward, api_name)
-    bench_grad_out, device_grad_out = None, None
-    out = exec(api_name, api_type)(*cpu_args, **cpu_kwargs)
-    device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
-
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
-    api_setting_dict = get_json_contents(ut_setting_path)
-    grad_input_index = api_setting_dict.get(api_name)
-    grad_index = None
-    if grad_input_index is not None:
-        grad_index = grad_input_index.get('grad_index')
-
-    if need_backward:
-        if need_to_backward(grad_index, out):
-            bench_grad_out = run_backward(cpu_args, grad_index, out)
-            device_grad_out = run_backward(device_args, grad_index, device_out)
-    else:
-        backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
-
-    return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, in_fwd_data_list, backward_message)
 
 
 def _run_ut_save(parser=None):
@@ -244,7 +134,7 @@ def run_ut_command_save(args):
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
     run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
-                                args.result_csv_path, args.real_data_path)
+                                args.result_csv_path, args.real_data_path, out_path)
     run_ut_save(run_ut_config)
 
 
@@ -253,7 +143,7 @@ def run_ut_save(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict)
+            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict, config.out_path)
             print("*"*200)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
@@ -266,7 +156,7 @@ def run_ut_save(config):
             gc.collect()
 
 
-def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
+def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
@@ -292,11 +182,14 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
         output_folder = "npu_output"
     else:
         output_folder = "gpu_output"
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder))
+
+    output_dir = os.path.abspath(os.path.join(dump_path, output_folder))
     os.makedirs(output_dir, exist_ok=True)
+
+    tensor = device_out.clone()
     output_path = output_dir + '/' + f'{api_full_name}'
-    paddle.save(device_out, output_path)
+    pool.safe_parellel_save(tensor.cpu().detach(), output_path, output_path)
+    # paddle.save(device_out, output_path)
 
     current_path = os.path.dirname(os.path.realpath(__file__))
     ut_setting_path = os.path.join(current_path, "paddle_ut_setting.json")
@@ -313,10 +206,19 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
     else:
         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
-    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder + "_backward"))
+    output_dir = os.path.abspath(os.path.join(dump_path, output_folder + "_backward"))
     os.makedirs(output_dir, exist_ok=True)
     output_path = output_dir + '/' + f'{api_full_name}'
     paddle.save(device_grad_out, output_path)
+    # tensor_list = []
+    # if isinstance(device_grad_out, (list,tuple)):
+    #     for item in device_grad_out:
+    #         if isinstance(item, paddle.Tensor):
+    #             item = item.cpu().detach()
+    #             print(item)
+    #             tensor_list.append(item)
+
+    pool.safe_parellel_save(tensor_list, output_path, output_path)
     return
 
 
@@ -394,7 +296,7 @@ def _run_ut_parser(parser):
                         help="<Optional> The api param tool backward result file: generate from api param tool, "
                              "a json file.",
                         required=False)
-    parser.add_argument("-o", "--dump_path", dest="out_path", default="", type=str,
+    parser.add_argument("-o", "--dump_path", dest="out_path", default="./root/paddlejob/workspace/PaddleAPEX_dump/", type=str,
                         help="<optional> The ut task result out path.",
                         required=False)
     parser.add_argument("--backend", dest="backend", default="", type=str,
@@ -430,89 +332,6 @@ def _run_ut_parser(parser):
                              "must be configured.",
                         required=False)
 
-
-def preprocess_forward_content(forward_content):
-    processed_content = {}
-    base_keys_variants = {}
-    arg_cache = {}
-
-    for key, value in forward_content.items():
-        base_key = key.rsplit(Const.DELIMITER, 1)[0]
-
-        if key not in arg_cache:
-            new_args = value['args']
-            new_kwargs = value['kwargs']
-            filtered_new_args = [
-                {k: v for k, v in arg.items() if k not in ['Max', 'Min']}
-                for arg in new_args if isinstance(arg, dict)
-            ]
-            arg_cache[key] = (filtered_new_args, new_kwargs)
-
-        filtered_new_args, new_kwargs = arg_cache[key]
-
-        if base_key not in base_keys_variants:
-            processed_content[key] = value
-            base_keys_variants[base_key] = {key}
-        else:
-            is_duplicate = False
-            for variant in base_keys_variants[base_key]:
-                existing_args, existing_kwargs = arg_cache[variant]
-                if existing_args == filtered_new_args and existing_kwargs == new_kwargs:
-                    is_duplicate = True
-                    break
-
-            if not is_duplicate:
-                processed_content[key] = value
-                base_keys_variants[base_key].add(key)
-
-    return processed_content
-
-
-def _run_ut(parser=None):
-    if not parser:
-        parser = argparse.ArgumentParser()
-    _run_ut_parser(parser)
-    args = parser.parse_args(sys.argv[1:])
-    run_ut_command(args)
-
-
-def run_ut_command(args):
-    check_link(args.forward_input_file)
-    forward_file = os.path.realpath(args.forward_input_file)
-    check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
-    out_path = os.path.realpath(args.out_path) if args.out_path else "./"
-    check_path_before_create(out_path)
-    create_directory(out_path)
-    out_path_checker = FileChecker(out_path, FileCheckConst.DIR, ability=FileCheckConst.WRITE_ABLE)
-    out_path = out_path_checker.common_check()
-    save_error_data = args.save_error_data
-    forward_content = {}
-    if args.forward_input_file:
-        check_link(args.forward_input_file)
-        forward_file = os.path.realpath(args.forward_input_file)
-        check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
-        forward_content = get_json_contents(forward_file)
-    backward_content = {}
-    if args.backward_input_file:
-        check_link(args.backward_input_file)
-        backward_file = os.path.realpath(args.backward_input_file)
-        check_file_suffix(backward_file, FileCheckConst.JSON_SUFFIX)
-        backward_content = get_json_contents(backward_file)
-    result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
-    details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
-    if args.result_csv_path:
-        result_csv_path = get_validated_result_csv_path(args.result_csv_path, 'result')
-        details_csv_path = get_validated_details_csv_path(result_csv_path)
-    if save_error_data:
-        if args.result_csv_path:
-            time_info = result_csv_path.split('.')[0].split('_')[-1]
-            global UT_ERROR_DATA_DIR
-            UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
-    run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
-                                args.result_csv_path, args.real_data_path)
-    run_ut(run_ut_config)
-
-
 class UtDataInfo:
     def __init__(self, bench_grad, device_grad, device_output, bench_output, in_fwd_data_list,
                  backward_message, rank=0):
@@ -525,5 +344,7 @@ class UtDataInfo:
         self.rank = rank
 
 if __name__ == "__main__":
-    _run_ut()
-    print_info_log("UT task completed")
+    global pool
+    pool = ThreadPool()
+    _run_ut_save()
+    print_info_log("UT save completed")
