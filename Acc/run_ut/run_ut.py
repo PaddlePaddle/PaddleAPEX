@@ -192,9 +192,9 @@ def run_paddle_api(api_full_name, real_data_path, backward_content, api_info_dic
         grad_index = grad_input_index.get('grad_index')
 
     if need_backward:
-        # if need_to_backward(grad_index, out):
-        bench_grad_out = run_backward(cpu_args, grad_index, out)
-        device_grad_out = run_backward(device_args, grad_index, device_out)
+        if need_to_backward(grad_index, out):
+            bench_grad_out = run_backward(cpu_args, grad_index, out)
+            device_grad_out = run_backward(device_args, grad_index, device_out)
     else:
         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
@@ -308,9 +308,10 @@ def run_paddle_api_save(api_full_name, real_data_path, backward_content, api_inf
     if grad_input_index is not None:
         grad_index = grad_input_index.get('grad_index')
 
+    device_grad_out = None
     if need_backward:
-        # if need_to_backward(grad_index, device_out):
-        device_grad_out = run_backward(device_args, grad_index, device_out)
+        if need_to_backward(grad_index, device_out):
+            device_grad_out = run_backward(device_args, grad_index, device_out)
     else:
         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
