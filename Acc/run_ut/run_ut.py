@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import sys
 import time
@@ -11,9 +10,9 @@ from tqdm import tqdm
 import paddle
 import paddle.nn.functional as F
 from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, print_error_log, check_path_before_create, seed_all
-from data_generate import gen_api_params, gen_args
+from data_generate import gen_api_params
 from run_ut_utils import hf_32_standard_api, Backward_Message
-from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
+from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, check_file_suffix
 # from compare.compare import Comparator
 
 seed_all()
@@ -23,7 +22,7 @@ not_backward_list = ['repeat_interleave']
 current_time = time.strftime("%Y%m%d%H%M%S")
 RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
 DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
-RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'backward_content', 'result_csv_path', 'details_csv_path',
+RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'result_csv_path', 'details_csv_path',
                                          'save_error_data', 'is_continue_run_ut', 'real_data_path'])
 
 tqdm_params = {
@@ -227,12 +226,6 @@ def run_ut_command_save(args):
         forward_file = os.path.realpath(args.forward_input_file)
         check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
         forward_content = get_json_contents(forward_file)
-    backward_content = {}
-    if args.backward_input_file:
-        check_link(args.backward_input_file)
-        backward_file = os.path.realpath(args.backward_input_file)
-        check_file_suffix(backward_file, FileCheckConst.JSON_SUFFIX)
-        backward_content = get_json_contents(backward_file)
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     if args.result_csv_path:
@@ -243,7 +236,7 @@ def run_ut_command_save(args):
             time_info = result_csv_path.split('.')[0].split('_')[-1]
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
-    run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
+    run_ut_config = RunUTConfig(forward_content, result_csv_path, details_csv_path, save_error_data,
                                 args.result_csv_path, args.real_data_path)
     run_ut_save(run_ut_config)
 
@@ -391,10 +384,6 @@ def _run_ut_parser(parser):
                         help="<Optional> The api param tool forward result file: generate from api param tool, "
                              "a json file.",
                         required=True)
-    parser.add_argument("-backward", "--backward", dest="backward_input_file", default="", type=str,
-                        help="<Optional> The api param tool backward result file: generate from api param tool, "
-                             "a json file.",
-                        required=False)
     parser.add_argument("-o", "--dump_path", dest="out_path", default="", type=str,
                         help="<optional> The ut task result out path.",
                         required=False)
@@ -493,12 +482,6 @@ def run_ut_command(args):
         forward_file = os.path.realpath(args.forward_input_file)
         check_file_suffix(forward_file, FileCheckConst.JSON_SUFFIX)
         forward_content = get_json_contents(forward_file)
-    backward_content = {}
-    if args.backward_input_file:
-        check_link(args.backward_input_file)
-        backward_file = os.path.realpath(args.backward_input_file)
-        check_file_suffix(backward_file, FileCheckConst.JSON_SUFFIX)
-        backward_content = get_json_contents(backward_file)
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     if args.result_csv_path:
@@ -509,7 +492,7 @@ def run_ut_command(args):
             time_info = result_csv_path.split('.')[0].split('_')[-1]
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
-    run_ut_config = RunUTConfig(forward_content, backward_content, result_csv_path, details_csv_path, save_error_data,
+    run_ut_config = RunUTConfig(forward_content, result_csv_path, details_csv_path, save_error_data,
                                 args.result_csv_path, args.real_data_path)
     run_ut(run_ut_config)
 
@@ -524,6 +507,7 @@ class UtDataInfo:
         self.in_fwd_data_list = in_fwd_data_list
         self.backward_message = backward_message
         self.rank = rank
+
 
 if __name__ == "__main__":
     _run_ut()
