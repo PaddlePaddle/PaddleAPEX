@@ -141,19 +141,19 @@ def run_ut_command_save(args):
 def run_ut_save(config):
     print_info_log("start UT save")
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
-        try:
-            print(api_full_name)
-            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict, config.out_path)
-            print("*"*200)
-        except Exception as err:
-            [_, api_name, _] = api_full_name.split("*")
-            if "expected scalar type Long" in str(err):
-                print_warn_log(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
-                               f"'int32_to_int64' list in accuracy_tools/api_accuracy_check/common/utils.py file")
-            else:
-                print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
-        finally:
-            gc.collect()
+        # try:
+        print(api_full_name)
+        run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict, config.out_path)
+        print("*"*200)
+        # except Exception as err:
+        #     [_, api_name, _] = api_full_name.split("*")
+        #     if "expected scalar type Long" in str(err):
+        #         print_warn_log(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
+        #                        f"'int32_to_int64' list in accuracy_tools/api_accuracy_check/common/utils.py file")
+        #     else:
+        #         print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
+        # finally:
+        #     gc.collect()
 
 
 def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path):
@@ -188,7 +188,12 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path)
 
     tensor = device_out.clone()
     output_path = output_dir + '/' + f'{api_full_name}'
-    pool.safe_parellel_save(tensor.cpu().detach(), output_path, output_path)
+
+    pool.allocate_subprocess()
+    print(f"Async save tensor:{output_path}")
+    p = ctx.Process(target=save_tensor, args=(tensor.cpu().detach(), output_path))
+    p.start()
+    event_queue.append(p)
     # paddle.save(device_out, output_path)
 
     current_path = os.path.dirname(os.path.realpath(__file__))
@@ -207,18 +212,21 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path)
         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
     output_dir = os.path.abspath(os.path.join(dump_path, output_folder + "_backward"))
-    os.makedirs(output_dir, exist_ok=True)
+    # os.makedirs(output_dir, exist_ok=True)
     output_path = output_dir + '/' + f'{api_full_name}'
-    paddle.save(device_grad_out, output_path)
-    # tensor_list = []
-    # if isinstance(device_grad_out, (list,tuple)):
-    #     for item in device_grad_out:
-    #         if isinstance(item, paddle.Tensor):
-    #             item = item.cpu().detach()
-    #             print(item)
-    #             tensor_list.append(item)
-
-    pool.safe_parellel_save(tensor_list, output_path, output_path)
+    # paddle.save(device_grad_out, output_path)
+    tensor_list = []
+    if isinstance(device_grad_out, (list,tuple)):
+        for item in device_grad_out:
+            if isinstance(item, paddle.Tensor):
+                item = item.cpu().detach()
+                tensor_list.append(item)
+    pool.allocate_subprocess()
+    print(f"Async save tensor:{output_path}")
+    p = ctx.Process(target=save_tensor, args=(tensor_list, output_path))
+    p.start()
+    event_queue.append(p)
+    # pool.safe_parellel_save(device_grad_out, output_path, output_path)
     return
 
 
