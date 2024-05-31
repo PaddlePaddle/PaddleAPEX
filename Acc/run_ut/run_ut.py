@@ -245,7 +245,8 @@ def run_ut_save(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict)
+            dump_path = os.path.dirname(config.result_csv_path)
+            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict, dump_path)
             print("*"*200)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
@@ -258,7 +259,7 @@ def run_ut_save(config):
             gc.collect()
 
 
-def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
+def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
@@ -285,8 +286,13 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
         output_folder = "npu_output"
     else:
         output_folder = "gpu_output"
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder))
+    if dump_path == os.path.dirname(os.path.abspath(__file__)):
+        output_dir = os.path.abspath(os.path.join(dump_path, "..", output_folder))
+        output_dir_back = os.path.abspath(os.path.join(dump_path, "..", output_folder + "_backward"))
+    else:
+        current_dir = dump_path
+        output_dir = os.path.abspath(os.path.join(current_dir, output_folder))
+        output_dir_back = os.path.abspath(os.path.join(current_dir, output_folder + "_backward"))
     os.makedirs(output_dir, exist_ok=True)
     output_path = output_dir + '/' + f'{api_full_name}'
     paddle.save(device_out, output_path)
@@ -306,9 +312,9 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
     else:
         backward_message += Backward_Message.MULTIPLE_BACKWARD_MESSAGE
 
-    output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder + "_backward"))
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = output_dir + '/' + f'{api_full_name}'
+    # output_dir = os.path.abspath(os.path.join(current_dir, "..", output_folder + "_backward"))
+    os.makedirs(output_dir_back, exist_ok=True)
+    output_path = output_dir_back + '/' + f'{api_full_name}'
     paddle.save(device_grad_out, output_path)
     return
 
