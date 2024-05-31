@@ -6,6 +6,8 @@ dump_root_path: "./dump_info"
 
 # Remote Path
 remote_path: "/root/paddlejob/workspace/PaddleAPEX_dump/"
+Async_dump: False
+
 
 # API to be omitted.
 white_list: None

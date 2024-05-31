@@ -26,6 +26,7 @@ class Config:
             self.dump_root_path = configs["dump_root_path"]
             self.target_step = configs["target_step"]
             self.remote_path = configs['remote_path']
+            self.Async_dump = configs['Async_dump']
             if configs["white_list"]!= "None":
                 self.white_list = configs["white_list"]
             else:

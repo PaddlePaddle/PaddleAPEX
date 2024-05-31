@@ -38,7 +38,7 @@ def write_json(file_path, data, rank=None, mode="forward"):
 
 
 class Dump:
-    def __init__(self, mode="real_data", Async_save=False):
+    def __init__(self, mode="real_data", Async_save=cfg.Async_dump):
         self.api_info = {}
         self.data_route = cfg.dump_root_path
         self.mode = mode

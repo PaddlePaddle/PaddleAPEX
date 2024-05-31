@@ -21,9 +21,6 @@ def save_tensor(tensor, file_path):
     paddle.save(tensor, file_path)
     print(file_path," Finished!")
 
-# def move_to_remote(src, dst):
-#     shutil.copyfile(src, dst)
-
 ctx = multiprocessing.get_context("fork")
 
 class ThreadPool:
@@ -61,7 +58,7 @@ class ThreadPool:
                 if task and task.is_alive():
                     if task.is_alive():
                         event_queue.append(task)
-                        time.sleep(1)
+                        time.sleep(0.5)
                         continue
 
     def async_exit(self):
@@ -71,7 +68,7 @@ class ThreadPool:
                 if task.is_alive():
                     event_queue.append(task)
                     print("waiting.....")
-                    time.sleep(2)
+                    time.sleep(0.5)
                     continue
         print("Sub processes have done, async process exit.")
 
