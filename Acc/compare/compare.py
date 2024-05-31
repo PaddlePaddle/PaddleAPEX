@@ -246,7 +246,7 @@ class Comparator:
         if npu_dtype == paddle.bfloat16:
             bench_output = bench_output.to(paddle.float32)
             device_output = device_output.to(paddle.float32)
-        bench_output = bench_output.numpy()
+        bench_output = bench_output.cpu().numpy()
         device_output = device_output.cpu().numpy()
         if cpu_shape != npu_shape:
             return CompareConst.ERROR, compare_column, f"The shape of bench{str(cpu_shape)} " \
@@ -341,7 +341,7 @@ class Comparator:
     def _compare_dropout(api_name, bench_output, device_output):
         tensor_num = bench_output.numel()
         if tensor_num >= 100:
-            if abs((bench_output == 0).sum() - (device_output == 0).cpu().sum()) / tensor_num < 0.1:
+            if abs((bench_output == 0).cpu().sum() - (device_output == 0).cpu().sum()) / tensor_num < 0.1:
                 return CompareConst.PASS, 1
             else:
                 return CompareConst.ERROR, 0
