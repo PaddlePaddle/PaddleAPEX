@@ -23,7 +23,7 @@ current_time = time.strftime("%Y%m%d%H%M%S")
 RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
 DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
 RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'result_csv_path', 'details_csv_path',
-                                         'save_error_data', 'is_continue_run_ut', 'real_data_path'])
+                                         'save_error_data', 'is_continue_run_ut'])
 
 tqdm_params = {
     'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
@@ -141,7 +141,7 @@ def run_ut(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             print(api_full_name)
-            data_info = run_paddle_api(api_full_name, config.real_data_path, api_info_dict)
+            data_info = run_paddle_api(api_full_name, api_info_dict)
             # is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
             #                                                         data_info.bench_output,
             #                                                         data_info.device_output,
@@ -158,11 +158,11 @@ def run_ut(config):
             gc.collect()
 
 
-def run_paddle_api(api_full_name, real_data_path, api_info_dict):
+def run_paddle_api(api_full_name, api_info_dict):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
-    args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
+    args, kwargs, need_grad = get_api_info(api_info_dict, api_name)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
     need_backward = True
@@ -236,7 +236,7 @@ def run_ut_command_save(args):
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
     run_ut_config = RunUTConfig(forward_content, result_csv_path, details_csv_path, save_error_data,
-                                args.result_csv_path, args.real_data_path)
+                                args.result_csv_path)
     run_ut_save(run_ut_config)
 
 
@@ -246,7 +246,7 @@ def run_ut_save(config):
         try:
             print(api_full_name)
             dump_path = os.path.dirname(config.result_csv_path)
-            run_paddle_api_save(api_full_name, config.real_data_path, api_info_dict, dump_path)
+            run_paddle_api_save(api_full_name, api_info_dict, dump_path)
             print("*"*200)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
@@ -259,11 +259,11 @@ def run_ut_save(config):
             gc.collect()
 
 
-def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path):
+def run_paddle_api_save(api_full_name, api_info_dict, dump_path):
     in_fwd_data_list = []
     backward_message = ''
     [api_type, api_name, _] = api_full_name.split('*')
-    args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
+    args, kwargs, need_grad = get_api_info(api_info_dict, api_name)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
     need_backward = True
@@ -319,12 +319,12 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict, dump_path)
     return
 
 
-def get_api_info(api_info_dict, api_name, real_data_path):
+def get_api_info(api_info_dict, api_name):
     convert_type, api_info_dict = api_info_preprocess(api_name, api_info_dict)
     need_grad = True
     if api_info_dict.get("kwargs") and "out" in api_info_dict.get("kwargs"):
         need_grad = False
-    args, kwargs = gen_api_params(api_info_dict, api_name, need_grad, convert_type, real_data_path)
+    args, kwargs = gen_api_params(api_info_dict, api_name, need_grad, convert_type)
     return args, kwargs, need_grad
 
 
@@ -418,10 +418,6 @@ def _run_ut_parser(parser):
                         help="<optional> The path of accuracy_checking_result_{timestamp}.csv, "
                              "when run ut is interrupted, enter the file path to continue run ut.",
                         required=False)
-    parser.add_argument("-real_data_path", dest="real_data_path", nargs="?", const="", default="", type=str,
-                        help="<optional> In real data mode, the root directory for storing real data "
-                             "must be configured.",
-                        required=False)
 
 
 def preprocess_forward_content(forward_content):
@@ -490,7 +486,7 @@ def run_ut_command(args):
             global UT_ERROR_DATA_DIR
             UT_ERROR_DATA_DIR = 'ut_error_data' + time_info
     run_ut_config = RunUTConfig(forward_content, result_csv_path, details_csv_path, save_error_data,
-                                args.result_csv_path, args.real_data_path)
+                                args.result_csv_path)
     run_ut(run_ut_config)
 
 

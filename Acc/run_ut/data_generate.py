@@ -24,7 +24,7 @@ def retain_grad(tensor):
     tensor.register_hook(hook)
 
 
-def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
+def gen_data(info, api_name, need_grad, convert_type):
     """
     Function Description:
         Based on arg basic information, generate arg data
@@ -221,7 +221,7 @@ def gen_bool_tensor(low, high, shape):
     return data
 
 
-def gen_args(args_info, api_name, need_grad=True, convert_type=None, real_data_path=None):
+def gen_args(args_info, api_name, need_grad=True, convert_type=None):
     """
     Function Description:
         Based on API basic information, generate input parameters: args, for API forward running
@@ -230,15 +230,14 @@ def gen_args(args_info, api_name, need_grad=True, convert_type=None, real_data_p
         api_name: API name
         need_grad: set Tensor grad for backward
         convert_type: convert ori_type to dist_type flag.
-        real_data_path: the root directory for storing real data.
     """
     check_object_type(args_info, list)
     args_result = []
     for arg in args_info:
         if isinstance(arg, (list, tuple)):
-            data = gen_args(arg, api_name, need_grad, convert_type, real_data_path)
+            data = gen_args(arg, api_name, need_grad, convert_type)
         elif isinstance(arg, dict):
-            data = gen_data(arg, api_name, need_grad, convert_type, real_data_path)
+            data = gen_data(arg, api_name, need_grad, convert_type)
         else:
             print_warn_log(f'Warning: {arg} is not supported')
             raise NotImplementedError()
@@ -246,14 +245,13 @@ def gen_args(args_info, api_name, need_grad=True, convert_type=None, real_data_p
     return args_result
 
 
-def gen_kwargs(api_info, convert_type=None, real_data_path=None):
+def gen_kwargs(api_info, convert_type=None):
     """
     Function Description:
         Based on API basic information, generate input parameters: kwargs, for API forward running
     Parameter:
         api_info: API basic information. Dict
         convert_type: convert ori_type to dist_type flag.
-        real_data_path: the root directory for storing real data.
     """
     check_object_type(api_info, dict)
     kwargs_params = api_info.get("kwargs")
@@ -261,9 +259,9 @@ def gen_kwargs(api_info, convert_type=None, real_data_path=None):
         if value is None:
             continue
         if isinstance(value, (list, tuple)):
-            kwargs_params[key] = gen_list_kwargs(value, convert_type, real_data_path)
+            kwargs_params[key] = gen_list_kwargs(value, convert_type)
         elif value.get('type') in TENSOR_DATA_LIST_PADDLE or value.get('type').startswith("numpy"):
-            kwargs_params[key] = gen_data(value, True, convert_type, real_data_path)
+            kwargs_params[key] = gen_data(value, True, convert_type)
         elif value.get('type') in PADDLE_TYPE:
             gen_paddle_kwargs(kwargs_params, key, value)
         else:
@@ -276,7 +274,7 @@ def gen_paddle_kwargs(kwargs_params, key, value):
         kwargs_params[key] = eval(value.get('value'))
 
 
-def gen_list_kwargs(kwargs_item_value, convert_type, real_data_path=None):
+def gen_list_kwargs(kwargs_item_value, convert_type):
     """
     Function Description:
         When kwargs value is list, generate the list of kwargs result
@@ -287,14 +285,14 @@ def gen_list_kwargs(kwargs_item_value, convert_type, real_data_path=None):
     kwargs_item_result = []
     for item in kwargs_item_value:
         if item.get('type') in TENSOR_DATA_LIST_PADDLE:
-            item_value = gen_data(item, False, convert_type, real_data_path)
+            item_value = gen_data(item, False, convert_type)
         else:
             item_value = item.get('value')
         kwargs_item_result.append(item_value)
     return kwargs_item_result
 
 
-def gen_api_params(api_info, api_name, need_grad=True, convert_type=None, real_data_path=None):
+def gen_api_params(api_info, api_name, need_grad=True, convert_type=None):
     """
     Function Description:
         Based on API basic information, generate input parameters: args, kwargs, for API forward running
@@ -308,9 +306,9 @@ def gen_api_params(api_info, api_name, need_grad=True, convert_type=None, real_d
     if convert_type and convert_type not in Const.CONVERT:
         error_info = f"convert_type params not support {convert_type}."
         raise CompareException(CompareException.INVALID_PARAM_ERROR, error_info)
-    kwargs_params = gen_kwargs(api_info, convert_type, real_data_path)
+    kwargs_params = gen_kwargs(api_info, convert_type)
     if api_info.get("args"):
-        args_params = gen_args(api_info.get("args"), api_name, need_grad, convert_type, real_data_path)
+        args_params = gen_args(api_info.get("args"), api_name, need_grad, convert_type)
     else:
         print_warn_log(f'Warning: No args in {api_info} ')
         args_params = []
