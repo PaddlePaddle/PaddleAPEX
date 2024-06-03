@@ -2,8 +2,8 @@ import paddle
 import os
 import numpy
 import math
-from utils import check_object_type, Const, CompareException, print_error_log, print_warn_log, check_file_or_directory_path, get_full_data_path
-from run_ut_utils import hf_32_standard_api
+from utils import check_object_type, Const, CompareException, print_error_log, print_warn_log, \
+    check_file_or_directory_path, hf_32_standard_api
 
 
 TENSOR_DATA_LIST_PADDLE = ["paddle.Tensor", "paddle.create_parameter"]

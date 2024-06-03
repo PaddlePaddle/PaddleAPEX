@@ -9,9 +9,9 @@ from collections import namedtuple
 from tqdm import tqdm
 import paddle
 import paddle.nn.functional as F
-from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, print_error_log, check_path_before_create, seed_all
+from utils import Const, print_warn_log, api_info_preprocess, get_json_contents, print_info_log, create_directory, \
+    print_error_log, check_path_before_create, seed_all, hf_32_standard_api, Backward_Message
 from data_generate import gen_api_params
-from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, check_file_suffix
 from compare.compare import Comparator
 
