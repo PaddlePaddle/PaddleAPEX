@@ -18,12 +18,6 @@ NUMPY_TYPE = ["numpy.int8", "numpy.int16", "numpy.int32", "numpy.int64", "numpy.
               "numpy.complex128", "numpy.complex256", "numpy.bool_", "numpy.string_", "numpy.bytes_", "numpy.unicode_"]
 
 
-def retain_grad(tensor):
-    def hook(grad):
-        tensor.grad = grad
-    tensor.register_hook(hook)
-
-
 def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
     """
     Function Description:
@@ -42,12 +36,7 @@ def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
             data = gen_real_tensor(data_path, convert_type)
         else:
             data = gen_random_tensor(info, convert_type)
-        if api_name in hf_32_standard_api and data.dtype == paddle.float32:
-            data = fp32_to_hf32_to_fp32(data)
-        if not info.get('stop_gradient') and need_grad:
-            data.stop_gradient = False
-            temp_data = data * 1
-            data = temp_data.astype(data.dtype)
+        data.stop_gradient = False
     elif data_type.startswith("numpy"):
         if data_type not in NUMPY_TYPE:
             raise Exception("{} is not supported now".format(data_type))
@@ -138,6 +127,7 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
         data_dtype: The data type of Tensor
         convert_type: convert ori_type to dist_type flag.
     """
+    paddle.set_device("cpu")
     if convert_type:
         ori_dtype = Const.CONVERT.get(convert_type)[0]
         if ori_dtype == data_dtype:
@@ -146,11 +136,11 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
     high, high_origin = high_info[0], high_info[1]
     if data_dtype in FLOAT_TYPE_PADDLE:
         if math.isnan(high):
-            tensor = paddle._C._VariableFunctionsClass.full(shape, float('nan'), dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
+            tensor = paddle.full(shape, float('nan'), dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
             return tensor
         #high_origin为新版json中的属性，只有当high_origin不为None,且high为inf或-inf时，原tensor全为inf或-inf
         if high_origin and high in [float('inf'), float('-inf')]:
-            tensor = paddle._C._VariableFunctionsClass.full(shape, high, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
+            tensor = paddle.full(shape, high, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
             tensor[-1] = low
             return tensor
         low_scale, high_scale = low, high
@@ -167,12 +157,12 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
 
         scale = high_scale - low_scale
         if data_dtype == "BF16":
-            rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval("paddle.float32")), place=paddle.CPUPlace())
+            rand01 = paddle.rand(shape, dtype=eval("paddle.float32"))
             tensor = rand01 * scale + low_scale
-            # tensor = paddle.cast(tensor, dtype='bfloat16')
+            tensor = paddle.cast(tensor, dtype='bfloat16')
 
         else:
-            rand01 = paddle.to_tensor(paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))), place=paddle.CPUPlace())
+            rand01 = paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
             tensor = rand01 * scale + low_scale
     elif 'int' in data_dtype or 'long' in data_dtype or 'INT' in data_dtype or 'LONG' in data_dtype:
         low, high = int(low), int(high)
