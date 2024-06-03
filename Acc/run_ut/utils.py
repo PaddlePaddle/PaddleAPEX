@@ -11,6 +11,15 @@ from file_check_util import FileOpen
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
 
+hf_32_standard_api = ["conv1d", "conv2d"]
+
+
+class Backward_Message:
+    MULTIPLE_BACKWARD_MESSAGE = "Multiple backward is not supported."
+    UNSUPPORT_BACKWARD_MESSAGE = "function with out=... arguments don't support automatic differentiation, skip backward."
+    NO_BACKWARD_RESULT_MESSAGE = "function backward result is None, skip backward."
+
+
 class Const:
     """
     Class for const
