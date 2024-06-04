@@ -15,11 +15,12 @@ from compare.algorithm import get_rmse, get_error_balance, get_max_rel_err, get_
     check_small_value, check_norm_value, get_abs_bench_with_eps
 
 from compare.compare_dependency import get_json_contents, write_csv, print_warn_log
-from compare.compare_dependency import msCheckerConfig
 from compare.compare_dependency import FileOpen
 from compare.compare_dependency import seed_all
 
 seed_all()
+
+PRECISION = 14
 
 class Comparator:
     # consts for result csv
@@ -146,13 +147,13 @@ class Comparator:
         if isinstance(fwd_result, list):
             for i, test_subject in enumerate(fwd_result):
                 subject = subject_prefix + ".forward.output." + str(i)
-                test_subject = ["{:.{}f}".format(item, msCheckerConfig.precision) 
+                test_subject = ["{:.{}f}".format(item, PRECISION)
                                 if isinstance(item, float) else item for item in test_subject]
                 test_rows.append([subject] + list(test_subject))
         if isinstance(bwd_result, list):
             for i, test_subject in enumerate(bwd_result):
                 subject = subject_prefix + ".backward.output." + str(i)
-                test_subject = ["{:.{}f}".format(item, msCheckerConfig.precision) 
+                test_subject = ["{:.{}f}".format(item, PRECISION)
                                 if isinstance(item, float) else item for item in test_subject]
                 test_rows.append([subject] + list(test_subject))
 
