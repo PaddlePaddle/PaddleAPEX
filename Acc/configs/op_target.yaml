@@ -18,6 +18,7 @@ functional:
   -  channel_shuffle
   -  class_center_sample
   -  common
+  -  conv
   -  conv1d
   -  conv1d_transpose
   -  conv2d
@@ -39,6 +40,9 @@ functional:
   -  embedding
   -  extension
   -  flash_attention
+  -  flash_attention_with_sparse_mask
+  -  fractional_max_pool2d
+  -  fractional_max_pool3d
   -  fold
   -  gather_tree
   -  gaussian_nll_loss
@@ -86,6 +90,7 @@ functional:
   -  one_hot
   -  pad
   -  pairwise_distance
+  -  pdist
   -  pixel_shuffle
   -  pixel_unshuffle
   -  poisson_nll_loss
@@ -137,9 +142,12 @@ paddle:
   -  add_n
   -  addmm
   -  addmm_
+  -  all
+  -  allclose
   -  amax
   -  amin
   -  angle
+  -  any
   -  arange
   -  argmax
   -  argmin
@@ -162,6 +170,7 @@ paddle:
   -  atleast_3d
   -  bernoulli
   -  bincount
+  -  binomial
   -  bitwise_and
   -  bitwise_and_
   -  bitwise_not
@@ -180,8 +189,13 @@ paddle:
   -  cholesky
   -  chunk
   -  clip
+  -  column_stack
+  -  combinations
   -  concat
   -  conj
+  -  corrcoef
+  -  copysign
+  -  copysign_
   -  cos
   -  cos_
   -  cosh
@@ -206,48 +220,64 @@ paddle:
   -  diff
   -  digamma
   -  digamma_
-  -  disable_signal_handler
-  -  disable_static
   -  divide
   -  divide_
   -  dot
+  -  dsplit
+  -  dstack
   -  eigvalsh
   -  einsum
+  -  empty
+  -  empty_like
+  -  equal
+  -  equal_all
   -  erf
   -  erf_
   -  erfinv
   -  exp
+  -  expand
+  -  expand_as
   -  expm1
   -  expm1_
   -  eye
   -  fft
   -  flatten
+  -  flatten_
+  -  flip
   -  floor
   -  floor_divide
   -  floor_divide_
   -  floor_mod
   -  floor_mod_
-  -  flops
   -  fmax
   -  fmin
   -  frac
   -  frac_
   -  frexp
+  -  full
+  -  full_like
   -  gather
   -  gather_nd
   -  gcd
   -  gcd_
-  -  geometric
-  -  geometric_
   -  greater_equal
   -  greater_equal_
   -  greater_than
   -  greater_than_
-  -  hapi
   -  heaviside
   -  histogram
+  -  histogramadd
+  -  hsplit
+  -  hstack
   -  hypot
   -  hypot_
+  -  i0
+  -  i0_
+  -  i0e
+  -  i1
+  -  i1e
+  -  imag
+  -  increment
   -  index_add
   -  index_add_
   -  index_fill
@@ -256,7 +286,7 @@ paddle:
   -  index_put_
   -  index_sample
   -  index_select
-  -  inverse
+  -  inner
   -  kron
   -  kthvalue
   -  lcm
@@ -296,6 +326,8 @@ paddle:
   -  logsumexp
   -  masked_fill
   -  masked_fill_
+  -  masked_scatter
+  -  masked_scatter_
   -  masked_select
   -  matmul
   -  max
@@ -303,12 +335,12 @@ paddle:
   -  mean
   -  median
   -  meshgrid
-  -  metric
   -  min
   -  minimum
   -  mm
   -  mod
   -  mod_
+  -  mode
   -  moveaxis
   -  multigammaln
   -  multigammaln_
@@ -326,6 +358,26 @@ paddle:
   -  neg
   -  neg_
   -  nextafter
+  -  nonzero
+  -  normal
+  -  normal_
+  -  not_equal
+  -  not_equal_
+  -  numel
+  -  ones
+  -  ones_like
+  -  outer
+  -  pdist
+  -  poisson
+  -  polar
+  -  polygamma
+  -  polygamma_
+  -  pow
+  -  pow_
+  -  prod
+  -  put_along_axis
+  -  quantile
+  -  rad2deg
   -  rand
   -  randint
   -  randint_like
@@ -340,26 +392,40 @@ paddle:
   -  renorm
   -  renorm_
   -  repeat_interleave
-  -  reverse
+  -  reshape
+  -  reshape_
   -  roll
   -  rot90
   -  round
+  -  row_stack
   -  rsqrt
   -  scale
+  -  scatter
+  -  scatter_
+  -  scatter_nd
+  -  scatter_nd_add
+  -  searchsorted
+  -  select_scatter
   -  sgn
+  -  shard_index
+  -  sign
+  -  signal
+  -  signbit
   -  sin
   -  sin_
   -  sinh
   -  sinh_
   -  slice
+  -  slice_scatter
   -  sort
-  # -  split
+  -  split
   -  sqrt
   -  square
   -  square_
   -  squeeze
   -  squeeze_
   -  stack
+  -  standard_gamma
   -  standard_normal
   -  stanh
   -  strided_slice
@@ -376,8 +442,9 @@ paddle:
   -  tensordot
   -  tile
   -  topk
-#   -  transpose
-#   -  transpose_
+  -  trace
+  -  transpose
+  -  transpose_
   -  trapezoid
   -  tril
   -  tril_
@@ -397,7 +464,10 @@ paddle:
   -  unsqueeze_
   -  unstack
   -  vander
-  # -  vsplit
+  -  var
+  -  view
+  -  view_as
+  -  vsplit
   -  where
   -  where_
   -  zeros
@@ -405,27 +475,33 @@ paddle:
 
 tensor:
   -  T
-  -  __mul__
   -  __add__
+  -  __and__
   -  __radd__
-  -  __sub__
-  -  __rsub__
-  -  __rmul__
   -  __div__
-  -  __truediv__
-  -  __rdiv__
-  -  __rtruediv__
-  -  __mod__
-  -  __matmul__
-  -  __gt__
-  -  __ge__
-  -  __lt__
-  -  __le__
-  -  __floordiv__
-  -  __pow__
-  -  __rpow__
   -  __eq__
+  -  __floordiv__
+  -  __ge__
+  -  __gt__
+  -  __le__
+  -  __lt__
+  -  __matmul__
+  -  __mod__
+  -  __mul__
   -  __ne__
+  -  __neg__
+  -  __nonezero__
+  -  __or__
+  -  __pow__
+  -  __radd__
+  -  __rdiv__
+  -  __rmul__
+  -  __rpow__
+  -  __rsub__
+  -  __rtruediv__
+  -  __sub__
+  -  __truediv__
+  -  __xor__
   -  abs
   -  abs_
   -  acos
@@ -437,6 +513,8 @@ tensor:
   -  add_n
   -  addmm
   -  addmm_
+  -  all
+  -  allclose
   -  amax
   -  amin
   -  angle
@@ -468,12 +546,11 @@ tensor:
   -  bitwise_or_
   -  bitwise_xor
   -  bitwise_xor_
-  -  block
   -  bmm
   -  broadcast_shape
   -  broadcast_tensors
   -  broadcast_to
-  -  bucketize
+  -  cauchy_
   -  cdist
   -  ceil
   -  ceil_
@@ -504,7 +581,6 @@ tensor:
   -  cumsum
   -  cumsum_
   -  cumulative_trapezoid
-  -  data_ptr
   -  deg2rad
   -  diag
   -  diag_embed
@@ -514,18 +590,21 @@ tensor:
   -  diff
   -  digamma
   -  digamma_
-  -  dim
   -  divide
   -  divide_
   -  dot
   -  eig
   -  eigvals
   -  eigvalsh
+  -  equal
+  -  equal_all
   -  erf
   -  erfinv
   -  erfinv_
   -  exp
   -  exp_
+  -  expand
+  -  expand_as
   -  expm1
   -  exponential_
   -  fill_
@@ -535,12 +614,50 @@ tensor:
   -  flatten
   -  flatten_
   -  flip
-  -  gradient
+  -  floor
+  -  floor_
+  -  floor_divide
+  -  floor_divide_
+  -  floor_mod
+  -  floor_mod_
+  -  fmax
+  -  fmin
+  -  frac
+  -  frac_
+  -  frexp
+  -  gather
+  -  gather_nd
+  -  gcd
+  -  gcd_
+  -  get_selected_rows
+  -  get_strides
   -  greater_equal
   -  greater_equal_
   -  greater_than
   -  greater_than_
-  -  inverse
+  -  heaviside
+  -  histogram
+  -  histogramadd
+  -  hsplit
+  -  hstack
+  -  hypot
+  -  hypot_
+  -  i0
+  -  i0_
+  -  i0e
+  -  i1
+  -  i1e
+  -  imag
+  -  increment
+  -  index_add
+  -  index_add_
+  -  index_fill
+  -  index_fill_
+  -  index_put
+  -  index_put_
+  -  index_sample
+  -  index_select
+  -  inner
   -  kron
   -  kthvalue
   -  layout
@@ -583,6 +700,8 @@ tensor:
   -  masked_fill
   -  masked_fill_
   -  masked_select
+  -  masked_scatter
+  -  masked_scatter_
   -  matmul
   -  matrix_power
   -  max
@@ -623,7 +742,6 @@ tensor:
   -  offset
   -  outer
   -  pca_lowrank
-  -  pin_memory
   -  pinv
   -  polar
   -  polygamma
@@ -662,6 +780,7 @@ tensor:
   -  sigmoid
   -  sigmoid_
   -  sign
+  -  signbit
   -  sin
   -  sin_
   -  sinh
@@ -670,7 +789,7 @@ tensor:
   -  slice
   -  solve
   -  sort
-  # -  split
+  -  split
   -  sqrt
   -  sqrt_
   -  square
@@ -698,8 +817,8 @@ tensor:
   -  top_p_sampling
   -  topk
   -  trace
-#   -  transpose
-#   -  transpose_
+  -  transpose
+  -  transpose_
   -  trapezoid
   -  tril
   -  tril_
@@ -718,7 +837,9 @@ tensor:
   -  unstack
   -  vander
   -  var
-  # -  vsplit
+  -  view
+  -  view_as
+  -  vsplit
   -  where
   -  where_
   -  zero_

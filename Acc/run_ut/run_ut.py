@@ -279,7 +279,6 @@ def run_paddle_api_save(api_full_name, real_data_path, api_info_dict):
         print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
     if api_name in not_backward_list:
-        # need_grad = False
         print_warn_log(f"{api_full_name} {Backward_Message.NO_BACKWARD_RESULT_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.NO_BACKWARD_RESULT_MESSAGE
     need_backward = need_backward and need_grad
