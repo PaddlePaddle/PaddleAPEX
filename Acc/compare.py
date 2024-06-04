@@ -69,10 +69,16 @@ def compare_npu_gpu(result_csv_path, details_csv_path, gpu_data_dir,npu_data_dir
 
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all,**tqdm_params)):
         try:
+            name = api_file.split("*")[1]
+            print(name)
             gpu_pt_path = os.path.join(gpu_data_dir,api_file)
             npu_pt_path = os.path.join(npu_data_dir,api_file)
             gpu_out_tensor = paddle.load(gpu_pt_path)
             npu_out_tensor = paddle.load(npu_pt_path)
+
+            if npu_out_tensor.dtype.name=="BF16":
+                gpu_out_tensor = paddle.cast(gpu_out_tensor,paddle.float32)
+                npu_out_tensor = paddle.cast(npu_out_tensor,paddle.float32)
             gpu_grad_tensor_list,npu_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:
                 gpu_grad_path = os.path.join(gpu_grad_dir, api_file)

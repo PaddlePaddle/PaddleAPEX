@@ -14,8 +14,8 @@ white_list: None
 # white_list: "./Acc/configs/white_list.yaml"
 
 # mode must be chosen from ["real_data", "random"]
-dump_mode: "real_data"
+dump_mode: "random"
 
 
 # target_step is a list, dump api function will turn on at the specific step
-target_step: [0]
+target_step: [10]
