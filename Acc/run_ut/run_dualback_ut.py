@@ -26,7 +26,7 @@ from file_check_util import (
 )
 
 NO_BACKWARD_OP = ["reshape_", "slice", "empty", "split"]
-
+UT_WHITE_LIST = ["empty", "expand"]
 seed_all()
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -111,6 +111,9 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
     ):
         try:
             print(api_full_name)
+            # [api_type, api_name, _] = api_full_name.split("*")
+            # if api_name in UT_WHITE_LIST:
+            #     continue
             run_paddle_api_save(
                 api_full_name, real_data_path, api_info_dict, out_path, backend
             )

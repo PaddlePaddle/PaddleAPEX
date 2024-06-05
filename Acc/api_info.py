@@ -16,6 +16,18 @@ import paddle
 import numpy as np
 from .Dump import dump_util
 
+Paddle_Type_Map = {
+    "FP64": "paddle.float64",
+    "FP32": "paddle.float32",
+    "BF16": "paddle.bfloat16",
+    "FP16": "paddle.float16",
+    "BOOL": "paddle.bool",
+    "UINT8": "paddle.uint8",
+    "INT16": "paddle.int16",
+    "INT32": "paddle.int32",
+    "INT64": "paddle.int64",
+}
+
 
 def transfer_types(data, dtype):
     if "INT" in dtype or "BOOL" in dtype:
@@ -114,6 +126,9 @@ class API:
         converted_numpy, numpy_type = self._convert_numpy_to_builtin(element)
         if converted_numpy is not element:
             return self._analyze_numpy(converted_numpy, numpy_type)
+
+        if isinstance(element, paddle.dtype):
+            return Paddle_Type_Map[element.name]
 
         if isinstance(element, paddle.Tensor):
             return self._analyze_tensor(element)
