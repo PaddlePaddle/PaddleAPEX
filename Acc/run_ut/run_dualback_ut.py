@@ -25,8 +25,12 @@ from file_check_util import (
     check_file_suffix,
 )
 
-NO_BACKWARD_OP = ["reshape_", "slice", "empty", "split"]
-UT_WHITE_LIST = ["empty", "expand"]
+# 不需要反向的算子 reshape_ 为动态shape时会报错 算子输出不是leaf tensor.
+NO_BACKWARD_OP = ["reshape_"]
+
+# 分组反向的算子，输出为tensor 序列，使用tensor.mean进行均值加和再backward.
+Group_Backward_OP = ["slice", "split"]
+
 seed_all()
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -111,9 +115,6 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
     ):
         try:
             print(api_full_name)
-            # [api_type, api_name, _] = api_full_name.split("*")
-            # if api_name in UT_WHITE_LIST:
-            #     continue
             run_paddle_api_save(
                 api_full_name, real_data_path, api_info_dict, out_path, backend
             )
@@ -137,9 +138,7 @@ def run_paddle_api_save(
     in_fwd_data_list = []
     backward_message = ""
     [api_type, api_name, _] = api_full_name.split("*")
-    args, kwargs, need_grad = get_api_info(
-        api_info_dict, api_name, real_data_path
-    )  # 这个函数 paddle.randn(shape) 在cpu上生成
+    args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
     if not need_grad:
@@ -155,7 +154,7 @@ def run_paddle_api_save(
         need_backward = False
     device_args, device_kwargs = generate_device_params(
         args, kwargs, need_backward, api_name
-    )  # 这个函数 tensor.to("npu")
+    )
     device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
 
     device_str = paddle.device.get_device()
@@ -169,6 +168,28 @@ def run_paddle_api_save(
     output_path = output_dir + "/" + f"{api_full_name}"
     out = device_out
     paddle.save(out, output_path)
+
+    if api_name in Group_Backward_OP:
+        try:
+            device_grad_out = []
+            temp_res = 0
+            for out in device_out:
+                if isinstance(out, paddle.Tensor):
+                    temp_res += out.mean()
+            out.backward()
+            for arg in device_args:
+                if isinstance(arg, paddle.Tensor):
+                    device_grad_out.append(arg.grad)
+                    output_dir = os.path.abspath(
+                        os.path.join(dump_path, output_folder + "_backward")
+                    )
+                os.makedirs(output_dir, exist_ok=True)
+                output_path = output_dir + "/" + f"{api_full_name}"
+                paddle.save(device_grad_out, output_path)
+        except Exception as err:
+            [_, api_name, _] = api_full_name.split("*")
+            print_warn_log(f"Run API {api_name} backward Error: %s" % str(err))
+        return
 
     if api_name not in NO_BACKWARD_OP:
         try:
