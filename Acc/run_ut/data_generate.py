@@ -228,6 +228,8 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
     if tensor.numel() == 0:
         return tensor
     tmp_tensor = tensor.reshape([-1])
+    if data_dtype == "BF16":
+        tmp_tensor = tmp_tensor.astype("float32")
     if high_origin and math.isnan(high_origin):
         if tmp_tensor.numel() <= 2:
             tmp_tensor[0] = float("nan")
