@@ -129,8 +129,15 @@ def compare_npu_gpu(
             if gpu_grad_dir and npu_grad_dir:
                 gpu_grad_path = os.path.join(gpu_grad_dir, api_file)
                 npu_grad_path = os.path.join(npu_grad_dir, api_file)
-                gpu_grad_tensor_list = paddle.load(gpu_grad_path)
-                npu_grad_tensor_list = paddle.load(npu_grad_path)
+                if os.path.exists(gpu_grad_path):
+                    gpu_grad_tensor_list = paddle.load(gpu_grad_path)
+                    npu_grad_tensor_list = paddle.load(npu_grad_path)
+                    print_info(gpu_grad_tensor_list, npu_grad_tensor_list)
+                else:
+                    print(
+                        f"{api_file} Doesn't exist! Please check BP_LIST in run_dualback_ut.py"
+                    )
+
             compare.compare_output(
                 api_file,
                 gpu_out_tensor,
@@ -140,6 +147,14 @@ def compare_npu_gpu(
             )
         except Exception as err:
             print(err)
+
+
+def print_info(tensor_list1, tensor_list2):
+    for item1, item2 in zip(tensor_list1, tensor_list2):
+        if isinstance(item1, paddle.Tensor):
+            print("Load device1 grad Tensor: ", item1.dtype.name)
+        if isinstance(item2, paddle.Tensor):
+            print("Load device2 grad Tensor: ", item2.dtype.name)
 
 
 if __name__ == "__main__":
