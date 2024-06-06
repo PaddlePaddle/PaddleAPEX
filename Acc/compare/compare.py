@@ -242,9 +242,10 @@ class Comparator:
 
     def _compare_paddle_tensor(self, api_name, bench_output, device_output, compare_column):
         cpu_shape = bench_output.shape
+        cpu_dtype = bench_output.dtype
         npu_shape = device_output.shape
         npu_dtype = device_output.dtype
-        if npu_dtype == paddle.bfloat16:
+        if npu_dtype == paddle.bfloat16 or cpu_dtype == paddle.bfloat16:
             bench_output = bench_output.to(paddle.float32)
             device_output = device_output.to(paddle.float32)
         bench_output = bench_output.cpu().numpy()
