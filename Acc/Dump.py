@@ -13,9 +13,9 @@
 # limitations under the License.
 import json
 import os
-import paddle
 from .config import cfg
-from .Async_save_data import *
+from .Async_save_data import ThreadPool, save_tensor
+
 
 def create_directory(data_route):
     try:
@@ -36,7 +36,6 @@ def write_json(file_path, data, rank=None, mode="forward"):
         json.dump(data, f, indent=2)
 
 
-
 class Dump:
     def __init__(self, mode="real_data", Async_save=cfg.Async_dump):
         self.api_info = {}
@@ -50,7 +49,6 @@ class Dump:
             self.pool = ThreadPool()
         else:
             pass
-
 
     """
         Dump tensor object to disk.
@@ -69,11 +67,13 @@ class Dump:
             )
         full_path = os.path.realpath(file_path)
         if self.Async_save:
-            remote_repo = os.path.join(cfg.remote_path, f"rank{rank}_step{cfg.global_step}")
+            remote_repo = os.path.join(
+                cfg.remote_path, f"rank{rank}_step{cfg.global_step}"
+            )
             create_directory(remote_repo)
             self.pool.safe_parellel_save(tensor, file_path, remote_repo)
         else:
-            save_tensor(tensor,file_path)
+            save_tensor(tensor, file_path)
 
         return full_path
 
@@ -89,14 +89,14 @@ class Dump:
             self.dump_api_dict.update(api_info_dict)
 
     def dump(self):
-        if self.rank:
+        if self.rank is not None:
             directory = os.path.join(
                 self.data_route, f"rank{self.rank}_step{cfg.global_step}"
             )
         else:
             directory = self.data_route
         create_directory(directory)
-        if self.rank:
+        if self.rank is not None:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
         else:
             write_json(directory, self.dump_api_dict, rank=None, mode="forward")
