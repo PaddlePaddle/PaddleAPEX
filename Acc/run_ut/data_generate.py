@@ -205,7 +205,7 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
 
         scale = high_scale - low_scale
         if data_dtype == "BF16":
-            rand01 = paddle.rand(shape, dtype=eval("paddle.float32"))
+            rand01 = paddle.rand(shape, dtype=paddle.float32)
             tensor = rand01 * scale + low_scale
             tensor = paddle.cast(tensor, dtype="bfloat16")
 

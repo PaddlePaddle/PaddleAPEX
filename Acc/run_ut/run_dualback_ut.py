@@ -113,10 +113,16 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
     for i, (api_full_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        Warning_list = []
         try:
             print(api_full_name)
             run_paddle_api_save(
-                api_full_name, real_data_path, api_info_dict, out_path, backend
+                api_full_name,
+                real_data_path,
+                api_info_dict,
+                out_path,
+                backend,
+                Warning_list,
             )
             print("*" * 100)
         except Exception as err:
@@ -130,10 +136,21 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
                 print_error_log(f"Run {api_full_name} UT Error: %s" % str(err))
         finally:
             gc.collect()
+    device_str = paddle.device.get_device()
+    if device_str[0:3] == "npu":
+        output_folder = "npu_output"
+    else:
+        output_folder = "gpu_output"
+    output_dir = os.path.abspath(os.path.join(out_path, output_folder))
+    os.makedirs(output_dir, exist_ok=True)
+    filename = os.path.join(output_dir, "warning_log.txt")
+    File = open(filename, "w")
+    for item in Warning_list:
+        File.write(item + "\n")
 
 
 def run_paddle_api_save(
-    api_full_name, real_data_path, api_info_dict, dump_path, backend
+    api_full_name, real_data_path, api_info_dict, dump_path, backend, Warning_list
 ):
     in_fwd_data_list = []
     backward_message = ""
@@ -152,6 +169,8 @@ def run_paddle_api_save(
     need_backward = True
     if api_name in NO_BACKWARD_OP:
         need_backward = False
+        msg = f"API {api_name} skipped BP, according to 'NO_BACKWARD_OP'!"
+        Warning_list.append(msg)
     device_args, device_kwargs = generate_device_params(
         args, kwargs, need_backward, api_name
     )
@@ -170,6 +189,9 @@ def run_paddle_api_save(
     paddle.save(out, output_path)
 
     if api_name in Group_Backward_OP:
+        msg = f"API:{api_name} has multi outputs, we use .mean() to reduce outputs, and require backwards."
+        Warning_list.append(msg)
+        print_warn_log(msg)
         try:
             device_grad_out = []
             temp_res = 0
@@ -188,7 +210,9 @@ def run_paddle_api_save(
                 paddle.save(device_grad_out, output_path)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
-            print_warn_log(f"Run API {api_name} backward Error: %s" % str(err))
+            msg = f"Run API {api_name} backward Error: %s" % str(err)
+            print_warn_log(msg)
+            Warning_list.append(msg)
         return
 
     if api_name not in NO_BACKWARD_OP:

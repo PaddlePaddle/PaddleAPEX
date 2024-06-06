@@ -9,18 +9,18 @@ Accuracy auto-checker, which can grasp target operators in LLM models.
 ### Before run: Let us check our global config
 
 #### Step1: Set up your config.
-Accuracy tool need some configuration before start, all settings are list in **PaddleAPEX/Acc/configs/tool_config.yaml** 
+Accuracy tool need some configuration before start, all settings are list in **PaddleAPEX/Acc/configs/tool_config.yaml**
 
 #### Step2: Set config path.
 We provide two ways to set APEX config:
 
-1. 
+1.
     If you use default config, remember to change path in Acc/config.py:
     ``` Python
         # We recommand you set APEX_CONFIG_PATH as a real path.
         config_path = os.environ.get('APEX_CONFIG_PATH','./PaddleAPEX/Acc/configs/tool_config.yaml')
     ```
-2. 
+2.
     You can also set this variable by environment variable via:
     ``` Shell
         # We recommand you set APEX_CONFIG_PATH as a real path.
@@ -54,9 +54,9 @@ We provide two ways to set APEX config:
         y = paddle.add(a,a)
         apex.stop()
     ```
-    After running code above, our tool can dump real_data or tensor satistical data asynchronously. 
+    After running code above, our tool can dump real_data or tensor satistical data asynchronously.
     Here, we can get dumped json file and tensor(Optional).
-    
+
         |-- dump_info
             |-- rank0_step5
             |-- rank1_step5
@@ -79,11 +79,11 @@ We provide two ways to set APEX config:
         python run_ut.py --forward [json_path] --dump_path [dump_path] --backend npu --model real/random
         ```
         Scripts perform comparision between npu<->cpu, gpu<->cpu, each script will outputs *accuracy_result.csv* and *accuracy_details.csv*.
-    
-    2.  Directly execute paddle apis on two different backends. 
+
+    2.  Directly execute paddle apis on two different backends.
         ```Shell
         # Directly Comparision between NPU/GPU:
-        python Directly_run_ut.py --forward [json_path] --dump_path [dump_path] --backend gpu/npu --model real/random
+        python python run_dualback_ut.py --forward [json_path] -o [dump_path] --backend gpu/npu --mode real/random
         ```
         Given fixed seed on CPU, Paddle can generate producible data. Operates will be perform based on these data.
 
@@ -92,9 +92,15 @@ We provide two ways to set APEX config:
     ```Shell
     # Three backends comparision:
     python api_precision_compare.py --detail1 [detail_npu.csv]  --detail2  [detail_gpu.csv]  --output_path  [output_path]
-    
+
     # Directly backends comparision
     # input_dir1 contains real tensors from specific backend.
-    python compare.py --input_path1 [input_dir1]  --input_path2  [input_dir2]  --output_path  [output_path]
+    python compare.py -gpu [gpu_out_dir]  -gpu_back  [gpu_grad_out_dir]  -npu  [npu_out_dir]  -npu_back  [npu_grad_out_dir] -o [result_path]
 
     ```
+
+    We provide a logic flow chart for Directly comparision between devices.
+    ![Acc Tool Architecture](./Acc/doc/Compare_Logic_img.jpg)
+    <!-- <center>
+        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
+    </center> -->
