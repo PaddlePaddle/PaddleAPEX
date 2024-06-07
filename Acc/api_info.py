@@ -100,7 +100,7 @@ class API:
         dump_util.update_api_dict(self.api_info_struct, self.rank)
 
     def update_APIInfo(self, op_name, rank):
-        print("dump api: ", op_name)
+        # print("dump api: ", op_name)
         self.op_name = op_name
         self.rank = rank
 

@@ -17,9 +17,20 @@ from . import config
 from .wrap_Tensor_op import TensorOPTemplate, HookTensorOp
 from .wrap_functional_op import FunctionalOPTemplate, HookFunctionalOp
 from .wrap_paddle_op import PaddleOPTemplate, HookPaddleOp
-
-
+from .wrap_custom_op import CustomOPTemplate, HookCustomOp
+import sys
+import os
+import importlib
+import importlib.util
 cfg = config.cfg
+
+
+def check_module(module_name):
+    module_spec = importlib.util.find_spec(module_name)
+    if module_spec is None:
+        print("Module :{} not found".format(module_name))
+    else:
+        print("Module:{} can be imported!".format(module_name))
 
 def wrapped_op(api_type, op_name):
     if api_type == "Tensor":
@@ -40,10 +51,30 @@ def wrapped_op(api_type, op_name):
             return PaddleOPTemplate(op_name)(*args, **kwargs)
 
         return paddle_op_template
+    elif api_type == "custom":
+
+        def custom_op_template(*args, **kwargs):
+            return CustomOPTemplate(op_name)(*args, **kwargs)
+
+        return custom_op_template
     else:
         print("In func wrapped_op:", api_type, " is not a vlid api type!")
         return None
 
+def hijack_custom_api(target_op):
+    hijack_file = cfg.cutom_op_file_path
+    custom_abs_pth = os.path.abspath(hijack_file)
+    custom_abs_dir = os.path.dirname(custom_abs_pth)
+    sys.path.append(custom_abs_dir)
+    module_name = custom_abs_pth.split("/")[-1][:-3]
+    check_module(module_name)
+    CUSTOM_MODULE = importlib.import_module(module_name)
+    print(dir(CUSTOM_MODULE))
+    for op_name in target_op:
+        setattr(HookCustomOp, "wrap_" + op_name, getattr(CUSTOM_MODULE, str(op_name)))
+    for attr_name in dir(HookCustomOp):
+        if attr_name.startswith("wrap_"):
+            setattr(CUSTOM_MODULE, attr_name[5:], wrapped_op("Custom", attr_name[5:]))
 
 def hijack_tensor_api(target_op):
     for op_name in target_op:
@@ -83,3 +114,7 @@ def hijack_target_api():
     hijack_tensor_api(op.get_target_ops("Tensor"))
     hijack_functional_api(op.get_target_ops("functional"))
     hijack_paddle_api(op.get_target_ops("paddle"))
+
+    if cfg.custom_op:
+        custom_op = GetTargetOP(cfg.custom_op_path)
+    hijack_custom_api(custom_op.get_target_ops("custom"))

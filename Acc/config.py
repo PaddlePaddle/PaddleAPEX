@@ -24,9 +24,11 @@ class Config:
             self.dump_mode = configs["dump_mode"]
             self.op_target_pth = configs["op_target_path"]
             self.dump_root_path = configs["dump_root_path"]
+            self.custom_op_path = configs["custom_op_path"]
             self.target_step = configs["target_step"]
             self.remote_path = configs['remote_path']
             self.Async_dump = configs['Async_dump']
+            self.cutom_op_file_path = configs['cutom_op_file_path']
             if configs["white_list"]!= "None":
                 self.white_list = configs["white_list"]
             else:
@@ -38,10 +40,12 @@ class Config:
         self.Paddle_op_count = {}
         self.Tensor_op_count = {}
         self.Functional_op_count = {}
-
+        self.Custom_op_count = {}
         self.prefix_paddle_op_name_ = None
         self.prefix_functional_op_name_ = None
         self.prefix_tensor_op_name_ = None
+        self.prefix_custom_op_name_ = None
+
 
     def new_step(self):
         self.global_step += 1
@@ -49,11 +53,11 @@ class Config:
             self.Paddle_op_count = {}
             self.Tensor_op_count = {}
             self.Functional_op_count = {}
-            self.Paddletensor_op_count = {}
+            self.Custom_op_count = {}
             self.prefix_paddle_op_name_ = None
             self.prefix_functional_op_name_ = None
             self.prefix_tensor_op_name_ = None
-            self.prefix_Paddletensor_op_name_ = None
+            self.prefix_custom_op_name_ = None
             self.dump_state = True
         else:
             self.dump_state = False

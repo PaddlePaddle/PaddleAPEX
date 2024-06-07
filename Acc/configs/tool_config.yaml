@@ -2,7 +2,14 @@
 
 # Target APIs.
 op_target_path: "./PaddleAPEX/Acc/configs/op_target.yaml"
+custom_op_path: "./PaddleAPEX/Acc/configs/custom_op.yaml"
+
+custom_op: False
+
 dump_root_path: "./dump_info"
+
+# Target Custom Fusion Ops:
+cutom_op_file_path: "/root/paddlejob/workspace/xjm/PaddleNLP/paddlenlp/transformers/llama/fusion_ops.py"
 
 # Remote Path
 remote_path: "/root/paddlejob/workspace/PaddleAPEX_dump/"

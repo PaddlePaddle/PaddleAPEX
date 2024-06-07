@@ -57,6 +57,9 @@ class GetTargetOP:
             if self.WhitePaddleOps:
                 print(f"Paddle api:{self.WhitePaddleOps} are ignored in Acc tool!")
                 target_op = set(target_op) - set(self.WhitePaddleOps)
+        elif api_type == "custom":
+            _all_paddle_ops = dir(paddle)
+            target_op = set(self.WrapPaddleOps)
         else:
             print(api_type, " is not a vlid api type!")
         return target_op

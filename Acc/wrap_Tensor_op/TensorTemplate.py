@@ -24,7 +24,7 @@ class HookTensorOp:
 cfg = config.cfg
 
 
-class TensorOPTemplate(nn.Layer):
+class TensorOPTemplate():
     def __init__(self, op_name):
         self.op_name_ = op_name
         cfg.prefix_tensor_op_name_ = "Tensor*" + str(op_name) + "*"

@@ -24,7 +24,7 @@ class HookFunctionalOp:
 cfg = config.cfg
 
 
-class FunctionalOPTemplate(nn.Layer):
+class FunctionalOPTemplate():
     def __init__(self, op_name):
         self.op_name_ = op_name
         cfg.prefix_functional_op_name_ = "Functional*" + str(op_name) + "*"
