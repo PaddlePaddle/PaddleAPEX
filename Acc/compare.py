@@ -115,15 +115,15 @@ def compare_npu_gpu(
         try:
             name = api_file.split("*")
             print(name)
-            device1_pt_path = os.path.join(gpu_data_dir, api_file)
-            device2_pt_path = os.path.join(npu_data_dir, api_file)
+            gpu_pt_path = os.path.join(gpu_data_dir, api_file)
+            npu_pt_path = os.path.join(npu_data_dir, api_file)
             print("Loading:")
-            print(device1_pt_path)
-            print(device2_pt_path)
-            gpu_out_tensor = paddle.load(device1_pt_path)
-            npu_out_tensor = paddle.load(device2_pt_path)
-            print("device1 Tensor: ", gpu_out_tensor.dtype.name)
-            print("device2 Tensor: ", npu_out_tensor.dtype.name)
+            print(gpu_pt_path)
+            print(npu_pt_path)
+            gpu_out_tensor = paddle.load(gpu_pt_path)
+            npu_out_tensor = paddle.load(npu_pt_path)
+            print("gpu Tensor: ", gpu_out_tensor.dtype.name)
+            print("npu Tensor: ", npu_out_tensor.dtype.name)
 
             gpu_grad_tensor_list, npu_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:

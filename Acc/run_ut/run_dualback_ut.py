@@ -51,24 +51,20 @@ tqdm_params = {
 
 def generate_device_params(input_args, input_kwargs, need_backward, api_name):
     current_device = paddle.device.get_device()
+    device = current_device[:3]
     def recursive_arg_to_device(arg_in):
         if isinstance(arg_in, (list, tuple)):
             return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
         elif isinstance(arg_in, paddle.Tensor):
-            if need_backward:
-                if "gpu" in current_device:
-                    arg_in = arg_in.cuda()
-                elif "npu" in current_device:
-                    arg_in = arg_in.to("npu")
-                arg_in.stop_gradient = False
-                return arg_in
+            if "gpu" in current_device:
+                arg_in = arg_in.cuda()
             else:
-                if "gpu" in current_device:
-                    arg_in = arg_in.cuda()
-                else:
-                    arg_in = arg_in.to("npu")
+                arg_in = arg_in.to(device)
+            if need_backward:
+                arg_in.stop_gradient = False
+            else:
                 arg_in.stop_gradient = True
-                return arg_in
+            return arg_in
         else:
             return arg_in
 
@@ -137,10 +133,7 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
         finally:
             gc.collect()
     device_str = paddle.device.get_device()
-    if device_str[0:3] == "npu":
-        output_folder = "npu_output"
-    else:
-        output_folder = "gpu_output"
+    output_folder = device_str[0:3] + "_output"
     output_dir = os.path.abspath(os.path.join(out_path, output_folder))
     os.makedirs(output_dir, exist_ok=True)
     filename = os.path.join(output_dir, "warning_log.txt")
@@ -177,11 +170,7 @@ def run_paddle_api_save(
     device_out = exec(api_name, api_type)(*device_args, **device_kwargs)
 
     device_str = paddle.device.get_device()
-    if device_str[0:3] == "npu":
-        output_folder = "npu_output"
-    else:
-        output_folder = "gpu_output"
-
+    output_folder = device_str[0:3] + "_output"
     output_dir = os.path.abspath(os.path.join(dump_path, output_folder))
     os.makedirs(output_dir, exist_ok=True)
     output_path = output_dir + "/" + f"{api_full_name}"
@@ -267,7 +256,7 @@ def exec(op_name, api_type):
 
 def _run_ut_parser(parser):
     parser.add_argument(
-        "-f",
+        "-fwd",
         "--forward",
         dest="forward_input_file",
         default="",
@@ -277,7 +266,7 @@ def _run_ut_parser(parser):
         required=True,
     )
     parser.add_argument(
-        "-backward",
+        "-bp",
         "--backward",
         dest="backward_input_file",
         default="",
@@ -287,7 +276,7 @@ def _run_ut_parser(parser):
         required=False,
     )
     parser.add_argument(
-        "-o",
+        "-out",
         "--dump_path",
         dest="out_path",
         default="./root/paddlejob/workspace/PaddleAPEX_dump/",
