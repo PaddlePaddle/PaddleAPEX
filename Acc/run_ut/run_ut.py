@@ -167,8 +167,13 @@ def run_paddle_api(api_full_name, real_data_path, api_info_dict):
     args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
     in_fwd_data_list.append(args)
     in_fwd_data_list.append(kwargs)
+
+    c = paddle.device.cuda.device_count() # set device on gpu or npu
+    if c > 0: paddle.set_device('gpu')
+    else: paddle.set_device('npu')
+
     need_backward = True
-    need_grad = True
+
     if not need_grad:
         print_warn_log(f"{api_full_name} {Backward_Message.UNSUPPORT_BACKWARD_MESSAGE.format(api_full_name)}")
         backward_message += Backward_Message.UNSUPPORT_BACKWARD_MESSAGE
