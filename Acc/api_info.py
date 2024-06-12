@@ -16,6 +16,18 @@ import paddle
 import numpy as np
 from .Dump import dump_util
 
+Paddle_Type_Map = {
+    "FP64": "paddle.float64",
+    "FP32": "paddle.float32",
+    "BF16": "paddle.bfloat16",
+    "FP16": "paddle.float16",
+    "BOOL": "paddle.bool",
+    "UINT8": "paddle.uint8",
+    "INT16": "paddle.int16",
+    "INT32": "paddle.int32",
+    "INT64": "paddle.int64",
+}
+
 
 def transfer_types(data, dtype):
     if "INT" in dtype or "BOOL" in dtype:
@@ -115,13 +127,16 @@ class API:
         if converted_numpy is not element:
             return self._analyze_numpy(converted_numpy, numpy_type)
 
+        if isinstance(element, paddle.dtype):
+            return Paddle_Type_Map[element.name]
+
         if isinstance(element, paddle.Tensor):
             return self._analyze_tensor(element)
 
         if element is None or isinstance(element, (bool, int, float, str, slice)):
             return self._analyze_builtin(element)
 
-        msg = f"Type {type(element)} is unsupported at analyze_element"
+        msg = f"In op:{self.op_name}, its args type {type(element)} is unsupported at analyze_element"
         print(msg)
 
     def _analyze_tensor(self, arg):
@@ -129,8 +144,8 @@ class API:
         single_arg.update({"type": "paddle.Tensor"})
         single_arg.update({"dtype": str(arg.dtype.name)})
         single_arg.update({"shape": arg.shape})
-        if arg.dtype.name=="BF16":
-            arg = paddle.cast(arg,"float32")
+        if arg.dtype.name == "BF16":
+            arg = paddle.cast(arg, "float32")
         max_handle, max_origin = get_tensor_extremum(arg, "max")
         single_arg.update({"Max": transfer_types(max_handle, str(arg.dtype.name))})
         single_arg.update(
