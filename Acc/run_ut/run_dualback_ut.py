@@ -16,6 +16,7 @@ from run_ut_utils import Backward_Message
 from file_check_util import FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
 seed_all()
 current_time = time.strftime("%Y%m%d%H%M%S")
+white_list = ['empty'] # 算子白名单
 
 tqdm_params = {
     'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
@@ -92,6 +93,9 @@ def run_ut_save(forward_content,real_data_path,out_path,backend):
     print_info_log("start UT save")
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(forward_content.items(), **tqdm_params)):
         try:
+            [_, api_name, _] = api_full_name.split(Const.DELIMITER)
+            if api_name in set(white_list):
+                continue
             print(api_full_name)
             run_paddle_api_save(api_full_name, real_data_path, api_info_dict, out_path, backend)
             print("*"*100)
