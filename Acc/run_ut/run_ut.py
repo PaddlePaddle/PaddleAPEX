@@ -25,7 +25,7 @@ RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
 DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
 RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'backward_content', 'result_csv_path', 'details_csv_path',
                                          'save_error_data', 'is_continue_run_ut', 'real_data_path'])
-white_list = ['empty'] # 算子白名单
+from run_ut_utils import WhiteList # 算子白名单
 
 tqdm_params = {
     'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
@@ -144,7 +144,7 @@ def run_ut(config):
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
             [_, api_name, _] = api_full_name.split(Const.DELIMITER)
-            if api_name in set(white_list):
+            if api_name in set(WhiteList):
                 continue
             print(api_full_name)
             data_info = run_paddle_api(api_full_name, config.real_data_path, api_info_dict)
