@@ -315,7 +315,7 @@ def analyse_csv(npu_data, gpu_data, config):
         compare_column = ApiPrecisionOutputColumn()
         full_api_name_with_direction_status = row_npu[ApiPrecisionCompareColumn.API_NAME]
         row_gpu = gpu_data[gpu_data[ApiPrecisionCompareColumn.API_NAME] == full_api_name_with_direction_status]
-        _, api_name, _, direction_status, _, _ = full_api_name_with_direction_status.split(".")
+        full_api_name, direction_status, _, _ = full_api_name_with_direction_status.split(".")
         if row_gpu.empty:
             print_warn_log(f'This API : {full_api_name_with_direction_status} does not exist in the GPU data.')
             continue
@@ -324,6 +324,7 @@ def analyse_csv(npu_data, gpu_data, config):
             raise CompareException(CompareException.INVALID_DATA_ERROR, msg)
         row_gpu = row_gpu.iloc[0]
         new_status = CompareConst.SPACE
+        _, api_name, _ = full_api_name.split("*")
         #当前API的输出为空（例如反向过程中requires_grad=False）,跳过比对
         if row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE].isspace():
             compare_column.api_name = full_api_name_with_direction_status
