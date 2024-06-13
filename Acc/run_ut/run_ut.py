@@ -14,7 +14,7 @@ from utils import Const, print_warn_log, api_info_preprocess, get_json_contents,
 from data_generate import gen_api_params, gen_args
 from run_ut_utils import hf_32_standard_api, Backward_Message
 from file_check_util import FileOpen, FileCheckConst, FileChecker, check_link, change_mode, check_file_suffix
-# from compare.compare import Comparator
+from compare.compare import Comparator
 
 seed_all()
 not_raise_dtype_set = {'type_as'}
@@ -25,6 +25,7 @@ RESULT_FILE_NAME = f"accuracy_checking_result_" + current_time + ".csv"
 DETAILS_FILE_NAME = f"accuracy_checking_details_" + current_time + ".csv"
 RunUTConfig = namedtuple('RunUTConfig', ['forward_content', 'backward_content', 'result_csv_path', 'details_csv_path',
                                          'save_error_data', 'is_continue_run_ut', 'real_data_path'])
+from run_ut_utils import WhiteList # 算子白名单
 
 tqdm_params = {
     'smoothing': 0,     # 平滑进度条的预计剩余时间，取值范围0到1
@@ -135,20 +136,23 @@ def run_ut(config):
     print_info_log("start UT test")
     print_info_log(f"UT task result will be saved in {config.result_csv_path}")
     print_info_log(f"UT task details will be saved in {config.details_csv_path}")
-    # compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
-    # with FileOpen(config.result_csv_path, 'r') as file:
-    #     csv_reader = csv.reader(file)
-    #     next(csv_reader)
-    #     api_name_set = {row[0] for row in csv_reader}
+    compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_run_ut)
+    with FileOpen(config.result_csv_path, 'r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        api_name_set = {row[0] for row in csv_reader}
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
+            [_, api_name, _] = api_full_name.split('*')
+            if api_name in set(WhiteList):
+                continue
             print(api_full_name)
             data_info = run_paddle_api(api_full_name, config.real_data_path, api_info_dict)
-            # is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
-            #                                                         data_info.bench_output,
-            #                                                         data_info.device_output,
-            #                                                         data_info.bench_grad,
-            #                                                         data_info.device_grad)
+            is_fwd_success, is_bwd_success = compare.compare_output(api_full_name,
+                                                                    data_info.bench_output,
+                                                                    data_info.device_output,
+                                                                    data_info.bench_grad,
+                                                                    data_info.device_grad)
         except Exception as err:
             [_, api_name, _] = api_full_name.split("*")
             if "expected scalar type Long" in str(err):

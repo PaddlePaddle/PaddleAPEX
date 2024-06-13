@@ -1,390 +1,390 @@
 mul:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 mul_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __mul__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __imul__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __rmul__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 add:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 add_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __add__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __iadd__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __radd__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 div:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 div_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __div__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __idiv__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 divide:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 divide_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 leaky_relu:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 leaky_relu_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 prelu:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 reciprocal:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 reciprocal_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 rsqrt:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 rsqrt_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 square:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 square_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 sub:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 sub_:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 rsub:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __isub__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
 __sub__:
   paddle.float32:
-    rtol: 0.000001
-    small_value: 0.000001
-    small_value_atol: 0.000001
+    rtol: 1.0e-6
+    small_value: 1.0e-6
+    small_value_atol: 1.0e-9
   paddle.float16:
-    rtol: 0.001
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 1.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5
   paddle.bfloat16:
-    rtol: 0.004
-    small_value: 0.001
-    small_value_atol: 0.001
+    rtol: 4.0e-3
+    small_value: 1.0e-3
+    small_value_atol: 1.0e-5

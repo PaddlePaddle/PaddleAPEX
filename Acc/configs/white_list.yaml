@@ -1,5 +1,6 @@
 # White List Sample format
 
+white_list: ['empty']
 functional:
   -  conv2d
 

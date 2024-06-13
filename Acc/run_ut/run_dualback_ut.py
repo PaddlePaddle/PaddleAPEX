@@ -33,6 +33,7 @@ Group_Backward_OP = ["slice", "split"]
 
 seed_all()
 current_time = time.strftime("%Y%m%d%H%M%S")
+from run_ut_utils import WhiteList # 算子白名单
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
@@ -115,6 +116,9 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
     ):
         Warning_list = []
         try:
+            [_, api_name, _] = api_full_name.split('*')
+            if api_name in set(WhiteList):
+                continue
             print(api_full_name)
             run_paddle_api_save(
                 api_full_name,
