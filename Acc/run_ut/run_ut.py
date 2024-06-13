@@ -143,7 +143,7 @@ def run_ut(config):
         api_name_set = {row[0] for row in csv_reader}
     for i, (api_full_name, api_info_dict) in enumerate(tqdm(config.forward_content.items(), **tqdm_params)):
         try:
-            [_, api_name, _] = api_full_name.split(Const.DELIMITER)
+            [_, api_name, _] = api_full_name.split('*')
             if api_name in set(WhiteList):
                 continue
             print(api_full_name)

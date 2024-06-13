@@ -116,7 +116,7 @@ def run_ut_save(forward_content, real_data_path, out_path, backend):
     ):
         Warning_list = []
         try:
-            [_, api_name, _] = api_full_name.split(Const.DELIMITER)
+            [_, api_name, _] = api_full_name.split('*')
             if api_name in set(WhiteList):
                 continue
             print(api_full_name)
