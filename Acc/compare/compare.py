@@ -6,13 +6,14 @@ import numpy as np
 from rich.table import Table
 from rich.console import Console
 
-from compare.compare_utils import CompareConst, check_dtype_comparable, DETAIL_TEST_ROWS, \
-    precision_configs, BENCHMARK_COMPARE_SUPPORT_LIST, AbsoluteStandardApi, BinaryStandardApi, apis_threshold
+from compare.compare_utils import (CompareConst, check_dtype_comparable, DETAIL_TEST_ROWS, \
+    precision_configs, BENCHMARK_COMPARE_SUPPORT_LIST, AbsoluteStandardApi, BinaryStandardApi, ThousandthStandardApi, \
+                                   ULPStandardApi, apis_threshold)
 from compare.compare_column import CompareColumn
 from compare.algorithm import get_rmse, get_error_balance, get_max_rel_err, get_mean_rel_err, \
     get_rel_err, get_abs_err, get_max_abs_err, get_rel_err_ratio, cosine_sim, get_rel_err_origin, \
     get_small_value_err_ratio, get_finite_and_infinite_mask, get_small_value_mask, check_inf_nan_value, \
-    check_small_value, check_norm_value, get_abs_bench_with_eps
+    check_small_value, check_norm_value, get_abs_bench_with_eps, get_ulp_err
 
 from compare.compare_dependency import get_json_contents, write_csv, print_warn_log
 from compare.compare_dependency import FileOpen
@@ -40,8 +41,9 @@ class Comparator:
             self.stack_info = None
 
         self.test_result_cnt = {
-            "forward_fail_num": 0, "backward_fail_num": 0, "forward_and_backward_fail_num": 0, "success_num": 0,
-            "total_num": 0, "forward_or_backward_fail_num": 0
+            "success_num": 0, "warning_num": 0, "error_num": 0,
+            "forward_fail_num": 0, "backward_fail_num": 0, "forward_and_backward_fail_num": 0,
+            "total_num": 0, "total_skip_num": 0
         }
 
     def print_pretest_result(self):
@@ -274,6 +276,10 @@ class Comparator:
         message = ""
         abs_bench, abs_bench_with_eps = get_abs_bench_with_eps(bench_output, dtype)
         abs_err = get_abs_err(bench_output, device_output)
+        rel_err_orign = get_rel_err_origin(abs_err, abs_bench_with_eps)
+        if api_name in ThousandthStandardApi:
+            thousand_res, thousand_status = get_rel_err_ratio(rel_err_orign, 0.001)
+            compare_column.rel_err_thousandth = thousand_res
         if str(dtype) in BENCHMARK_COMPARE_SUPPORT_LIST:
             both_finite_mask, inf_nan_mask = get_finite_and_infinite_mask(bench_output, device_output)
             if api_name in BinaryStandardApi:
@@ -288,6 +294,19 @@ class Comparator:
                 compare_column.inf_nan_error_ratio = check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol)
                 compare_column.rel_err_ratio = check_norm_value(normal_value_mask, rel_err, rtol)
                 compare_column.abs_err_ratio = check_small_value(abs_err, small_value_mask, small_value_atol)
+            elif api_name in ULPStandardApi:
+                if bench_output.size == 0:
+                    compare_column.max_ulp_error = 0
+                    compare_column.mean_ulp_error = 0
+                    compare_column.ulp_error_proportion = 0
+                else:
+                    ulp_err = get_ulp_err(bench_output, device_output, dtype)
+                    compare_column.max_ulp_error = np.max(ulp_err)
+                    compare_column.mean_ulp_error = np.mean(ulp_err)
+                    if dtype == paddle.float32:
+                        compare_column.ulp_error_proportion = np.sum(ulp_err > 32) / bench_output.size
+                    else:
+                        compare_column.ulp_error_proportion = np.sum(ulp_err > 1) / bench_output.size
             else:
                 dtype_config = precision_configs.get(dtype)    
                 small_value_mask = get_small_value_mask(abs_bench, both_finite_mask, dtype_config['small_value'][0])
@@ -296,6 +315,8 @@ class Comparator:
                 rel_err = get_rel_err(abs_err, abs_bench_with_eps, small_value_mask, inf_nan_mask)
                 compare_column.RMSE = get_rmse(abs_err, np.logical_or(inf_nan_mask, small_value_mask))
                 compare_column.EB = get_error_balance(bench_output, device_output)
+                if rel_err.size == 0:
+                    return CompareConst.ERROR, compare_column, "Relative error result list is empty."
                 compare_column.Max_rel_error = get_max_rel_err(rel_err)
                 compare_column.Mean_rel_error = get_mean_rel_err(rel_err)
 
@@ -312,7 +333,6 @@ class Comparator:
             message += "Max abs error is less than 0.001, consider as pass, skip other check and set to SPACE.\n"
             return CompareConst.PASS, compare_column, message
 
-        rel_err_orign = get_rel_err_origin(abs_err, abs_bench_with_eps)
         if dtype in [paddle.float16, paddle.bfloat16]:
             hundred_res, hundred_status = get_rel_err_ratio(rel_err_orign, 0.01)
             compare_column.rel_err_hundredth = hundred_res

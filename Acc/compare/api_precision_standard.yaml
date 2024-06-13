@@ -105,3 +105,27 @@ BinaryCompareStandard:
   - tril_
   - triu
   - triu_
+  - type_as
+
+ULPStandard:
+  - __matmul__
+  - addbmm
+  - addbmm_
+  - addmm
+  - addmm_
+  - baddbmm
+  - baddbmm_
+  - bilinear
+  - bmm
+  - chain_matmul
+  - hspmm
+  - linear
+  - matmul
+  - mm
+  - mv
+  - smm
+  - sspaddmm
+
+ThousandthStandard:
+  - conv1d
+  - conv2d
