@@ -28,6 +28,11 @@ Paddle_Type_Map = {
     "INT64": "paddle.int64",
 }
 
+def get_type_name(name):
+    left = name.index("'")
+    right = name.rindex("'")
+    return name[left + 1 : right]
+
 
 def transfer_types(data, dtype):
     if "INT" in dtype or "BOOL" in dtype:
@@ -36,25 +41,7 @@ def transfer_types(data, dtype):
         return float(data)
 
 
-def get_type_name(name):
-    left = name.index("'")
-    right = name.rindex("'")
-    return name[left + 1 : right]
-
-
 def get_tensor_extremum(data, operator):
-    def handle_tensor_extremum_nan_inf(data_clone, operator):
-        data_nan = np.isnan(data_clone)
-        if int(np.sum(data_nan)) == data_clone.numel():
-            return float("nan")
-        finite_mask = np.isfinite(data_clone)
-        if int(np.sum(finite_mask)) > 0:
-            finite_values = data_clone[finite_mask]
-            return finite_values if operator == "max" else finite_values
-        else:
-            data_no_nan = data_clone[~data_nan]
-            return np.max(data_no_nan) if operator == "max" else np.min(data_no_nan)
-
     if data.dtype is paddle.bool:
         if data.numel() == 0:
             return False, False
@@ -65,16 +52,10 @@ def get_tensor_extremum(data, operator):
     data_clone = data.clone().detach().numpy()
     if operator == "max":
         max_result = np.max(data_clone).item()
-        if np.isinf(max_result) or np.isnan(max_result):
-            return handle_tensor_extremum_nan_inf(data_clone, operator), max_result
-        else:
-            return max_result, max_result
+        return max_result, max_result
     else:
         min_result = np.min(data_clone).item()
-        if np.isinf(min_result) or np.isnan(min_result):
-            return handle_tensor_extremum_nan_inf(data_clone, operator), min_result
-        else:
-            return min_result, min_result
+        return min_result, min_result
 
 
 class API:
@@ -85,6 +66,7 @@ class API:
         self.kwargs = ""
         self.mode = mode
         self.args_num = 0
+        self.embedding_num = 0
 
     """
         Adjust data format.
@@ -100,14 +82,13 @@ class API:
         dump_util.update_api_dict(self.api_info_struct, self.rank)
 
     def update_APIInfo(self, op_name, rank):
-        # print("dump api: ", op_name)
+        print("dump api: ", op_name)
         self.op_name = op_name
         self.rank = rank
 
-    def update_real_data(self, output, inputs, kwargs):
+    def update_real_data(self, inputs, kwargs):
         self.args = inputs
         self.kwargs = kwargs
-        self.output = output
         self.reformat()
 
     def analyze_element(self, element):

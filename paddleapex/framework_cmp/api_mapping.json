@@ -1,0 +1,860 @@
+{
+  "Tensor*__add__":{
+    "torch_api":"torch.Tensor.__add__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__lt__":{
+    "torch_api":"torch.Tensor.__lt__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__rsub__":{
+    "torch_api":"torch.Tensor.__rsub__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__radd__":{
+    "torch_api":"torch.Tensor.__radd__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__truediv__":{
+    "torch_api":"torch.Tensor.__truediv__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__rtruediv__":{
+    "torch_api":"torch.Tensor.__rtruediv__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__sub__":{
+    "torch_api":"torch.Tensor.__sub__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__mul__":{
+    "torch_api":"torch.Tensor.__mul__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__rmul__":{
+    "torch_api":"torch.Tensor.__rmul__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__gt__":{
+    "torch_api":"torch.Tensor.__gt__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__ne__":{
+    "torch_api":"torch.Tensor.__ne__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__eq__":{
+    "torch_api":"torch.Tensor.__eq__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*__neg__":{
+    "torch_api":"torch.Tensor.__neg__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Tensor*zero_": {
+    "torch_api": "torch.Tensor.zero_",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Paddle*zeros": {
+    "torch_api": "torch.zeros",
+    "kwargs_change": {
+      "shape": "size",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "*size",
+      "out",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad",
+      "pin_memory"
+    ],
+    "paddle_args_list": [
+      "shape",
+      "dtype",
+      "name"
+    ]
+  },
+  "Paddle*empty": {
+    "torch_api": "torch.empty",
+    "kwargs_change": {
+      "shape": "size",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "*size",
+      "*",
+      "out",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad",
+      "pin_memory",
+      "memory_format"
+    ],
+    "paddle_args_list": [
+      "shape",
+      "dtype",
+      "name"
+    ]
+  },
+  "Paddle*randn": {
+    "torch_api": "torch.randn",
+    "kwargs_change": {
+      "shape": "size",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "*",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad",
+      "memory_format"
+    ],
+    "paddle_args_list": [
+      "shape",
+      "dtype",
+      "name"
+    ]
+  },
+  "Tensor*norm": {
+    "torch_api": "torch.norm",
+    "kwargs_change": {
+      "x" : "input",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "p",
+      "dim",
+      "keepdim",
+      "dtype"
+    ],
+    "paddle_args_list": [
+      "x",
+      "p",
+      "axis",
+      "keepdim",
+      "name"
+    ]
+  },
+  "Paddle*reshape": {
+    "torch_api": "torch.reshape",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "shape"
+    ],
+    "paddle_args_list": [
+      "x",
+      "shape",
+      "name"
+    ]
+  },
+  "Paddle*concat": {
+    "torch_api": "torch.concat",
+    "kwargs_change": {
+      "x": "tensors",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "tensors",
+      "dim",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "name"
+    ]
+  },
+  "Paddle*ones": {
+    "torch_api": "torch.ones",
+    "kwargs_change": {
+      "shape": "size",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "*size",
+      "out",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad",
+      "pin_memory"
+    ],
+    "paddle_args_list": [
+      "shape",
+      "dtype",
+      "name"
+    ]
+  },
+  "Paddle*arange": {
+    "torch_api": "torch.arange",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Paddle*where": {
+    "torch_api": "torch.where",
+    "kwargs_change": {
+      "x": "input",
+      "y": "other"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "condition",
+      "input",
+      "other",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "condition",
+      "x",
+      "y",
+      "name"
+    ]
+  },
+  "Tensor*expand": {
+    "torch_api": "torch.Tensor.expand",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Paddle*maximum": {
+    "torch_api": "torch.maximum",
+    "kwargs_change": {
+      "x": "input",
+      "y": "other"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "other",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "y",
+      "name"
+    ]
+  },
+  "Paddle*split": {
+    "torch_api": "torch.split",
+    "kwargs_change": {
+      "x": "tensor",
+      "num_or_sections": "split_size_or_sections",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "tensor",
+      "split_size_or_sections",
+      "dim"
+    ],
+    "paddle_args_list": [
+      "x",
+      "num_or_sections",
+      "axis",
+      "name"
+    ]
+  },
+  "Functional*normalize": {
+    "torch_api": "torch.nn.functional.normalize",
+    "kwargs_change": {
+      "x": "input",
+      "axis": "dim",
+      "epsilon": "eps"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "p",
+      "dim",
+      "eps",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "p",
+      "axis",
+      "epsilon",
+      "name"
+    ]
+  },
+  "Paddle*matmul": {
+    "torch_api": "torch.linalg.matmul",
+    "kwargs_change": {
+      "x": "input",
+      "y": "other"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "other",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "y",
+      "transpose_x",
+      "transpose_y",
+      "name"
+    ]
+  },
+  "Paddle*eye": {
+    "torch_api": "torch.eye",
+    "kwargs_change": {
+      "num_rows": "n",
+      "num_columns": "m",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "n",
+      "m",
+      "*",
+      "out",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad"
+    ],
+    "paddle_args_list": [
+      "num_rows",
+      "num_columns",
+      "dtype",
+      "name"
+    ]
+  },
+  "Paddle*square": {
+    "torch_api": "torch.square",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "name"
+    ]
+  },
+  "Paddle*mean": {
+    "torch_api": "torch.mean",
+    "kwargs_change": {
+      "x": "input",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dim",
+      "keepdim",
+      "*",
+      "dtype",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "keepdim",
+      "name"
+    ]
+  },
+  "Functional*softmax": {
+    "torch_api": "torch.softmax",
+    "kwargs_change": {
+      "x": "input",
+      "axis": "dim",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dim",
+      "*",
+      "dtype"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "dtype",
+      "name"
+    ]
+  },
+  "Tensor*transpose": {
+    "torch_api": "torch.permute",
+    "kwargs_change": {
+      "x" : "input",
+      "perm" : "dims"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dims"
+    ],
+    "paddle_args_list": [
+      "x",
+      "perm",
+      "name"
+    ]
+  },
+  "Tensor*sum": {
+    "torch_api": "torch.Tensor.sum",
+    "kwargs_change": {
+      "axis": "dim",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "dim",
+      "keepdim",
+      "*",
+      "dtype"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "dtype",
+      "keepdim",
+      "name"
+    ]
+  },
+  "Paddle*clip": {
+    "torch_api": "torch.clamp_min",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "min",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "min",
+      "max",
+      "name"
+    ]
+  },
+  "Functional*pad": {
+    "torch_api": "torch.nn.functional.pad",
+    "kwargs_change": {
+      "x" : "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "pad",
+      "mode",
+      "value"
+    ],
+    "paddle_args_list": [
+      "x",
+      "pad",
+      "mode",
+      "value",
+      "data_format",
+      "name"
+    ]
+  },
+  "Paddle*diff": {
+    "torch_api": "torch.diff",
+    "kwargs_change": {
+      "x": "input",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "n",
+      "dim",
+      "prepend",
+      "append",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "n",
+      "axis",
+      "prepend",
+      "append",
+      "name"
+    ]
+  },
+  "Paddle*sum": {
+    "torch_api": "torch.sum",
+    "kwargs_change": {
+      "x": "input",
+      "axis": "dim",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dim",
+      "keepdim",
+      "*",
+      "dtype",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "dtype",
+      "keepdim",
+      "name"
+    ]
+  },
+  "Tensor*unbind": {
+    "torch_api": "torch.Tensor.unbind",
+    "kwargs_change": {
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "dim"
+    ],
+    "paddle_args_list": [
+      "input",
+      "axis"
+    ]
+  },
+  "Functional*silu": {
+    "torch_api": "torch.nn.functional.silu",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "inplace"
+    ],
+    "paddle_args_list": [
+      "x",
+      "name"
+    ]
+  },
+  "Paddle*stack": {
+    "torch_api": "torch.stack",
+    "kwargs_change": {
+      "x": "tensors",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "tensors",
+      "dim",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "name"
+    ]
+  },
+  "Tensor*unsqueeze": {
+    "torch_api": "torch.unsqueeze",
+    "kwargs_change": {
+      "x" : "input",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dim"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "name"
+    ]
+  },
+  "Tensor*all": {
+    "torch_api": "torch.Tensor.all",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Functional*embedding": {
+    "torch_api": "torch.nn.functional.embedding",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": [
+      "max_norm",
+      "norm_type",
+      "scale_grad_by_freq"
+    ],
+    "torch_args_list": [
+      "input",
+      "weight",
+      "padding_idx",
+      "max_norm",
+      "norm_type",
+      "scale_grad_by_freq",
+      "sparse"
+    ],
+    "paddle_args_list": [
+      "x",
+      "weight",
+      "padding_idx",
+      "sparse",
+      "name"
+    ]
+  },
+  "Tensor*squeeze": {
+    "torch_api": "torch.squeeze",
+    "kwargs_change": {
+      "x" : "input",
+      "axis": "dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "dim"
+    ],
+    "paddle_args_list": [
+      "x",
+      "axis",
+      "name"
+    ]
+  },
+  "Tensor*expand_as": {
+    "torch_api": "torch.Tensor.expand_as",
+    "kwargs_change": {
+      "y": "other"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "other"
+    ],
+    "paddle_args_list": [
+      "x",
+      "y",
+      "name"
+    ]
+  },
+  "Tensor*square": {
+    "torch_api": "torch.Tensor.square",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Paddle*tril": {
+    "torch_api": "torch.tril",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "diagonal",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "diagonal",
+      "name"
+    ]
+  },
+  "Paddle*triu": {
+    "torch_api": "torch.triu",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "diagonal",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "diagonal",
+      "name"
+    ]
+  },
+  "Paddle*zeros_like": {
+    "torch_api": "torch.zeros_like",
+    "kwargs_change": {
+      "x": "input",
+      "dtype": "dtype"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "*",
+      "dtype",
+      "layout",
+      "device",
+      "requires_grad",
+      "memory_format"
+    ],
+    "paddle_args_list": [
+      "x",
+      "dtype",
+      "name"
+    ]
+  },
+  "Paddle*flatten": {
+    "torch_api": "torch.flatten",
+    "kwargs_change": {
+      "x": "input",
+      "start_axis" : "start_dim",
+      "stop_axis" : "stop_dim"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "start_dim",
+      "stop_dim"
+    ],
+    "paddle_args_list": [
+      "x",
+      "start_axis",
+      "stop_axis",
+      "name"
+    ]
+  },
+  "Tensor*repeat_interleave": {
+    "torch_api": "torch.Tensor.repeat_interleave",
+    "kwargs_change": {
+      "axis": "dim",
+      "": "output_size"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "repeats",
+      "dim",
+      "*",
+      "output_size"
+    ],
+    "paddle_args_list": [
+      "x",
+      "repeats",
+      "axis",
+      "name"
+    ]
+  },
+  "Tensor*add_": {
+    "torch_api": "torch.Tensor.add_",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
+  "Paddle*sqrt": {
+    "torch_api": "torch.sqrt",
+    "kwargs_change": {
+      "x": "input"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "name"
+    ]
+  },
+  "Paddle*divide": {
+    "torch_api": "torch.true_divide",
+    "kwargs_change": {
+      "x": "input",
+      "y": "other"
+    },
+    "unsupport_args": null,
+    "torch_args_list": [
+      "input",
+      "other",
+      "*",
+      "out"
+    ],
+    "paddle_args_list": [
+      "x",
+      "y",
+      "name"
+    ]
+  },
+  "Tensor*multiply_": {
+    "torch_api": "torch.Tensor.multiply_",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  }
+}

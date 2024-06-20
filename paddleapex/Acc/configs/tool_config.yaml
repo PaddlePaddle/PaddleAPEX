@@ -1,0 +1,16 @@
+# path should be real path, relative path is not safe.
+
+# Target APIs.
+op_target_path: "/Users/xujinming/Desktop/Reconstruct_project/PaddleAPEX/paddleapex/Acc/configs/op_target.yaml"
+
+dump_root_path: "./dump_info"
+
+# Remote Path
+remote_path: "/root/paddlejob/workspace/PaddleAPEX_dump/"
+Async_dump: False
+
+# mode must be chosen from ["real_data", "random"]
+dump_mode: "random"
+
+# target_step is a list, dump api function will turn on at the specific step
+target_step: [0]

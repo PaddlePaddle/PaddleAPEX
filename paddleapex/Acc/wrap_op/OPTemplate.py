@@ -11,44 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import paddle.nn as nn
+import paddle
 import paddle.distributed as dist
 from .. import config
 from ..api_info import API
 
 
-class HookPaddleOp:
+class HookOp:
     pass
 
 
 cfg = config.cfg
 
-
-class PaddleOPTemplate():
+class OPTemplate():
     def __init__(self, op_name):
         self.op_name_ = op_name
-        cfg.prefix_paddle_op_name_ = "Paddle*" + str(op_name) + "*"
+        cfg.prefix_op_name_ = self.op_name_ + "*"
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *args, **kwargs):
         if self.op_name_ not in cfg.Paddle_op_count:
-            cfg.Paddle_op_count[self.op_name_] = 1
-            cfg.prefix_paddle_op_name_ += "0"
+            cfg.Op_count[self.op_name_] = 1
+            cfg.prefix_op_name_ += "0"
         else:
-            cfg.Paddle_op_count[self.op_name_] += 1
-            cfg.prefix_paddle_op_name_ += str(
-                cfg.Paddle_op_count[self.op_name_] - 1
+            cfg.Op_count[self.op_name_] += 1
+            cfg.prefix_op_name_ += str(
+                cfg.Op_count[self.op_name_] - 1
             )
         if cfg.dump_state:
             api_recorder = API(cfg.dump_mode)
             rank = dist.get_rank()
-            api_recorder.update_APIInfo(cfg.prefix_paddle_op_name_, rank)
-            output = getattr(HookPaddleOp, "wrap_" + str(self.op_name_))(
-                *inputs, **kwargs
+            api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
+            output = getattr(HookOp, "wrap_" + str(self.op_name_))(
+                *args, **kwargs
             )
-            api_recorder.update_real_data(output, inputs, kwargs)
+            api_recorder.update_real_data(args, kwargs)
         else:
-            output = getattr(HookPaddleOp, "wrap_" + str(self.op_name_))(
-                *inputs, **kwargs
+            output = getattr(HookOp, "wrap_" + str(self.op_name_))(
+                *args, **kwargs
             )
         return output
 

@@ -1,6 +1,0 @@
-custom:
-  -  fused_rotary_position_embedding
-  -  fusion_flash_attention
-  -  fusion_rms_norm
-  -  fusion_rope
-  -  swiglu
