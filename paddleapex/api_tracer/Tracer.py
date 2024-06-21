@@ -16,7 +16,7 @@ from .wrap_op.hijack_tool import hijack_api
 from .config import cfg
 
 
-class Acc:
+class Tracer:
     def __init__(self):
         hijack_api()
 

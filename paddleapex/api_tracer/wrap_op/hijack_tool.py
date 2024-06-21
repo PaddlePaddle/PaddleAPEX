@@ -38,4 +38,9 @@ def hijack_api():
 
     for attr_name in dir(HookOp):
         if attr_name.startswith("wrap_"):
+            parent_package, method_name = attr_name[5:].rsplit('.', maxsplit=1)
+            print(parent_package +  attr_name[5:])
             setattr(eval(parent_package), method_name, wrapped_op(attr_name[5:]))
+
+
+            

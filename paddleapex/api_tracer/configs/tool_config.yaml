@@ -1,8 +1,8 @@
 # path should be real path, relative path is not safe.
 
 # Target APIs.
-op_target_path: "/Users/xujinming/Desktop/Reconstruct_project/PaddleAPEX/paddleapex/Acc/configs/op_target.yaml"
-
+op_target_path: "None"
+# If op_target_path is set to None, tool will set the default config in repository configs.
 dump_root_path: "./dump_info"
 
 # Remote Path

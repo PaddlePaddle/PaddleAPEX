@@ -171,8 +171,8 @@ class API:
             np.bool_: bool,
             np.complexfloating: complex,
             np.str_: str,
-            np.bytes_: bytes,
-            np.unicode_: str,
+            np.bytes_: bytes
+            # np.unicode_: str,
         }
         for numpy_type, builtin_type in type_mapping.items():
             if isinstance(arg, numpy_type):

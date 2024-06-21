@@ -29,7 +29,7 @@ class OPTemplate():
         cfg.prefix_op_name_ = self.op_name_ + "*"
 
     def forward(self, *args, **kwargs):
-        if self.op_name_ not in cfg.Paddle_op_count:
+        if self.op_name_ not in cfg.Op_count:
             cfg.Op_count[self.op_name_] = 1
             cfg.prefix_op_name_ += "0"
         else:

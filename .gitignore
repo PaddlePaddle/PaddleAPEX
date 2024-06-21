@@ -3,3 +3,4 @@ demo.py
 */.DS_Store
 */.dump_info
 .idea
+PaddleAPEX.egg-info
