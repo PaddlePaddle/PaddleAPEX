@@ -843,7 +843,7 @@ target_op:
   # -  paddle.distributed.fleet.layers.mpu.mp_ops.
 
   # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
+  -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu

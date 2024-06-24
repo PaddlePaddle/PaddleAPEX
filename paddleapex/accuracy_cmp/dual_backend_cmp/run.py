@@ -24,16 +24,14 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
-def recursive_arg_to_device(arg_in):
-    current_device = paddle.device.get_device()
-    device = current_device[:3]
+def recursive_arg_to_device(arg_in, backend):
     if isinstance(arg_in, (list, tuple)):
-        return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
+        return type(arg_in)(recursive_arg_to_device(arg, backend) for arg in arg_in)
     elif isinstance(arg_in, paddle.Tensor):
-        if "gpu" in current_device:
+        if "gpu" in backend:
             arg_in = arg_in.cuda()
         else:
-            arg_in = arg_in.to(device)
+            arg_in = arg_in.to(backend)
         return arg_in
     else:
         return arg_in
@@ -62,8 +60,10 @@ def ut_case_parsing(forward_content, cfg, out_path):
         )
         fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
         bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-        paddle.save(fwd_res, fwd_output_path)
-        paddle.save(bp_res, bwd_output_path)
+        if fwd_res:
+            paddle.save(fwd_res, fwd_output_path)
+        if bp_res:
+            paddle.save(bp_res, bwd_output_path)
         print("*" * 100)
 
 def run_api_case(
@@ -86,9 +86,9 @@ def run_api_case(
     ##      RUN FORWARD
     ##################################################################
     try:
-        device_args = recursive_arg_to_device(args)
+        device_args = recursive_arg_to_device(args, backend)
         device_kwargs = {
-            key: recursive_arg_to_device(value) for key, value in kwargs.items()
+            key: recursive_arg_to_device(value, backend) for key, value in kwargs.items()
         }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
@@ -118,9 +118,9 @@ def run_api_case(
             temp = paddle.to_tensor([1])
             del temp
 
-            dout = recursive_arg_to_device(dout)
+            dout = recursive_arg_to_device(dout, backend)
             paddle.autograd.backward(
-                dout, require_grad_tensors
+                require_grad_tensors, dout
             )
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):

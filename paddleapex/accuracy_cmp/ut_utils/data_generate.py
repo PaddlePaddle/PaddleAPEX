@@ -340,8 +340,16 @@ def gen_api_params(
 
 def rand_like(data):
     seed_all()
-    paddle.set_device("cpu")
-    if isinstance(paddle.Tensor):
-        return [paddle.rand_like(data)]
+    if isinstance(data, paddle.Tensor):
+        if data.dtype.name in ["BF16","FP16"]:
+            x = paddle.rand(data.shape, dtype = paddle.float32)
+            x = x.cast(paddle.bfloat16)
+            return x
+        elif data.dtype.name in ["FP32","FP64"]:
+            rand_data = paddle.rand(data.shape, dtype = data.dtype)
+            return rand_data
+        elif data.dtype.name in ["INT32", "INT64"]:
+            rand_data = paddle.randint_like(data,low=-100,high=100)
+            return rand_data
     elif isinstance(data, (list,tuple)):
         return [rand_like(item) for item in data]
