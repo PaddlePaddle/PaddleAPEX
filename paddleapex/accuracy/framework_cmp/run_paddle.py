@@ -2,10 +2,9 @@ import argparse
 import os
 import time
 import paddle
-import paddle.nn.functional as F
 from tqdm import tqdm
-from paddleapex.accuracy_cmp.ut_utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
-                                              api_json_read, get_grad_tensor, rand_like, print_warn_log)
+from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
+                                              api_json_read, rand_like, print_warn_log)
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -24,20 +23,16 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
-def recursive_arg_to_device(arg_in, backend):
+def recursive_arg_to_device(arg_in):
     if isinstance(arg_in, (list, tuple)):
-        return type(arg_in)(recursive_arg_to_device(arg, backend) for arg in arg_in)
+        return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
     elif isinstance(arg_in, paddle.Tensor):
-        if "gpu" in backend:
-            arg_in = arg_in.cuda()
-        else:
-            arg_in = arg_in.to(backend)
+        arg_in = arg_in.cuda()
         return arg_in
     else:
         return arg_in
 
 def ut_case_parsing(forward_content, cfg, out_path):
-    backend = cfg.backend
     print_info_log("start UT save")
 
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -55,7 +50,6 @@ def ut_case_parsing(forward_content, cfg, out_path):
         fwd_res, bp_res = run_api_case(
             api_call_name,
             api_info_dict,
-            backend,
             filename
         )
         fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
@@ -67,7 +61,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
         print("*" * 100)
 
 def run_api_case(
-    api_call_name, api_info_dict, backend, warning_log_pth
+    api_call_name, api_info_dict, warning_log_pth
 ):
     Warning_list = []
     api_call_stack = api_call_name.rsplit("*")[0]
@@ -77,18 +71,13 @@ def run_api_case(
     if api_name =="scatter_nd":
         return None, None
 
-    # Avoid bugs in Customdevices.
-    paddle.set_device(backend)
-    temp = paddle.to_tensor([1])
-    del temp
-
     ##################################################################
     ##      RUN FORWARD
     ##################################################################
     try:
-        device_args = recursive_arg_to_device(args, backend)
+        device_args = recursive_arg_to_device(args)
         device_kwargs = {
-            key: recursive_arg_to_device(value, backend) for key, value in kwargs.items()
+            key: recursive_arg_to_device(value) for key, value in kwargs.items()
         }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
@@ -109,18 +98,11 @@ def run_api_case(
     if need_backward:
         try:
             device_grad_out = []
-            require_grad_tensors = get_grad_tensor(device_args, device_kwargs)
-
-            paddle.set_device("cpu")
             dout = rand_like(device_out)
-            # Avoid bugs in Customdevices.
-            paddle.set_device(backend)
-            temp = paddle.to_tensor([1])
-            del temp
 
-            dout = recursive_arg_to_device(dout, backend)
+            dout = recursive_arg_to_device(dout)
             paddle.autograd.backward(
-                require_grad_tensors, dout
+                [device_out], [dout]
             )
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
@@ -149,7 +131,6 @@ def run_api_case(
 
 
 def get_api_info(api_info_dict, api_name):
-    paddle.set_device("cpu")
     convert_type, api_info_dict = api_info_preprocess(api_name, api_info_dict)
     args, kwargs, need_grad = gen_api_params(
         api_info_dict, convert_type
@@ -173,15 +154,6 @@ def arg_parser(parser):
         default="./root/paddlejob/workspace/PaddleAPEX_dump/",
         type=str,
         help="<optional> The ut task result out path.",
-        required=False,
-    )
-    parser.add_argument(
-        "-backend",
-        "--backend",
-        dest="backend",
-        default="npu",
-        type=str,
-        help="<optional> The running device NPU or GPU.",
         required=False,
     )
     parser.add_argument(

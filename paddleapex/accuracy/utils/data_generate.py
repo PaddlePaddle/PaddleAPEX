@@ -2,14 +2,13 @@ import paddle
 import os
 import numpy
 import math
-from utils import (
+from .utils import (
     check_object_type,
     Const,
     CompareException,
     print_error_log,
     print_warn_log,
-    check_file_or_directory_path,
-    seed_all
+    check_file_or_directory_path
 )
 
 
@@ -61,7 +60,7 @@ NUMPY_TYPE = [
 ]
 
 
-def gen_data(info, convert_type=None):
+def gen_data(info):
     check_object_type(info, dict)
     data_type = info.get("type")
     data_path = info.get("real_data_path")
@@ -69,9 +68,9 @@ def gen_data(info, convert_type=None):
     if data_type in TENSOR_DATA_LIST_PADDLE:
         stop_gradient = info.get("stop_gradient")
         if data_path and os.path.exists(data_path):
-            data = gen_real_tensor(data_path, convert_type, stop_gradient)
+            data = gen_real_tensor(data_path, stop_gradient)
         else:
-            data = gen_random_tensor(info, convert_type, stop_gradient)
+            data = gen_random_tensor(info, stop_gradient)
         data.stop_gradient = stop_gradient
         need_grad = not stop_gradient
     elif data_type.startswith("numpy"):
@@ -109,7 +108,7 @@ def gen_real_tensor(data_path, convert_type, stop_gradient):
     return data
 
 
-def gen_random_tensor(info, convert_type, stop_gradient):
+def gen_random_tensor(info, stop_gradient):
     check_object_type(info, dict)
     low, high = info.get("Min"), info.get("Max")
     low_origin, high_origin = info.get("Min_origin"), info.get("Max_origin")
@@ -123,154 +122,56 @@ def gen_random_tensor(info, convert_type, stop_gradient):
         )
         raise CompareException(CompareException.INVALID_PARAM_ERROR, error_info)
     if data_dtype == "paddle.bool" or data_dtype == "BOOL":
-        data = gen_bool_tensor(low, high, shape)
+        data = gen_bool_tensor(shape)
     else:
-        data = gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type)
+        data = gen_common_tensor(low_info, high_info, shape, data_dtype)
     data.stop_gradient = stop_gradient
     return data
 
-
-def fp32_to_hf32_to_fp32(input_tensor):
-    # 将输入的float32 tensor转为hf32 tensor，再转为float32 tensor
-    input_np = input_tensor.numpy()
-    input_int = input_np.view(numpy.int32)
-    input_int = numpy.right_shift(numpy.right_shift(input_int, 11) + 1, 1)
-    input_int = numpy.left_shift(input_int, 12)
-    input_fp32 = input_int.view(numpy.float32)
-    input_hf32 = paddle.to_tensor(input_fp32, place=paddle.CPUPlace())
-    return input_hf32
-
-
-def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type, remove_nan=True):
-    """
-    Function Description:
-        Based on API basic information, generate int or float tensor
-    Parameter:
-        low_info: [low, low_origin], low is the minimum value in the tensor removed inf and nan,
-        low_origin is the original minimum value in the tensor
-        high_info: [high, high_origin], high is the maximum value in the tensor removed inf and nan,
-        high_origin is the original maximum value in the tensor
-        shape:The shape of Tensor
-        data_dtype: The data type of Tensor
-        convert_type: convert ori_type to dist_type flag.
-    """
-    paddle.set_device("cpu")
-    if convert_type:
-        ori_dtype = Const.CONVERT.get(convert_type)[0]
-        if ori_dtype == data_dtype:
-            data_dtype = Const.CONVERT.get(convert_type)[1]
-    low, low_origin = low_info[0], low_info[1]
-    high, high_origin = high_info[0], high_info[1]
+def gen_common_tensor(low_info, high_info, shape, data_dtype):
+    low = low_info[0]
+    high = high_info[0]
     if data_dtype in FLOAT_TYPE_PADDLE:
-        if math.isnan(high):
-            if remove_nan:
-                tensor = paddle.randn(shape,dtype = eval(REAL_TYPE_PADDLE.get(data_dtype)))
-            else:
-                tensor = paddle.full(
-                    shape, float("nan"), dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
-                )
+        if math.isnan(high) or math.isnan(low) or math.isinf(high) or math.isinf(low):
+            tensor = numpy.random.randn(*shape)
+            tensor = paddle.to_tensor(tensor, dtype = eval(REAL_TYPE_PADDLE.get(data_dtype)))
             return tensor
-        # high_origin为新版json中的属性，只有当high_origin不为None,且high为inf或-inf时，原tensor全为inf或-inf
-        if high_origin and high in [float("inf"), float("-inf")]:
-            if remove_nan:
-                tensor = paddle.randn(shape, dtype = eval(REAL_TYPE_PADDLE.get(data_dtype)))
-            else:
-                tensor = paddle.full(
-                    shape, high, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
-                )
-                tensor[-1] = low
-            return tensor
-        low_scale, high_scale = low, high
-        dtype_finfo = paddle.finfo(eval(REAL_TYPE_PADDLE.get(data_dtype)))
-        # 适配老版json high和low为inf或-inf的情况，取dtype的最大值或最小值进行放缩
-        if high == float("inf"):
-            high_scale = dtype_finfo.max
-        elif high == float("-inf"):
-            high_scale = dtype_finfo.min
-        if low == float("inf"):
-            low_scale = dtype_finfo.max
-        elif low == float("-inf"):
-            low_scale = dtype_finfo.min
-
-        scale = high_scale - low_scale
-        if data_dtype == "BF16":
-            rand01 = paddle.rand(shape, dtype=paddle.float32)
-            tensor = rand01 * scale + low_scale
-            tensor = paddle.cast(tensor, dtype="bfloat16")
-
         else:
-            rand01 = paddle.rand(shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
-            tensor = rand01 * scale + low_scale
-    elif (
-        "int" in data_dtype
-        or "long" in data_dtype
-        or "INT" in data_dtype
-        or "LONG" in data_dtype
-    ):
+            scale = high - low
+            rand = numpy.random.randn(*shape).astype(numpy.float32)
+            tensor = rand * scale + low
+            tensor = paddle.to_tensor(tensor, dtype = eval(REAL_TYPE_PADDLE.get(data_dtype)))
+            return tensor
+    elif ("int" in data_dtype or "long" in data_dtype or "INT" in data_dtype or "LONG" in data_dtype):
         low, high = int(low), int(high)
-        tensor = paddle.randint(
-            low, high + 1, shape, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
-        )
+        if low == high:
+            tensor = paddle.full(shape, low)
+        else:
+            tensor = numpy.random.randint(low, high, shape)
+            tensor = paddle.to_tensor(tensor, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype)))
+        return tensor
     else:
         print_error_log("Dtype is not supported: " + data_dtype)
         raise NotImplementedError()
-    if tensor.numel() == 0:
-        return tensor
-    tmp_tensor = tensor.reshape([-1])
-    if data_dtype == "BF16":
-        tmp_tensor = tmp_tensor.astype("float32")
-    if high_origin and math.isnan(high_origin):
-        if tmp_tensor.numel() <= 2:
-            tmp_tensor[0] = float("nan")
-            tmp_tensor[-1] = high
-        else:
-            tmp_tensor[0] = low
-            tmp_tensor[1] = float("nan")
-            tmp_tensor[-1] = high
-    else:
-        tmp_tensor[0] = low
-        tmp_tensor[-1] = high
-        if high_origin in [float("inf"), float("-inf")]:
-            tmp_tensor[-1] = high_origin
-        if low_origin in [float("inf"), float("-inf")]:
-            tmp_tensor[0] = low_origin
-    data = tmp_tensor.reshape(shape)
-    if data_dtype == "BF16":
-        data = paddle.cast(data, dtype="bfloat16")
-    return data
 
 
-def gen_bool_tensor(low, high, shape):
-    """
-    Function Description:
-        Based on API basic information, generate bool tensor
-    Parameter:
-        low: The minimum value in Tensor
-        high: The max value in Tensor
-        shape:The shape of Tensor
-    """
-    low, high = int(low), int(high)
-    if low > high:
-        low, high = high, low
-    tensor = paddle.randint(low, high + 1, shape)
-    if isinstance(tensor, int):
-        data = tensor > 0
-    else:
-        data = paddle.greater_than(tensor, paddle.to_tensor(0))
+def gen_bool_tensor(shape):
+    tensor = paddle.to_tensor(numpy.random.randint(0,2,shape))
+    data = paddle.cast(tensor, paddle.bool)
     return data
 
 
 def gen_args(
-    args_info, convert_type=None, need_grad=False
+    args_info, need_grad=False
 ):
     check_object_type(args_info, list)
     args_result = []
     for arg in args_info:
         if isinstance(arg, (list, tuple)):
-            data, has_grad = gen_args(arg, convert_type, need_grad)
+            data, has_grad = gen_args(arg, need_grad)
             need_grad = need_grad or has_grad
         elif isinstance(arg, dict):
-            data, has_grad = gen_data(arg, convert_type)
+            data, has_grad = gen_data(arg)
             need_grad = need_grad or has_grad
         elif isinstance(arg, str):
             data = eval(arg)
@@ -321,16 +222,14 @@ def gen_list_kwargs(kwargs_item_value, convert_type):
 
 
 def gen_api_params(
-    api_info, convert_type=None
+    api_info, seed=1234, convert_type=None
 ):
+    numpy.random.seed(seed)
     check_object_type(api_info, dict)
-    if convert_type and convert_type not in Const.CONVERT:
-        error_info = f"convert_type params not support {convert_type}."
-        raise CompareException(CompareException.INVALID_PARAM_ERROR, error_info)
     kwargs_params, kwargs_need_grad = gen_kwargs(api_info, convert_type)
     if api_info.get("args"):
         args_params, args_need_grad = gen_args(
-            api_info.get("args"), convert_type
+            api_info.get("args")
         )
     else:
         args_need_grad = False
@@ -338,18 +237,20 @@ def gen_api_params(
     need_grad = kwargs_need_grad or args_need_grad
     return args_params, kwargs_params, need_grad
 
-def rand_like(data):
-    seed_all()
+def rand_like(data, seed=1234):
+    numpy.random.seed(seed)
     if isinstance(data, paddle.Tensor):
         if data.dtype.name in ["BF16","FP16"]:
-            x = paddle.rand(data.shape, dtype = paddle.float32)
-            x = x.cast(paddle.bfloat16)
+            random_normals = numpy.random.randn(data.shape)
+            x = paddle.to_tensor(random_normals, dtype=data.dtype)
             return x
         elif data.dtype.name in ["FP32","FP64"]:
-            rand_data = paddle.rand(data.shape, dtype = data.dtype)
+            random_normals = numpy.random.randn(data.shape)
+            x = paddle.to_tensor(random_normals, dtype=data.dtype)
             return rand_data
         elif data.dtype.name in ["INT32", "INT64"]:
-            rand_data = paddle.randint_like(data,low=-100,high=100)
+            rand_data = numpy.random.randint(-10,10,size=data.shape).astype('int')
+            rand_data = paddle.to_tensor(rand_data, dtype=data.dtype)
             return rand_data
     elif isinstance(data, (list,tuple)):
         return [rand_like(item) for item in data]

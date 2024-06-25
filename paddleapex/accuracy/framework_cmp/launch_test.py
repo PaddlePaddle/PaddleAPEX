@@ -1,31 +1,14 @@
 
 import subprocess
-import argparse
-import random
-import os
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-seed",
-    dest="seed",
-    default=1234,
-    type=int
-)
 
-args = parser.parse_args()
-
-seed = args.seed
-
-random.seed(seed)
-os.environ['PYTHONHASHSEED'] = str(seed)
-
-out_dir = f"./test_seed{seed}/"
+out_dir = f"./framwork_compare/"
 out_dir_paddle = out_dir + "/paddle"
-command1 = ["python", "run_dualback_ut.py", "--forward", "./paddle.json", "-o", out_dir_paddle, "--backend","gpu", "-seed", str(seed)]
+command1 = ["python", "run_paddle.py", "--forward", "./paddle.json", "-o", out_dir_paddle]
 subprocess.run(command1)
 
 
 out_dir_torch = out_dir + "/torch"
-command2 = ["python", "run_dualframe_ut.py", "--forward", "./torch.json", "-o", out_dir_torch, "--backend","gpu", "-seed", str(seed)]
+command2 = ["python", "run_torch.py", "--forward", "./torch.json", "-o", out_dir_torch]
 subprocess.run(command2)
 
 out_dir_paddle_forward = out_dir_paddle + "/gpu_output"

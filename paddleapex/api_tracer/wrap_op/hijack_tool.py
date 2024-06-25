@@ -14,6 +14,11 @@
 
 import paddle
 
+try:
+    import paddlenlp
+except:
+    print("paddlenlp not imported")
+
 from .. import config
 from .get_target_op import GetTargetOP
 from .OPTemplate import OPTemplate, HookOp
@@ -39,7 +44,7 @@ def hijack_api():
     for attr_name in dir(HookOp):
         if attr_name.startswith("wrap_"):
             parent_package, method_name = attr_name[5:].rsplit('.', maxsplit=1)
-            print(parent_package +  attr_name[5:])
+            print(f"parent_package: {parent_package}; method_name: {method_name}")
             setattr(eval(parent_package), method_name, wrapped_op(attr_name[5:]))
 
 

@@ -37,7 +37,7 @@ target_op:
   -  paddle.nn.functional.dropout3d
   -  paddle.nn.functional.elu
   -  paddle.nn.functional.elu_
-  -  paddle.nn.functional.embedding
+  # -  paddle.nn.functional.embedding
   -  paddle.nn.functional.extension
   -  paddle.nn.functional.flash_attention
   -  paddle.nn.functional.flash_attention_with_sparse_mask
@@ -182,7 +182,7 @@ target_op:
   -  paddle.broadcast_tensors
   -  paddle.broadcast_to
   -  paddle.cauchy_
-  -  paddle.cast
+  # -  paddle.cast
   -  paddle.cdist
   -  paddle.ceil
   -  paddle.cholesky

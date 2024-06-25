@@ -297,12 +297,6 @@ def seed_all(seed=1234):
         print('paddle tracker.add("global_seed",global_seed)', str(err))
 
 
-def get_grad_tensor(*args, **kwargs):
-    grad_tensor_list1 = parse_args(args)
-    grad_tensor_list2 = parse_args(kwargs)
-    grad_tensor_list = grad_tensor_list1 + grad_tensor_list2
-    return grad_tensor_list
-
 def parse_args(args):
     tensor_list = []
     for arg in args:

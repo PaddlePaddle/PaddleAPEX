@@ -1,103 +1,105 @@
 {
-  "Tensor*__add__":{
+"mapping":
+{
+  "paddle.Tensor.__add__":{
     "torch_api":"torch.Tensor.__add__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__lt__":{
+  "paddle.Tensor.__lt__":{
     "torch_api":"torch.Tensor.__lt__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__rsub__":{
+  "paddle.Tensor.__rsub__":{
     "torch_api":"torch.Tensor.__rsub__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__radd__":{
+  "paddle.Tensor.__radd__":{
     "torch_api":"torch.Tensor.__radd__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__truediv__":{
+  "paddle.Tensor.__truediv__":{
     "torch_api":"torch.Tensor.__truediv__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__rtruediv__":{
+  "paddle.Tensor.__rtruediv__":{
     "torch_api":"torch.Tensor.__rtruediv__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__sub__":{
+  "paddle.Tensor.__sub__":{
     "torch_api":"torch.Tensor.__sub__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__mul__":{
+  "paddle.Tensor.__mul__":{
     "torch_api":"torch.Tensor.__mul__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__rmul__":{
+  "paddle.Tensor.__rmul__":{
     "torch_api":"torch.Tensor.__rmul__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__gt__":{
+  "paddle.Tensor.__gt__":{
     "torch_api":"torch.Tensor.__gt__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__ne__":{
+  "paddle.Tensor.__ne__":{
     "torch_api":"torch.Tensor.__ne__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__eq__":{
+  "paddle.Tensor.__eq__":{
     "torch_api":"torch.Tensor.__eq__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*__neg__":{
+  "paddle.Tensor.__neg__":{
     "torch_api":"torch.Tensor.__neg__",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Tensor*zero_": {
+  "paddle.Tensor.zero_": {
     "torch_api": "torch.Tensor.zero_",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Paddle*zeros": {
+  "paddle.zeros": {
     "torch_api": "torch.zeros",
     "kwargs_change": {
       "shape": "size",
@@ -119,7 +121,7 @@
       "name"
     ]
   },
-  "Paddle*empty": {
+  "paddle.empty": {
     "torch_api": "torch.empty",
     "kwargs_change": {
       "shape": "size",
@@ -143,7 +145,7 @@
       "name"
     ]
   },
-  "Paddle*randn": {
+  "paddle.randn": {
     "torch_api": "torch.randn",
     "kwargs_change": {
       "shape": "size",
@@ -165,7 +167,7 @@
       "name"
     ]
   },
-  "Tensor*norm": {
+  "paddle.Tensor.norm": {
     "torch_api": "torch.norm",
     "kwargs_change": {
       "x" : "input",
@@ -186,7 +188,7 @@
       "name"
     ]
   },
-  "Paddle*reshape": {
+  "paddle.reshape": {
     "torch_api": "torch.reshape",
     "kwargs_change": {
       "x": "input"
@@ -202,7 +204,7 @@
       "name"
     ]
   },
-  "Paddle*concat": {
+  "paddle.concat": {
     "torch_api": "torch.concat",
     "kwargs_change": {
       "x": "tensors",
@@ -221,7 +223,7 @@
       "name"
     ]
   },
-  "Paddle*ones": {
+  "paddle.ones": {
     "torch_api": "torch.ones",
     "kwargs_change": {
       "shape": "size",
@@ -243,14 +245,14 @@
       "name"
     ]
   },
-  "Paddle*arange": {
+  "paddle.arange": {
     "torch_api": "torch.arange",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Paddle*where": {
+  "paddle.where": {
     "torch_api": "torch.where",
     "kwargs_change": {
       "x": "input",
@@ -271,14 +273,14 @@
       "name"
     ]
   },
-  "Tensor*expand": {
+  "paddle.Tensor.expand": {
     "torch_api": "torch.Tensor.expand",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Paddle*maximum": {
+  "paddle.maximum": {
     "torch_api": "torch.maximum",
     "kwargs_change": {
       "x": "input",
@@ -297,7 +299,7 @@
       "name"
     ]
   },
-  "Paddle*split": {
+  "paddle.split": {
     "torch_api": "torch.split",
     "kwargs_change": {
       "x": "tensor",
@@ -317,7 +319,7 @@
       "name"
     ]
   },
-  "Functional*normalize": {
+  "paddle.nn.functional.normalize": {
     "torch_api": "torch.nn.functional.normalize",
     "kwargs_change": {
       "x": "input",
@@ -340,7 +342,7 @@
       "name"
     ]
   },
-  "Paddle*matmul": {
+  "paddle.matmul": {
     "torch_api": "torch.linalg.matmul",
     "kwargs_change": {
       "x": "input",
@@ -361,7 +363,7 @@
       "name"
     ]
   },
-  "Paddle*eye": {
+  "paddle.eye": {
     "torch_api": "torch.eye",
     "kwargs_change": {
       "num_rows": "n",
@@ -386,7 +388,7 @@
       "name"
     ]
   },
-  "Paddle*square": {
+  "paddle.square": {
     "torch_api": "torch.square",
     "kwargs_change": {
       "x": "input"
@@ -402,7 +404,7 @@
       "name"
     ]
   },
-  "Paddle*mean": {
+  "paddle.mean": {
     "torch_api": "torch.mean",
     "kwargs_change": {
       "x": "input",
@@ -424,7 +426,7 @@
       "name"
     ]
   },
-  "Functional*softmax": {
+  "paddle.nn.functional.softmax": {
     "torch_api": "torch.softmax",
     "kwargs_change": {
       "x": "input",
@@ -445,7 +447,7 @@
       "name"
     ]
   },
-  "Tensor*transpose": {
+  "paddle.Tensor.transpose": {
     "torch_api": "torch.permute",
     "kwargs_change": {
       "x" : "input",
@@ -462,7 +464,7 @@
       "name"
     ]
   },
-  "Tensor*sum": {
+  "paddle.Tensor.sum": {
     "torch_api": "torch.Tensor.sum",
     "kwargs_change": {
       "axis": "dim",
@@ -483,7 +485,7 @@
       "name"
     ]
   },
-  "Paddle*clip": {
+  "paddle.clip": {
     "torch_api": "torch.clamp_min",
     "kwargs_change": {
       "x": "input"
@@ -502,7 +504,7 @@
       "name"
     ]
   },
-  "Functional*pad": {
+  "paddle.nn.functional.pad": {
     "torch_api": "torch.nn.functional.pad",
     "kwargs_change": {
       "x" : "input"
@@ -523,7 +525,7 @@
       "name"
     ]
   },
-  "Paddle*diff": {
+  "paddle.diff": {
     "torch_api": "torch.diff",
     "kwargs_change": {
       "x": "input",
@@ -548,7 +550,7 @@
       "name"
     ]
   },
-  "Paddle*sum": {
+  "paddle.sum": {
     "torch_api": "torch.sum",
     "kwargs_change": {
       "x": "input",
@@ -572,7 +574,7 @@
       "name"
     ]
   },
-  "Tensor*unbind": {
+  "paddle.Tensor.unbind": {
     "torch_api": "torch.Tensor.unbind",
     "kwargs_change": {
       "axis": "dim"
@@ -586,7 +588,7 @@
       "axis"
     ]
   },
-  "Functional*silu": {
+  "paddle.nn.functional.silu": {
     "torch_api": "torch.nn.functional.silu",
     "kwargs_change": {
       "x": "input"
@@ -601,7 +603,7 @@
       "name"
     ]
   },
-  "Paddle*stack": {
+  "paddle.stack": {
     "torch_api": "torch.stack",
     "kwargs_change": {
       "x": "tensors",
@@ -620,7 +622,7 @@
       "name"
     ]
   },
-  "Tensor*unsqueeze": {
+  "paddle.Tensor.unsqueeze": {
     "torch_api": "torch.unsqueeze",
     "kwargs_change": {
       "x" : "input",
@@ -637,14 +639,14 @@
       "name"
     ]
   },
-  "Tensor*all": {
+  "paddle.Tensor.all": {
     "torch_api": "torch.Tensor.all",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Functional*embedding": {
+  "paddle.nn.functional.embedding": {
     "torch_api": "torch.nn.functional.embedding",
     "kwargs_change": {
       "x": "input"
@@ -671,7 +673,7 @@
       "name"
     ]
   },
-  "Tensor*squeeze": {
+  "paddle.Tensor.squeeze": {
     "torch_api": "torch.squeeze",
     "kwargs_change": {
       "x" : "input",
@@ -688,7 +690,7 @@
       "name"
     ]
   },
-  "Tensor*expand_as": {
+  "paddle.Tensor.expand_as": {
     "torch_api": "torch.Tensor.expand_as",
     "kwargs_change": {
       "y": "other"
@@ -703,14 +705,14 @@
       "name"
     ]
   },
-  "Tensor*square": {
+  "paddle.Tensor.square": {
     "torch_api": "torch.Tensor.square",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Paddle*tril": {
+  "paddle.tril": {
     "torch_api": "torch.tril",
     "kwargs_change": {
       "x": "input"
@@ -728,7 +730,7 @@
       "name"
     ]
   },
-  "Paddle*triu": {
+  "paddle.triu": {
     "torch_api": "torch.triu",
     "kwargs_change": {
       "x": "input"
@@ -746,7 +748,7 @@
       "name"
     ]
   },
-  "Paddle*zeros_like": {
+  "paddle.zeros_like": {
     "torch_api": "torch.zeros_like",
     "kwargs_change": {
       "x": "input",
@@ -768,7 +770,7 @@
       "name"
     ]
   },
-  "Paddle*flatten": {
+  "paddle.flatten": {
     "torch_api": "torch.flatten",
     "kwargs_change": {
       "x": "input",
@@ -788,7 +790,7 @@
       "name"
     ]
   },
-  "Tensor*repeat_interleave": {
+  "paddle.Tensor.repeat_interleave": {
     "torch_api": "torch.Tensor.repeat_interleave",
     "kwargs_change": {
       "axis": "dim",
@@ -808,14 +810,14 @@
       "name"
     ]
   },
-  "Tensor*add_": {
+  "paddle.Tensor.add_": {
     "torch_api": "torch.Tensor.add_",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   },
-  "Paddle*sqrt": {
+  "paddle.sqrt": {
     "torch_api": "torch.sqrt",
     "kwargs_change": {
       "x": "input"
@@ -831,7 +833,7 @@
       "name"
     ]
   },
-  "Paddle*divide": {
+  "paddle.divide": {
     "torch_api": "torch.true_divide",
     "kwargs_change": {
       "x": "input",
@@ -850,11 +852,19 @@
       "name"
     ]
   },
-  "Tensor*multiply_": {
+  "paddle.Tensor.multiply_": {
     "torch_api": "torch.Tensor.multiply_",
     "kwargs_change": null,
     "unsupport_args": null,
     "torch_args_list": null,
     "paddle_args_list": null
   }
+},
+"inplace_api":[
+  "paddle.Tensor.__add__","paddle.Tensor.__radd__","paddle.Tensor.__mul__","paddle.Tensor.__rmul__",
+  "paddle.Tensor.__truediv__","paddle.Tensor.__rtruediv__","paddle.Tensor.__sub__","paddle.Tensor.__rsub__",
+  "paddle.Tensor.__lt__","paddle.Tensor.__ne__","paddle.Tensor.__neg__","paddle.Tensor.__eq__","paddle.Tensor.expand_as",
+  "paddle.Tensor.expand","paddle.arange","paddle.Tensor.square","paddle.Tensor.multiply_","paddle.Tensor.repeat_interleave",
+  "paddle.Tensor.zero_","paddle.Tensor.all","paddle.Tensor.__neg__","paddle.Tensor.add_","paddle.Tensor.all"
+]
 }
