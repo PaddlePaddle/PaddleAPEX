@@ -6,15 +6,15 @@ import math
 from collections import namedtuple
 import pandas as pd
 
-from compare.compare_utils import CompareConst, API_PRECISION_COMPARE_RESULT_FILE_NAME, \
+from compare_utils.compare_utils import CompareConst, API_PRECISION_COMPARE_RESULT_FILE_NAME, \
 API_PRECISION_COMPARE_DETAILS_FILE_NAME, BENCHMARK_COMPARE_SUPPORT_LIST, API_PRECISION_COMPARE_UNSUPPORT_LIST, \
     ApiPrecisionCompareColumn, AbsoluteStandardApi, BinaryStandardApi, BINARY_COMPARE_UNSUPPORT_LIST, \
     convert_str_to_float, CompareMessage
-from compare.compare_column import ApiPrecisionOutputColumn
-from compare.compare_dependency import get_validated_result_csv_path
+from compare_utils.compare_column import ApiPrecisionOutputColumn
+from compare_utils.compare_dependency import get_validated_result_csv_path
 
-from compare.compare_dependency import print_info_log, print_warn_log, print_error_log, write_csv, CompareException, create_directory
-from compare.compare_dependency import FileCheckConst, FileChecker, change_mode, check_path_before_create
+from compare_utils.compare_dependency import print_info_log, print_warn_log, print_error_log, write_csv, CompareException, create_directory
+from compare_utils.compare_dependency import FileCheckConst, FileChecker, change_mode, check_path_before_create
 
 PRECISION = 14
 
@@ -133,11 +133,15 @@ class BenchmarkStandard:
 
     @staticmethod
     def _calc_ratio(x, y, default_value=1.0):
-        x, y = convert_str_to_float(x), convert_str_to_float(y)
-        if math.isclose(y, 0.0):
-            return 1.0 if math.isclose(x, 0.0) else default_value
-        else:
-            return abs(x / y)
+        try:
+            x, y = convert_str_to_float(x), convert_str_to_float(y)
+            if math.isclose(y, 0.0):
+                return 1.0 if math.isclose(x, 0.0) else default_value
+            else:
+                return abs(x / y)
+        except:
+            print("Error when calculate precision ratio, may be caused by nan/inf in data")
+            return default_value
 
 
 def write_detail_csv(content, save_path):

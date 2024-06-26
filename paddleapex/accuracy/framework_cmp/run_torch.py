@@ -3,11 +3,21 @@ import os
 import time
 import paddle
 import torch
+import copy
 from tqdm import tqdm
-from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
-                                              api_json_read, rand_like, print_warn_log)
+import sys
+sys.path.append(os.path.abspath("../"))
+from utils import ( print_info_log, seed_all, gen_api_params, api_info_preprocess,
+                    api_json_read, rand_like, print_warn_log)
 
 current_time = time.strftime("%Y%m%d%H%M%S")
+
+
+dtype_mapping2torch = {
+    "FP16": torch.float16,
+    "FP32": torch.float32,
+    "BF16": torch.bfloat16
+}
 
 dtype_map = {
     "torch.float16": "FP16",
@@ -30,17 +40,29 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
+
 # Enforce the type of input tensor to be enforce_dtype
-def enforce_convert(arg_in, enforce_dtype):
+def enforce_convert(arg_in, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
         return type(arg_in)(enforce_convert(arg, enforce_dtype) for arg in arg_in)
     elif isinstance(arg_in, (torch.Tensor)):
-        if isinstance(arg_in.dtype,(torch.bfloat16,torch.float16,torch.float32)):
-            arg_in = arg_in.to(enforce_dtype)
-            return arg_in
+            return arg_in.to(dtype_mapping2torch[enforce_dtype]) if enforce_dtype else arg_in
     else:
         return arg_in
 
+
+
+TYPE_MAPPING = {
+    "FP64": "torch.float64",
+    "FP32": "torch.float32",
+    "BF16": "torch.bfloat16",
+    "FP16": "torch.float16",
+    "BOOL": "torch.bool",
+    "UINT8": "torch.uint8",
+    "INT16": "torch.int16",
+    "INT32": "torch.int32",
+    "INT64": "torch.int64",
+}
 
 def recursive_arg_to_device(arg_in, mode='to_torch'):
     if isinstance(arg_in, (list, tuple)):
@@ -48,12 +70,17 @@ def recursive_arg_to_device(arg_in, mode='to_torch'):
     elif isinstance(arg_in, (paddle.Tensor,torch.Tensor)):
         type_convert = False
         if mode=='to_torch':
+            grad_state = arg_in.stop_gradient
             if arg_in.dtype == paddle.bfloat16:
                 type_convert = True
                 arg_in = arg_in.cast(paddle.float32)
             arg_in_np = arg_in.numpy()
             arg_in = torch.from_numpy(arg_in_np)
             arg_in = arg_in.cuda()
+            if grad_state:
+                arg_in.requires_grad = False
+            else:
+                arg_in.requires_grad = True
             return arg_in.to(torch.bfloat16) if type_convert else arg_in
         elif mode=='to_paddle':
             if arg_in.dtype == torch.bfloat16:
@@ -64,12 +91,17 @@ def recursive_arg_to_device(arg_in, mode='to_torch'):
             return arg_in.cast(paddle.bfloat16) if type_convert else arg_in
         else:
             raise ValueError("recursive_arg_to_device mode must be 'to_torch' or 'to_paddle'")
+    elif arg_in in TYPE_MAPPING and mode=='to_torch':
+        type_str = TYPE_MAPPING[arg_in.upper()]
+        return eval(type_str)
+    elif isinstance(arg_in, paddle.dtype) and mode=='to_torch':
+        return eval(TYPE_MAPPING[arg_in.name])
     else:
         return arg_in
 
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
-    multi_dtype_ut = cfg.split(',') if cfg.multi_dtype_ut else []
+    multi_dtype_ut = cfg.multi_dtype_ut.split(',') if cfg.multi_dtype_ut else []
     multi_dtype_ut = [item for item in multi_dtype_ut]  # 如果列表项是整数的话
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
@@ -84,22 +116,35 @@ def ut_case_parsing(forward_content, cfg, out_path):
         if len(multi_dtype_ut)>0:
             for enforce_dtype in multi_dtype_ut:
                 print(api_call_name+"*"+enforce_dtype.__str__())
+                api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
                     api_call_name,
-                    api_info_dict,
+                    api_info_dict_copy,
                     filename,
                     enforce_dtype
                 )
-                paddle_name = api_info_dict["origin_paddle_op"] + "*" + dtype_map[enforce_dtype.__str__()]
+                paddle_name = api_info_dict["origin_paddle_op"] + "*" + enforce_dtype
                 fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
                 bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
-                if fwd_res:
-                    fwd_res = recursive_arg_to_device(fwd_res, mode='to_paddle')
-                    paddle.save(fwd_res, fwd_output_path)
-                if bp_res:
-                    bp_res = recursive_arg_to_device(bp_res, mode='to_paddle')
-                    paddle.save(bp_res, bwd_output_path)
+                fwd_res = recursive_arg_to_device(fwd_res, mode='to_paddle')
+                paddle.save(fwd_res, fwd_output_path)
+                bp_res = recursive_arg_to_device(bp_res, mode='to_paddle')
+                paddle.save(bp_res, bwd_output_path)
                 print("*" * 100)
+        else:
+            print(api_call_name)
+            fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    filename
+                )
+            fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+            bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+            fwd_res = recursive_arg_to_device(fwd_res, mode='to_paddle')
+            paddle.save(fwd_res, fwd_output_path)
+            bp_res = recursive_arg_to_device(bp_res, mode='to_paddle')
+            paddle.save(bp_res, bwd_output_path)
+            print("*" * 100)
 
 def run_api_case(
     api_call_name, api_info_dict, warning_log_pth, enforce_dtype
@@ -214,7 +259,7 @@ def arg_parser(parser):
         "-enforce-dtype",
         "--dtype",
         dest="multi_dtype_ut",
-        default="torch.float32,torch.bfloat16,torch.float16",
+        default="FP32,FP16,BF16",
         type=str,
         help="",
         required=False,

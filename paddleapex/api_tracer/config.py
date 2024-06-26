@@ -45,6 +45,7 @@ class Config:
             self.Op_count = {}
             self.dump_state = True
         else:
+            self.Op_count = {}
             self.dump_state = False
 
 cfg = Config()

@@ -7,7 +7,7 @@ import json
 import inspect
 import paddle
 
-map_F = open("./PaddleAPEX/api_mapping.json",'r')
+map_F = open("./api_mapping.json",'r')
 mapping = json.loads(map_F.read())
 
 INPLACE_OP = mapping['inplace_api']
@@ -15,7 +15,7 @@ api_mapping = mapping['mapping']
 
 if __name__ == "__main__":
     Warning_list = []
-    json_path = "./PaddleAPEX/debug.json"
+    json_path = "./sample_dump.json"
     W = open("./Json_transfer_warning.log",'a')
     F = open(json_path, 'r')
     Paddle_F = open(json_path[:-5]+"_paddle.json",'w')
@@ -102,12 +102,9 @@ if __name__ == "__main__":
                     elif key in kwargs_change_dict:
                         single_torch_op['kwargs'].update({kwargs_change_dict[key] : variable})
                     else:
-                        print(op_name)
-                        msg = f"Cannot idetify key word: {key}, append to torch_api args list."
+                        msg = f"{op_name} Cannot idetify key word: {key}."
                         print(msg)
-                        single_torch_op['args'].append(variable)
                         Warning_list.append(msg)
-
         res_torch_dict[torch_call_stack] =  single_torch_op
     json.dump(res_paddle_dict, Paddle_F, indent=2)
     json.dump(res_torch_dict, Torch_F, indent=2)

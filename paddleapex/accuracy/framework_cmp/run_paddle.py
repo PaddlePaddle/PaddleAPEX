@@ -2,9 +2,18 @@ import argparse
 import os
 import time
 import paddle
+import copy
 from tqdm import tqdm
-from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
+import sys
+sys.path.append(os.path.abspath("../"))
+from utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
                                               api_json_read, rand_like, print_warn_log)
+type_map = {
+    "FP16":paddle.float16,
+    "FP32":paddle.float32,
+    "BF16":paddle.bfloat16,
+}
+
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -38,8 +47,7 @@ def recursive_arg_to_device(arg_in, enforce_dtype=None):
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
     multi_dtype_ut = cfg.multi_dtype_ut.split(',') if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [item for item in multi_dtype_ut]  # 如果列表项是整数的话
-
+    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]  # 如果列表项是整数的话
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
     os.makedirs(fwd_output_dir, exist_ok=True)
@@ -49,35 +57,35 @@ def ut_case_parsing(forward_content, cfg, out_path):
         tqdm(forward_content.items(), **tqdm_params)
     ):
         # Reset random seed state.
-        seed_all(cfg.seed)
+        seed_all()
         if len(multi_dtype_ut)>0:
             for enforce_dtype in multi_dtype_ut:
-                print(api_call_name+"*"+enforce_dtype)
+                print(api_call_name+"*"+enforce_dtype.name)
+                api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
                     api_call_name,
-                    api_info_dict,
+                    api_info_dict_copy,
                     filename,
                     enforce_dtype
                 )
                 if enforce_dtype:
-                    api_call_name = api_call_name+"*"+enforce_dtype
-                fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-                bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-                if fwd_res:
-                    paddle.save(fwd_res, fwd_output_path)
-                if bp_res:
-                    paddle.save(bp_res, bwd_output_path)
+                    save_name = api_call_name+"*"+enforce_dtype.name
+                fwd_output_path = os.path.join(fwd_output_dir, save_name)
+                bwd_output_path = os.path.join(bwd_output_dir, save_name)
+                paddle.save(fwd_res, fwd_output_path)
+                paddle.save(bp_res, bwd_output_path)
                 print("*" * 100)
         else:
             print(api_call_name)
             fwd_res, bp_res = run_api_case(
                     api_call_name,
                     api_info_dict,
-                    filename,
-                    enforce_dtype
+                    filename
                 )
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+            paddle.save(fwd_res, fwd_output_path)
+            paddle.save(bp_res, bwd_output_path)
             print("*" * 100)
 
 def run_api_case(
@@ -177,14 +185,12 @@ def arg_parser(parser):
         required=False,
     )
     parser.add_argument(
-        "-seed",
-        dest="seed",
-        nargs="?",
-        const="",
-        default=1234,
-        type=int,
-        help="<optional> In real data mode, the root directory for storing real data "
-        "must be configured.",
+        "-enforce-dtype",
+        "--dtype",
+        dest="multi_dtype_ut",
+        default="FP32,FP16,BF16",
+        type=str,
+        help="",
         required=False,
     )
 

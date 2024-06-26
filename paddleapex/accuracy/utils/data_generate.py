@@ -88,7 +88,7 @@ def gen_data(info):
     return data, need_grad
 
 
-def gen_real_tensor(data_path, convert_type, stop_gradient):
+def gen_real_tensor(data_path, stop_gradient):
     data_path = os.path.realpath(data_path)
     check_file_or_directory_path(data_path)
     if not data_path.endswith(".pt") and not data_path.endswith(".npy"):
@@ -99,11 +99,6 @@ def gen_real_tensor(data_path, convert_type, stop_gradient):
     else:
         data_np = numpy.load(data_path)
         data = paddle.to_tensor(data_np)
-    if convert_type:
-        ori_dtype = Const.CONVERT.get(convert_type)[0]
-        dist_dtype = Const.CONVERT.get(convert_type)[1]
-        if str(data.dtype) == ori_dtype:
-            data = data.type(eval(dist_dtype))
     data.stop_gradient = stop_gradient
     return data
 
@@ -138,6 +133,8 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype):
             return tensor
         else:
             scale = high - low
+            if len(shape) == 0:
+                shape = [1]
             rand = numpy.random.randn(*shape).astype(numpy.float32)
             tensor = rand * scale + low
             tensor = paddle.to_tensor(tensor, dtype = eval(REAL_TYPE_PADDLE.get(data_dtype)))
@@ -182,7 +179,7 @@ def gen_args(
     return args_result, need_grad
 
 
-def gen_kwargs(api_info, convert_type=None):
+def gen_kwargs(api_info):
     check_object_type(api_info, dict)
     kwargs_params = api_info.get("kwargs")
     need_grad = False
@@ -190,13 +187,14 @@ def gen_kwargs(api_info, convert_type=None):
         if value is None:
             continue
         if isinstance(value, (list, tuple)):
-            kwargs_params[key] = gen_list_kwargs(value, convert_type)
+            kwargs_params[key], has_grad_tensor = gen_list_kwargs(value)
+            need_grad = need_grad or has_grad_tensor
         elif isinstance(value, str):
             kwargs_params[key] = eval(value)
         elif value.get("type") in TENSOR_DATA_LIST_PADDLE or value.get(
             "type"
         ).startswith("numpy"):
-            kwargs_params[key], has_grad_tensor = gen_data(value, convert_type)
+            kwargs_params[key], has_grad_tensor = gen_data(value)
             need_grad = need_grad or has_grad_tensor
         elif value.get("type") in PADDLE_TYPE:
             gen_paddle_kwargs(kwargs_params, key, value)
@@ -204,29 +202,29 @@ def gen_kwargs(api_info, convert_type=None):
             kwargs_params[key] = value.get("value")
     return kwargs_params, need_grad
 
-
 def gen_paddle_kwargs(kwargs_params, key, value):
     if value.get("type") != "paddle.CPUPlace":
         kwargs_params[key] = eval(value.get("value"))
 
 
-def gen_list_kwargs(kwargs_item_value, convert_type):
+def gen_list_kwargs(kwargs_item_value):
     kwargs_item_result = []
     for item in kwargs_item_value:
         if item.get("type") in TENSOR_DATA_LIST_PADDLE:
-            item_value = gen_data(item, convert_type)
+            item_value, has_grad_tensor = gen_data(item)
         else:
+            has_grad_tensor = False
             item_value = item.get("value")
         kwargs_item_result.append(item_value)
-    return kwargs_item_result
+    return kwargs_item_result, has_grad_tensor
 
 
 def gen_api_params(
-    api_info, seed=1234, convert_type=None
+    api_info, seed=1234
 ):
     numpy.random.seed(seed)
     check_object_type(api_info, dict)
-    kwargs_params, kwargs_need_grad = gen_kwargs(api_info, convert_type)
+    kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
     if api_info.get("args"):
         args_params, args_need_grad = gen_args(
             api_info.get("args")

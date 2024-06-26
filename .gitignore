@@ -1,6 +1,7 @@
 demo.py
 **/__pycache__
-*/.DS_Store
+**/.DS_Store
 */.dump_info
+*/*.log
 .idea
 PaddleAPEX.egg-info

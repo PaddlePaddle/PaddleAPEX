@@ -2,8 +2,11 @@ import argparse
 import os
 import time
 import paddle
+import copy
 from tqdm import tqdm
-from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
+import sys
+sys.path.append(os.path.abspath("../"))
+from utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
                                               api_json_read, rand_like, print_warn_log)
 
 current_time = time.strftime("%Y%m%d%H%M%S")
@@ -66,21 +69,21 @@ def ut_case_parsing(forward_content, cfg, out_path):
     ):
         # Reset random seed state.
         seed_all()
-        print(len(multi_dtype_ut))
         if len(multi_dtype_ut)>0:
             for enforce_dtype in multi_dtype_ut:
                 print(api_call_name+"*"+enforce_dtype.name)
+                api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
                     api_call_name,
-                    api_info_dict,
+                    api_info_dict_copy,
                     backend,
                     filename,
                     enforce_dtype
                 )
                 if enforce_dtype:
-                    api_call_name = api_call_name+"*"+enforce_dtype.name
-                fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-                bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+                    save_name = api_call_name+"*"+enforce_dtype.name
+                fwd_output_path = os.path.join(fwd_output_dir, save_name)
+                bwd_output_path = os.path.join(bwd_output_dir, save_name)
                 paddle.save(fwd_res, fwd_output_path)
                 paddle.save(bp_res, bwd_output_path)
                 print("*" * 100)

@@ -839,11 +839,36 @@ target_op:
   -  paddle.Tensor.where
   -  paddle.Tensor.where_
   -  paddle.Tensor.zero_
+  #### experiment op:
   -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
+  -  paddle._C_ops.fused_gemm_epilogue
+  -  paddle._legacy_C_ops.fused_gemm_epilogue
+  -  paddle.incubate.nn.functional.fused_multi_head_attention
+  -  paddle.incubate.nn.functional.fused_feedforward
+  -  paddle.incubate.nn.functional.fused_multi_transformer
+  -  paddle.incubalte.nn.functional.fused_linear
+  -  paddle.incubate.nn.functional.fused_linear_activation
+  -  paddle.incubate.nn.functional.fused_bias_dropout_residual_layer_norm
+  -  paddle.incubate.nn.functional.fused_ec_moe
+  -  paddle.incubate.nn.functional.fused_dropout_add
+  -  paddle.incubate.nn.functional.fused_rotary_position_embedding
+  -  paddle.incubate.nn.functional..variable_length_memory_efficient_attention
+  -  paddle.incubate.nn.functional.fused_rms_norm
+  -  paddle.incubate.nn.functional.fused_layer_norm
+  -  paddle.incubate.nn.functional.masked_multihead_attention
+  -  paddle.incubate.nn.functional.block_multihead_attention
+  -  paddle.incubate.nn.functional.swiglu
+  -  paddle.incubate.nn.functional.fused_matmul_bias
+  -  paddle.tensor.fill_constant
+  -  paddle.nn.clip._squared_l2_norm
+  -  paddle.uniform
+  -  paddle._C_ops.gaussian
+  -  paddle._legacy_C_ops.c_identity
   # -  paddle.distributed.fleet.layers.mpu.mp_ops.
-
   # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
-  -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu

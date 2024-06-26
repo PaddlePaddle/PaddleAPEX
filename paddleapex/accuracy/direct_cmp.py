@@ -7,8 +7,8 @@ import time
 import paddle
 import tqdm
 
-from compare.compare import Comparator
-from compare.compare_dependency import print_info_log, FileOpen, seed_all
+from compare_utils.compare import Comparator
+from compare_utils.compare_dependency import print_info_log, FileOpen, seed_all
 
 seed_all()
 
