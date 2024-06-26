@@ -9,6 +9,12 @@ from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params,
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
+dtype_map = {
+    "torch.float16": "FP16",
+    "torch.float32": "FP32",
+    "torch.bfloat16": "BF16"
+}
+
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
     "desc": "Processing",  # 进度条前的描述文字
@@ -24,12 +30,24 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
+# Enforce the type of input tensor to be enforce_dtype
+def enforce_convert(arg_in, enforce_dtype):
+    if isinstance(arg_in, (list, tuple)):
+        return type(arg_in)(enforce_convert(arg, enforce_dtype) for arg in arg_in)
+    elif isinstance(arg_in, (torch.Tensor)):
+        if isinstance(arg_in.dtype,(torch.bfloat16,torch.float16,torch.float32)):
+            arg_in = arg_in.to(enforce_dtype)
+            return arg_in
+    else:
+        return arg_in
+
+
 def recursive_arg_to_device(arg_in, mode='to_torch'):
     if isinstance(arg_in, (list, tuple)):
         return type(arg_in)(recursive_arg_to_device(arg, mode) for arg in arg_in)
     elif isinstance(arg_in, (paddle.Tensor,torch.Tensor)):
+        type_convert = False
         if mode=='to_torch':
-            type_convert = False
             if arg_in.dtype == paddle.bfloat16:
                 type_convert = True
                 arg_in = arg_in.cast(paddle.float32)
@@ -38,8 +56,12 @@ def recursive_arg_to_device(arg_in, mode='to_torch'):
             arg_in = arg_in.cuda()
             return arg_in.to(torch.bfloat16) if type_convert else arg_in
         elif mode=='to_paddle':
-            arg_in = arg_in.cuda()
-            return arg_in
+            if arg_in.dtype == torch.bfloat16:
+                type_convert = True
+                arg_in = arg_in.to(torch.float32)
+            arg_in = arg_in.cpu().detach().numpy()
+            arg_in = paddle.to_tensor(arg_in)
+            return arg_in.cast(paddle.bfloat16) if type_convert else arg_in
         else:
             raise ValueError("recursive_arg_to_device mode must be 'to_torch' or 'to_paddle'")
     else:
@@ -47,7 +69,8 @@ def recursive_arg_to_device(arg_in, mode='to_torch'):
 
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
-
+    multi_dtype_ut = cfg.split(',') if cfg.multi_dtype_ut else []
+    multi_dtype_ut = [item for item in multi_dtype_ut]  # 如果列表项是整数的话
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
     os.makedirs(fwd_output_dir, exist_ok=True)
@@ -58,26 +81,28 @@ def ut_case_parsing(forward_content, cfg, out_path):
     ):
         # Reset random seed state.
         seed_all(cfg.seed)
-        print(api_call_name)
-        
-        fwd_res, bp_res = run_api_case(
-            api_call_name,
-            api_info_dict,
-            filename
-        )
-        paddle_name = api_info_dict["origin_paddle_op"]
-        fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
-        bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
-        if fwd_res:
-            fwd_res = recursive_arg_to_device(fwd_res, mode='to_paddle')
-            paddle.save(fwd_res, fwd_output_path)
-        if bp_res:
-            bp_res = recursive_arg_to_device(bp_res, mode='to_paddle')
-            paddle.save(bp_res, bwd_output_path)
-        print("*" * 100)
+        if len(multi_dtype_ut)>0:
+            for enforce_dtype in multi_dtype_ut:
+                print(api_call_name+"*"+enforce_dtype.__str__())
+                fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    filename,
+                    enforce_dtype
+                )
+                paddle_name = api_info_dict["origin_paddle_op"] + "*" + dtype_map[enforce_dtype.__str__()]
+                fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
+                bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
+                if fwd_res:
+                    fwd_res = recursive_arg_to_device(fwd_res, mode='to_paddle')
+                    paddle.save(fwd_res, fwd_output_path)
+                if bp_res:
+                    bp_res = recursive_arg_to_device(bp_res, mode='to_paddle')
+                    paddle.save(bp_res, bwd_output_path)
+                print("*" * 100)
 
 def run_api_case(
-    api_call_name, api_info_dict, warning_log_pth
+    api_call_name, api_info_dict, warning_log_pth, enforce_dtype
 ):
     Warning_list = []
     api_call_stack = api_call_name.rsplit("*")[0]
@@ -95,6 +120,8 @@ def run_api_case(
         device_kwargs = {
             key: recursive_arg_to_device(value, mode='to_torch') for key, value in kwargs.items()
         }
+        device_args = enforce_convert(device_args,enforce_dtype)
+        device_kwargs = enforce_convert(device_kwargs,enforce_dtype)
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
     except Exception as err:
@@ -114,7 +141,8 @@ def run_api_case(
     if need_backward:
         try:
             device_grad_out = []
-            dout = rand_like(device_out)
+            out = recursive_arg_to_device(device_out, mode='to_paddle')
+            dout = rand_like(out)
             dout = recursive_arg_to_device(dout, mode='to_torch')
             torch.autograd.backward(
                 [device_out], [dout]
@@ -182,6 +210,16 @@ def arg_parser(parser):
         "must be configured.",
         required=False,
     )
+    parser.add_argument(
+        "-enforce-dtype",
+        "--dtype",
+        dest="multi_dtype_ut",
+        default="torch.float32,torch.bfloat16,torch.float16",
+        type=str,
+        help="",
+        required=False,
+    )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

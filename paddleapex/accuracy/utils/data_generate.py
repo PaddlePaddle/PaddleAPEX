@@ -241,13 +241,13 @@ def rand_like(data, seed=1234):
     numpy.random.seed(seed)
     if isinstance(data, paddle.Tensor):
         if data.dtype.name in ["BF16","FP16"]:
-            random_normals = numpy.random.randn(data.shape)
+            random_normals = numpy.random.randn(*data.shape)
             x = paddle.to_tensor(random_normals, dtype=data.dtype)
             return x
         elif data.dtype.name in ["FP32","FP64"]:
-            random_normals = numpy.random.randn(data.shape)
+            random_normals = numpy.random.randn(*data.shape)
             x = paddle.to_tensor(random_normals, dtype=data.dtype)
-            return rand_data
+            return x
         elif data.dtype.name in ["INT32", "INT64"]:
             rand_data = numpy.random.randint(-10,10,size=data.shape).astype('int')
             rand_data = paddle.to_tensor(rand_data, dtype=data.dtype)

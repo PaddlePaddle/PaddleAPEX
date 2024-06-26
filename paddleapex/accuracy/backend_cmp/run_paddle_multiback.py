@@ -8,6 +8,12 @@ from paddleapex.accuracy.utils import (print_info_log, seed_all, gen_api_params,
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
+type_map = {
+    "FP16":paddle.float16,
+    "FP32":paddle.float32,
+    "BF16":paddle.bfloat16,
+}
+
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
     "desc": "Processing",  # 进度条前的描述文字
@@ -23,9 +29,9 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
-def recursive_arg_to_device(arg_in, backend):
+def recursive_arg_to_device(arg_in, backend,enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
-        return type(arg_in)(recursive_arg_to_device(arg, backend) for arg in arg_in)
+        return type(arg_in)(recursive_arg_to_device(arg, backend, enforce_dtype) for arg in arg_in)
     elif isinstance(arg_in, paddle.Tensor):
         if "gpu" in backend:
             arg_in = arg_in.cuda()
@@ -35,12 +41,19 @@ def recursive_arg_to_device(arg_in, backend):
                 arg_in = arg_in.cast("float32")
         else:
             arg_in = arg_in.to(backend)
+        
+        # enforce dtype convert
+        if enforce_dtype and arg_in.dtype.name in ["BF16","FP16","FP32"]:
+            arg_in = arg_in.cast(enforce_dtype)
         return arg_in
     else:
         return arg_in
 
 def ut_case_parsing(forward_content, cfg, out_path):
     backend = cfg.backend
+    multi_dtype_ut = cfg.multi_dtype_ut.split(',') if cfg.multi_dtype_ut else []
+    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]  # 如果列表项是整数的话
+
     print_info_log("start UT save")
 
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -52,25 +65,41 @@ def ut_case_parsing(forward_content, cfg, out_path):
         tqdm(forward_content.items(), **tqdm_params)
     ):
         # Reset random seed state.
-        seed_all(cfg.seed)
-        print(api_call_name)
-        
-        fwd_res, bp_res = run_api_case(
-            api_call_name,
-            api_info_dict,
-            backend,
-            filename
-        )
-        fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-        bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-        if fwd_res:
+        seed_all()
+        print(len(multi_dtype_ut))
+        if len(multi_dtype_ut)>0:
+            for enforce_dtype in multi_dtype_ut:
+                print(api_call_name+"*"+enforce_dtype.name)
+                fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    backend,
+                    filename,
+                    enforce_dtype
+                )
+                if enforce_dtype:
+                    api_call_name = api_call_name+"*"+enforce_dtype.name
+                fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+                bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+                paddle.save(fwd_res, fwd_output_path)
+                paddle.save(bp_res, bwd_output_path)
+                print("*" * 100)
+        else:
+            print(api_call_name)
+            fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    backend,
+                    filename
+                )
+            fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+            bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
             paddle.save(fwd_res, fwd_output_path)
-        if bp_res:
             paddle.save(bp_res, bwd_output_path)
-        print("*" * 100)
+            print("*" * 100)
 
 def run_api_case(
-    api_call_name, api_info_dict, backend, warning_log_pth
+    api_call_name, api_info_dict, backend, warning_log_pth, enforce_dtype=None
 ):
     Warning_list = []
     api_call_stack = api_call_name.rsplit("*")[0]
@@ -84,9 +113,9 @@ def run_api_case(
     ##      RUN FORWARD
     ##################################################################
     try:
-        device_args = recursive_arg_to_device(args, backend)
+        device_args = recursive_arg_to_device(args, backend, enforce_dtype)
         device_kwargs = {
-            key: recursive_arg_to_device(value, backend) for key, value in kwargs.items()
+            key: recursive_arg_to_device(value, backend, enforce_dtype) for key, value in kwargs.items()
         }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
@@ -109,7 +138,7 @@ def run_api_case(
             device_grad_out = []
             dout = rand_like(device_out)
 
-            dout = recursive_arg_to_device(dout)
+            dout = recursive_arg_to_device(dout, backend)
             paddle.autograd.backward(
                 [device_out], [dout]
             )
@@ -174,6 +203,17 @@ def arg_parser(parser):
         help="<optional> The running device NPU or GPU.",
         required=False,
     )
+    parser.add_argument(
+        "-enforce-dtype",
+        "--dtype",
+        dest="multi_dtype_ut",
+        default="FP32,FP16,BF16",
+        type=str,
+        help="",
+        required=False,
+    )
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

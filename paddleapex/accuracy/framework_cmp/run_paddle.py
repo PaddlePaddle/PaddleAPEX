@@ -23,17 +23,22 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
-def recursive_arg_to_device(arg_in):
+def recursive_arg_to_device(arg_in, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
         return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
     elif isinstance(arg_in, paddle.Tensor):
         arg_in = arg_in.cuda()
+        # enforce dtype convert
+        if enforce_dtype and arg_in.dtype.name in ["BF16","FP16","FP32"]:
+            arg_in = arg_in.cast(enforce_dtype)
         return arg_in
     else:
         return arg_in
 
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
+    multi_dtype_ut = cfg.multi_dtype_ut.split(',') if cfg.multi_dtype_ut else []
+    multi_dtype_ut = [item for item in multi_dtype_ut]  # 如果列表项是整数的话
 
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
@@ -45,23 +50,38 @@ def ut_case_parsing(forward_content, cfg, out_path):
     ):
         # Reset random seed state.
         seed_all(cfg.seed)
-        print(api_call_name)
-        
-        fwd_res, bp_res = run_api_case(
-            api_call_name,
-            api_info_dict,
-            filename
-        )
-        fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-        bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-        if fwd_res:
-            paddle.save(fwd_res, fwd_output_path)
-        if bp_res:
-            paddle.save(bp_res, bwd_output_path)
-        print("*" * 100)
+        if len(multi_dtype_ut)>0:
+            for enforce_dtype in multi_dtype_ut:
+                print(api_call_name+"*"+enforce_dtype)
+                fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    filename,
+                    enforce_dtype
+                )
+                if enforce_dtype:
+                    api_call_name = api_call_name+"*"+enforce_dtype
+                fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+                bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+                if fwd_res:
+                    paddle.save(fwd_res, fwd_output_path)
+                if bp_res:
+                    paddle.save(bp_res, bwd_output_path)
+                print("*" * 100)
+        else:
+            print(api_call_name)
+            fwd_res, bp_res = run_api_case(
+                    api_call_name,
+                    api_info_dict,
+                    filename,
+                    enforce_dtype
+                )
+            fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+            bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+            print("*" * 100)
 
 def run_api_case(
-    api_call_name, api_info_dict, warning_log_pth
+    api_call_name, api_info_dict, warning_log_pth, enforce_dtype=None
 ):
     Warning_list = []
     api_call_stack = api_call_name.rsplit("*")[0]
@@ -75,9 +95,9 @@ def run_api_case(
     ##      RUN FORWARD
     ##################################################################
     try:
-        device_args = recursive_arg_to_device(args)
+        device_args = recursive_arg_to_device(args, enforce_dtype)
         device_kwargs = {
-            key: recursive_arg_to_device(value) for key, value in kwargs.items()
+            key: recursive_arg_to_device(value, enforce_dtype) for key, value in kwargs.items()
         }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
