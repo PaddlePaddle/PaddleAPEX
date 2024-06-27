@@ -1,7 +1,8 @@
-'''
+"""
     This script is used to remove the repeated api input cases in a JSON file.
-'''
+"""
 import json
+
 
 def remove_fields(dictionary):
     dictionary_copy = dictionary.copy()
@@ -26,16 +27,19 @@ def remove_fields(dictionary):
                 del dictionary["stop_gradient"]
     return dictionary
 
+
 # 从JSON文件中读取字典数据
 def read_json(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         data = json.load(file)
     return data
 
+
 # 将字典数据保存到JSON文件中
 def save_json(data, file_path):
-    with open(file_path, 'w') as file:
+    with open(file_path, "w") as file:
         json.dump(data, file, indent=4)
+
 
 input_file_path = "ernie.json"  # 替换为您的输入JSON文件路径
 output_file_path = "debug.json"  # 替换为您的输出JSON文件路径
@@ -47,12 +51,9 @@ filtered_data = {}
 
 OP_LIST = []
 
-for key,values in data.items():
+for key, values in data.items():
     name = key.split("*")[0] + "*" + key.split("*")[1]
-###########
-    name = name+ "*0"
-    filtered_data[name] = {
-        'args': values['args'],
-        'kwargs': values['kwargs']
-    }
+    ###########
+    name = name + "*0"
+    filtered_data[name] = {"args": values["args"], "kwargs": values["kwargs"]}
 save_json(filtered_data, output_file_path)

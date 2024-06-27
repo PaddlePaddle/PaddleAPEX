@@ -5,13 +5,21 @@ import paddle
 import copy
 from tqdm import tqdm
 import sys
+
 sys.path.append(os.path.abspath("../"))
-from utils import (print_info_log, seed_all, gen_api_params, api_info_preprocess,
-                                              api_json_read, rand_like, print_warn_log)
+from utils import (
+    print_info_log,
+    check_grad_list,
+    gen_api_params,
+    api_json_read,
+    rand_like,
+    print_warn_log,
+)
+
 type_map = {
-    "FP16":paddle.float16,
-    "FP32":paddle.float32,
-    "BF16":paddle.bfloat16,
+    "FP16": paddle.float16,
+    "FP32": paddle.float32,
+    "BF16": paddle.bfloat16,
 }
 
 
@@ -32,22 +40,23 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
+
 def recursive_arg_to_device(arg_in, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
         return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
     elif isinstance(arg_in, paddle.Tensor):
         arg_in = arg_in.cuda()
-        # enforce dtype convert
-        if enforce_dtype and arg_in.dtype.name in ["BF16","FP16","FP32"]:
+        if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
             arg_in = arg_in.cast(enforce_dtype)
         return arg_in
     else:
         return arg_in
 
+
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
-    multi_dtype_ut = cfg.multi_dtype_ut.split(',') if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]  # 如果列表项是整数的话
+    multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
+    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]
     fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
     os.makedirs(fwd_output_dir, exist_ok=True)
@@ -56,47 +65,40 @@ def ut_case_parsing(forward_content, cfg, out_path):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
-        # Reset random seed state.
-        seed_all()
-        if len(multi_dtype_ut)>0:
+        if len(multi_dtype_ut) > 0:
             for enforce_dtype in multi_dtype_ut:
-                print(api_call_name+"*"+enforce_dtype.name)
+                print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name,
-                    api_info_dict_copy,
-                    filename,
-                    enforce_dtype
+                    api_call_name, api_info_dict_copy, filename, enforce_dtype
                 )
                 if enforce_dtype:
-                    save_name = api_call_name+"*"+enforce_dtype.name
+                    save_name = api_call_name + "*" + enforce_dtype.name
                 fwd_output_path = os.path.join(fwd_output_dir, save_name)
                 bwd_output_path = os.path.join(bwd_output_dir, save_name)
-                paddle.save(fwd_res, fwd_output_path)
-                paddle.save(bp_res, bwd_output_path)
+                if not isinstance(fwd_res, type(None)):
+                    paddle.save(fwd_res, fwd_output_path)
+                if not isinstance(bp_res, type(None)):
+                    paddle.save(bp_res, bwd_output_path)
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(
-                    api_call_name,
-                    api_info_dict,
-                    filename
-                )
+            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, filename)
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-            paddle.save(fwd_res, fwd_output_path)
-            paddle.save(bp_res, bwd_output_path)
+            if not isinstance(fwd_res, type(None)):
+                paddle.save(fwd_res, fwd_output_path)
+            if not isinstance(bp_res, type(None)):
+                paddle.save(bp_res, bwd_output_path)
             print("*" * 100)
 
-def run_api_case(
-    api_call_name, api_info_dict, warning_log_pth, enforce_dtype=None
-):
+
+def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype=None):
     Warning_list = []
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
-    args, kwargs, need_backward = get_api_info(api_info_dict, api_name)
-
-    if api_name =="scatter_nd":
+    args, kwargs, need_backward = gen_api_params(api_info_dict)
+    if api_name == "scatter_nd":
         return None, None
 
     ##################################################################
@@ -105,7 +107,8 @@ def run_api_case(
     try:
         device_args = recursive_arg_to_device(args, enforce_dtype)
         device_kwargs = {
-            key: recursive_arg_to_device(value, enforce_dtype) for key, value in kwargs.items()
+            key: recursive_arg_to_device(value, enforce_dtype)
+            for key, value in kwargs.items()
         }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
@@ -118,7 +121,7 @@ def run_api_case(
         for item in Warning_list:
             File.write(item + "\n")
         File.close()
-        return  None, None
+        return None, None
 
     ##################################################################
     ##      RUN BACKWARD
@@ -129,16 +132,14 @@ def run_api_case(
             dout = rand_like(device_out)
 
             dout = recursive_arg_to_device(dout)
-            paddle.autograd.backward(
-                [device_out], [dout]
-            )
+            paddle.autograd.backward([device_out], [dout])
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
                     device_grad_out.append(arg.grad)
-            for k,v in device_kwargs.items():
+            for k, v in device_kwargs.items():
                 if isinstance(v, paddle.Tensor):
                     device_grad_out.append(v.grad)
-
+            device_grad_out = check_grad_list(device_grad_out)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
             msg = f"Run API {api_name} backward Error: %s" % str(err)
@@ -150,20 +151,13 @@ def run_api_case(
         print_warn_log(msg)
         Warning_list.append(msg)
         return device_out, None
-    
+
     File = open(warning_log_pth, "a")
     for item in Warning_list:
         File.write(item + "\n")
     File.close()
-    return  device_out, device_grad_out
+    return device_out, device_grad_out
 
-
-def get_api_info(api_info_dict, api_name):
-    convert_type, api_info_dict = api_info_preprocess(api_name, api_info_dict)
-    args, kwargs, need_grad = gen_api_params(
-        api_info_dict, convert_type
-    )
-    return args, kwargs, need_grad
 
 def arg_parser(parser):
     parser.add_argument(
@@ -193,6 +187,7 @@ def arg_parser(parser):
         help="",
         required=False,
     )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

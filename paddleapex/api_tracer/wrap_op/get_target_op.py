@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import yaml
-import paddle
 from .. import config
 
 cfg = config.cfg
@@ -34,7 +33,7 @@ class GetTargetOP:
         for api in self.api_to_catch:
             try:
                 func = eval(api)
-                if func == None:
+                if func:
                     print(f"{api} is not available!")
             except Exception as err:
                 print(f"For api: {api}   ", str(err))

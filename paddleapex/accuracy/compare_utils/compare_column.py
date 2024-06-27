@@ -22,10 +22,27 @@ class CompareColumn:
         self.abs_err_ratio = CompareConst.SPACE
 
     def to_column_value(self, is_pass, message):
-        return [self.bench_type, self.npu_type, self.shape, self.cosine_sim, self.max_abs_err, self.rel_err_hundredth,
-                self.rel_err_thousandth, self.rel_err_ten_thousandth, self.error_rate, self.EB, self.RMSE, 
-                self.small_value_err_ratio, self.Max_rel_error, self.Mean_rel_error, self.inf_nan_error_ratio, 
-                self.rel_err_ratio, self.abs_err_ratio, is_pass, message]
+        return [
+            self.bench_type,
+            self.npu_type,
+            self.shape,
+            self.cosine_sim,
+            self.max_abs_err,
+            self.rel_err_hundredth,
+            self.rel_err_thousandth,
+            self.rel_err_ten_thousandth,
+            self.error_rate,
+            self.EB,
+            self.RMSE,
+            self.small_value_err_ratio,
+            self.Max_rel_error,
+            self.Mean_rel_error,
+            self.inf_nan_error_ratio,
+            self.rel_err_ratio,
+            self.abs_err_ratio,
+            is_pass,
+            message,
+        ]
 
 
 class ApiPrecisionOutputColumn:
@@ -54,10 +71,27 @@ class ApiPrecisionOutputColumn:
         self.compare_message = CompareConst.SPACE
 
     def to_column_value(self):
-        return [self.api_name, self.small_value_err_ratio, self.small_value_err_status, self.rmse_ratio, 
-                self.rmse_status, self.max_rel_err_ratio, self.max_rel_err_status, self.mean_rel_err_ratio, 
-                self.mean_rel_err_status, self.eb_ratio, self.eb_status, self.inf_nan_error_ratio, 
-                self.inf_nan_error_ratio_status, self.rel_err_ratio, self.rel_err_ratio_status, self.abs_err_ratio, 
-                self.abs_err_ratio_status, self.error_rate, self.error_rate_status, self.compare_result, 
-                self.compare_algorithm, self.compare_message]
-        
+        return [
+            self.api_name,
+            self.small_value_err_ratio,
+            self.small_value_err_status,
+            self.rmse_ratio,
+            self.rmse_status,
+            self.max_rel_err_ratio,
+            self.max_rel_err_status,
+            self.mean_rel_err_ratio,
+            self.mean_rel_err_status,
+            self.eb_ratio,
+            self.eb_status,
+            self.inf_nan_error_ratio,
+            self.inf_nan_error_ratio_status,
+            self.rel_err_ratio,
+            self.rel_err_ratio_status,
+            self.abs_err_ratio,
+            self.abs_err_ratio_status,
+            self.error_rate,
+            self.error_rate_status,
+            self.compare_result,
+            self.compare_algorithm,
+            self.compare_message,
+        ]

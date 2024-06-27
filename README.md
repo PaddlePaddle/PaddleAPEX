@@ -100,7 +100,7 @@ We provide two ways to set APEX config:
     cd framework_cmp
     # Dump json file shoule be converted to paddle/torch format.
     # Modify json_transfer.py, check path to target json.
-    python json_transfer.py 
+    python json_transfer.py
     # You can obtain two json, xx_paddle.json and xx_torch.json
     # Run test case&compare
     # Modify launch_test.py, check configurations.

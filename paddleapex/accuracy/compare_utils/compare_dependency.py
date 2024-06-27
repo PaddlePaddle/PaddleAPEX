@@ -12,28 +12,31 @@ import csv
 import paddle
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
+
 def seed_all(seed=1234):
     random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     paddle.seed(seed)
     # 分布式场景需额外加上
-    global_seed, local_seed = seed,seed+1
+    global_seed, local_seed = seed, seed + 1
     tracker = get_rng_state_tracker()
     try:
-        tracker.add("global_seed",global_seed)
-        tracker.add("local_seed",local_seed)
+        tracker.add("global_seed", global_seed)
+        tracker.add("local_seed", local_seed)
     except Exception as err:
         print('paddle tracker.add("global_seed",global_seed)', str(err))
+
 
 class Const:
     """
     Class for const
     """
+
     DIRECTORY_LENGTH = 4096
     FILE_NAME_LENGTH = 255
-    FILE_PATTERN = r'^[a-zA-Z0-9_./-]+$'
-    MODEL_TYPE = ['.onnx', '.pb', '.om']
+    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
+    MODEL_TYPE = [".onnx", ".pb", ".om"]
     SEMICOLON = ";"
     COLON = ":"
     EQUAL = "="
@@ -43,12 +46,21 @@ class Const:
     SUMMERY_DATA_NUMS = 256
     ONE_HUNDRED_MB = 100 * 1024 * 1024
     FLOAT_EPSILON = np.finfo(float).eps
-    SUPPORT_DUMP_MODE = ['api', 'acl']
-    ON = 'ON'
-    OFF = 'OFF'
-    BACKWARD = 'backward'
-    FORWARD = 'forward'
-    FLOAT_TYPE = [np.half, np.single, float, np.double, np.float64, np.longdouble, np.float32, np.float16]
+    SUPPORT_DUMP_MODE = ["api", "acl"]
+    ON = "ON"
+    OFF = "OFF"
+    BACKWARD = "backward"
+    FORWARD = "forward"
+    FLOAT_TYPE = [
+        np.half,
+        np.single,
+        float,
+        np.double,
+        np.float64,
+        np.longdouble,
+        np.float32,
+        np.float16,
+    ]
     BOOL_TYPE = [bool, np.uint8]
     INT_TYPE = [np.int32, np.int64]
 
@@ -68,37 +80,45 @@ class Const:
     RAISE_PRECISION = {
         paddle.float16: paddle.float32,
         paddle.bfloat16: paddle.float32,
-        paddle.float32: paddle.float64
+        paddle.float32: paddle.float64,
     }
     CONVERT = {
         "int32_to_int64": ["paddle.int32", "paddle.int64"],
     }
 
-    CONVERT_API = {
-        "int32_to_int64": ["cross_entropy"]
-    }
+    CONVERT_API = {"int32_to_int64": ["cross_entropy"]}
+
 
 def write_csv(data, filepath):
-    with FileOpen(filepath, 'a', encoding='utf-8-sig') as f:
+    with FileOpen(filepath, "a", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerows(data)
 
+
 def get_validated_result_csv_path(result_csv_path, mode):
-    if mode not in ['result', 'detail']:
+    if mode not in ["result", "detail"]:
         raise ValueError("The csv mode must be result or detail")
-    result_csv_path_checker = FileChecker(result_csv_path, FileCheckConst.FILE, ability=FileCheckConst.READ_WRITE_ABLE,
-                                          file_type=FileCheckConst.CSV_SUFFIX)
+    result_csv_path_checker = FileChecker(
+        result_csv_path,
+        FileCheckConst.FILE,
+        ability=FileCheckConst.READ_WRITE_ABLE,
+        file_type=FileCheckConst.CSV_SUFFIX,
+    )
     validated_result_csv_path = result_csv_path_checker.common_check()
-    if mode == 'result':
+    if mode == "result":
         result_csv_name = os.path.basename(validated_result_csv_path)
         pattern = r"^accuracy_checking_result_\d{14}\.csv$"
         if not re.match(pattern, result_csv_name):
-            raise ValueError("When continue run ut, please do not modify the result csv name.")
+            raise ValueError(
+                "When continue run ut, please do not modify the result csv name."
+            )
     return validated_result_csv_path
 
+
 def get_file_content_bytes(file):
-    with FileOpen(file, 'rb') as file_handle:
+    with FileOpen(file, "rb") as file_handle:
         return file_handle.read()
+
 
 def get_json_contents(file_path):
     ops = get_file_content_bytes(file_path)
@@ -108,9 +128,10 @@ def get_json_contents(file_path):
         print_error_log('Failed to load "%s". %s' % (file_path, str(error)))
         raise CompareException(CompareException.INVALID_FILE_ERROR) from error
     if not isinstance(json_obj, dict):
-        print_error_log('Json file %s, content is not a dictionary!' % file_path)
+        print_error_log("Json file %s, content is not a dictionary!" % file_path)
         raise CompareException(CompareException.INVALID_FILE_ERROR)
     return json_obj
+
 
 def check_file_or_directory_path(path, isdir=False):
     """
@@ -124,26 +145,33 @@ def check_file_or_directory_path(path, isdir=False):
     """
     if isdir:
         if not os.path.exists(path):
-            print_error_log('The path {} is not exist.'.format(path))
+            print_error_log("The path {} is not exist.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
         if not os.path.isdir(path):
-            print_error_log('The path {} is not a directory.'.format(path))
+            print_error_log("The path {} is not a directory.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
         if not os.access(path, os.W_OK):
             print_error_log(
-                'The path {} does not have permission to write. Please check the path permission'.format(path))
+                "The path {} does not have permission to write. Please check the path permission".format(
+                    path
+                )
+            )
             raise CompareException(CompareException.INVALID_PATH_ERROR)
     else:
         if not os.path.isfile(path):
-            print_error_log('{} is an invalid file or non-exist.'.format(path))
+            print_error_log("{} is an invalid file or non-exist.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
     if not os.access(path, os.R_OK):
         print_error_log(
-            'The path {} does not have permission to read. Please check the path permission'.format(path))
+            "The path {} does not have permission to read. Please check the path permission".format(
+                path
+            )
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
 
 def create_directory(dir_path):
     """
@@ -158,18 +186,25 @@ def create_directory(dir_path):
         os.makedirs(dir_path, mode=FileCheckConst.DATA_DIR_AUTHORITY, exist_ok=True)
     except OSError as ex:
         print_error_log(
-            'Failed to create {}. Please check the path permission or disk space. {}'.format(dir_path, str(ex)))
+            "Failed to create {}. Please check the path permission or disk space. {}".format(
+                dir_path, str(ex)
+            )
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR) from ex
 
+
 def check_path_before_create(path):
-    if len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH or len(os.path.basename(path)) > \
-            Const.FILE_NAME_LENGTH:
-        print_error_log('The file path length exceeds limit.')
+    if (
+        len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH
+        or len(os.path.basename(path)) > Const.FILE_NAME_LENGTH
+    ):
+        print_error_log("The file path length exceeds limit.")
         raise CompareException(CompareException.INVALID_PATH_ERROR)
 
     if not re.match(Const.FILE_PATTERN, os.path.realpath(path)):
-        print_error_log('The file path {} contains special characters.'.format(path))
+        print_error_log("The file path {} contains special characters.".format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
 
 def change_mode(path, mode):
     if not os.path.exists(path) or os.path.islink(path):
@@ -177,17 +212,18 @@ def change_mode(path, mode):
     try:
         os.chmod(path, mode)
     except PermissionError as ex:
-        print_error_log('Failed to change {} authority. {}'.format(path, str(ex)))
+        print_error_log("Failed to change {} authority. {}".format(path, str(ex)))
         raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR) from ex
 
-def _print_log(level, msg, end='\n'):
+
+def _print_log(level, msg, end="\n"):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
     pid = os.getgid()
     print(current_time + "(" + str(pid) + ")-[" + level + "]" + msg, end=end)
     sys.stdout.flush()
 
 
-def print_info_log(info_msg, end='\n'):
+def print_info_log(info_msg, end="\n"):
     """
     Function Description:
         print info log.
@@ -216,10 +252,12 @@ def print_warn_log(warn_msg):
     """
     _print_log("WARNING", warn_msg)
 
+
 class FileCheckConst:
     """
     Class for file check const
     """
+
     READ_ABLE = "read"
     WRITE_ABLE = "write"
     READ_WRITE_ABLE = "read and write"
@@ -248,7 +286,7 @@ class FileCheckConst:
         JSON_SUFFIX: MAX_JSON_SIZE,
         PT_SUFFIX: MAX_PT_SIZE,
         CSV_SUFFIX: MAX_CSV_SIZE,
-        YAML_SUFFIX: MAX_YAML_SIZE
+        YAML_SUFFIX: MAX_YAML_SIZE,
     }
 
 
@@ -256,6 +294,7 @@ class FileCheckException(Exception):
     """
     Class for File Check Exception
     """
+
     NONE_ERROR = 0
     INVALID_PATH_ERROR = 1
     INVALID_FILE_TYPE_ERROR = 2
@@ -281,7 +320,10 @@ class FileChecker:
         ability(str): FileCheckConst.WRITE_ABLE or FileCheckConst.READ_ABLE to set file has writability or readability
         file_type(str): The correct file type for file
     """
-    def __init__(self, file_path, path_type, ability=None, file_type=None, is_script=True):
+
+    def __init__(
+        self, file_path, path_type, ability=None, file_type=None, is_script=True
+    ):
         self.file_path = file_path
         self.path_type = self._check_path_type(path_type)
         self.ability = ability
@@ -291,7 +333,9 @@ class FileChecker:
     @staticmethod
     def _check_path_type(path_type):
         if path_type not in [FileCheckConst.DIR, FileCheckConst.FILE]:
-            print_error_log(f'The path_type must be {FileCheckConst.DIR} or {FileCheckConst.FILE}.')
+            print_error_log(
+                f"The path_type must be {FileCheckConst.DIR} or {FileCheckConst.FILE}."
+            )
             raise FileCheckException(FileCheckException.INVALID_PARAM_ERROR)
         return path_type
 
@@ -323,7 +367,6 @@ class FileChecker:
             check_path_writability(self.file_path)
 
 
-
 class FileOpen:
     """
     The class for open file by a safe way.
@@ -332,11 +375,12 @@ class FileOpen:
         file_path: The file or dictionary path to be opened.
         mode(str): The file open mode
     """
+
     SUPPORT_READ_MODE = ["r", "rb"]
     SUPPORT_WRITE_MODE = ["w", "wb", "a", "ab"]
     SUPPORT_READ_WRITE_MODE = ["r+", "rb+", "w+", "wb+", "a+", "ab+"]
 
-    def __init__(self, file_path, mode, encoding='utf-8'):
+    def __init__(self, file_path, mode, encoding="utf-8"):
         self.file_path = file_path
         self.mode = mode
         self.encoding = encoding
@@ -356,7 +400,11 @@ class FileOpen:
             self._handle.close()
 
     def check_file_path(self):
-        support_mode = self.SUPPORT_READ_MODE + self.SUPPORT_WRITE_MODE + self.SUPPORT_READ_WRITE_MODE
+        support_mode = (
+            self.SUPPORT_READ_MODE
+            + self.SUPPORT_WRITE_MODE
+            + self.SUPPORT_READ_WRITE_MODE
+        )
         if self.mode not in support_mode:
             print_error_log("File open not support %s mode" % self.mode)
             raise FileCheckException(FileCheckException.INVALID_PARAM_ERROR)
@@ -385,39 +433,43 @@ class FileOpen:
 def check_link(path):
     abs_path = os.path.abspath(path)
     if os.path.islink(abs_path):
-        print_error_log('The file path {} is a soft link.'.format(path))
+        print_error_log("The file path {} is a soft link.".format(path))
         raise FileCheckException(FileCheckException.INVALID_PATH_ERROR)
 
 
 def check_path_length(path, name_length=None):
-    file_max_name_length = name_length if name_length else FileCheckConst.FILE_NAME_LENGTH
-    if len(path) > FileCheckConst.DIRECTORY_LENGTH or \
-            len(os.path.basename(path)) > file_max_name_length:
-        print_error_log('The file path length exceeds limit.')
+    file_max_name_length = (
+        name_length if name_length else FileCheckConst.FILE_NAME_LENGTH
+    )
+    if (
+        len(path) > FileCheckConst.DIRECTORY_LENGTH
+        or len(os.path.basename(path)) > file_max_name_length
+    ):
+        print_error_log("The file path length exceeds limit.")
         raise FileCheckException(FileCheckException.INVALID_PATH_ERROR)
 
 
 def check_path_exists(path):
     if not os.path.exists(path):
-        print_error_log('The file path %s does not exist.' % path)
+        print_error_log("The file path %s does not exist." % path)
         raise FileCheckException(FileCheckException.INVALID_PATH_ERROR)
 
 
 def check_path_readability(path):
     if not os.access(path, os.R_OK):
-        print_error_log('The file path %s is not readable.' % path)
+        print_error_log("The file path %s is not readable." % path)
         raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR)
 
 
 def check_path_writability(path):
     if not os.access(path, os.W_OK):
-        print_error_log('The file path %s is not writable.' % path)
+        print_error_log("The file path %s is not writable." % path)
         raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR)
 
 
 def check_path_executable(path):
     if not os.access(path, os.X_OK):
-        print_error_log('The file path %s is not executable.' % path)
+        print_error_log("The file path %s is not executable." % path)
         raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR)
 
 
@@ -425,8 +477,9 @@ def check_other_user_writable(path):
     st = os.stat(path)
     if st.st_mode & 0o002:
         _user_interactive_confirm(
-            'The file path %s may be insecure because other users have write permissions. '
-            'Do you want to continue?' % path)
+            "The file path %s may be insecure because other users have write permissions. "
+            "Do you want to continue?" % path
+        )
 
 
 def _user_interactive_confirm(message):
@@ -444,21 +497,25 @@ def _user_interactive_confirm(message):
 def check_path_owner_consistent(path):
     file_owner = os.stat(path).st_uid
     if file_owner != os.getuid():
-        print_error_log('The file path %s may be insecure because is does not belong to you.' % path)
+        print_error_log(
+            "The file path %s may be insecure because is does not belong to you." % path
+        )
         raise FileCheckException(FileCheckException.INVALID_PERMISSION_ERROR)
 
 
 def check_path_pattern_vaild(path):
     if not re.match(FileCheckConst.FILE_VALID_PATTERN, path):
-        print_error_log('The file path %s contains special characters.' % path)
+        print_error_log("The file path %s contains special characters." % path)
         raise FileCheckException(FileCheckException.INVALID_PATH_ERROR)
 
 
 def check_file_size(file_path, max_size):
     file_size = os.path.getsize(file_path)
     if file_size >= max_size:
-        _user_interactive_confirm(f'The size of file path {file_path} exceeds {max_size} bytes.'
-                                  f'Do you want to continue?')
+        _user_interactive_confirm(
+            f"The size of file path {file_path} exceeds {max_size} bytes."
+            f"Do you want to continue?"
+        )
 
 
 def check_common_file_size(file_path):
@@ -486,10 +543,12 @@ def check_path_type(file_path, file_type):
             print_error_log(f"The {file_path} should be a dictionary!")
             raise FileCheckException(FileCheckException.INVALID_FILE_TYPE_ERROR)
 
+
 class CompareException(Exception):
     """
     Class for Accuracy Compare Exception
     """
+
     NONE_ERROR = 0
     INVALID_PATH_ERROR = 1
     OPEN_FILE_ERROR = 2
@@ -517,29 +576,30 @@ class CompareException(Exception):
     def __str__(self):
         return self.error_info
 
+
 class Config:
     def __init__(self, yaml_file):
         check_file_or_directory_path(yaml_file, False)
-        with FileOpen(yaml_file, 'r') as file:
+        with FileOpen(yaml_file, "r") as file:
             config = yaml.safe_load(file)
         self.config = {key: self.validate(key, value) for key, value in config.items()}
 
     def validate(self, key, value):
         validators = {
-            'dump_path': str,
-            'real_data': bool,
-            'enable_dataloader': bool,
-            'target_iter': list,
-            'white_list': list,
-            'error_data_path': str,
-            'jit_compile': bool,
-            'precision': int
+            "dump_path": str,
+            "real_data": bool,
+            "enable_dataloader": bool,
+            "target_iter": list,
+            "white_list": list,
+            "error_data_path": str,
+            "jit_compile": bool,
+            "precision": int,
         }
         if key not in validators:
             raise ValueError(f"{key} must be one of {validators.keys()}")
         if not isinstance(value, validators.get(key)):
             raise ValueError(f"{key} must be {validators[key].__name__} type")
-        if key == 'target_iter':
+        if key == "target_iter":
             if not isinstance(value, list):
                 raise ValueError("target_iter must be a list type")
             if any(isinstance(i, bool) for i in value):
@@ -547,10 +607,12 @@ class Config:
             if not all(isinstance(i, int) for i in value):
                 raise ValueError("All elements in target_iter must be of int type")
             if any(i < 0 for i in value):
-                raise ValueError("All elements in target_iter must be greater than or equal to 0")
-        if key == 'precision' and value < 0:
+                raise ValueError(
+                    "All elements in target_iter must be greater than or equal to 0"
+                )
+        if key == "precision" and value < 0:
             raise ValueError("precision must be greater than 0")
-        if key == 'white_list':
+        if key == "white_list":
             if not isinstance(value, list):
                 raise ValueError("white_list must be a list type")
             if not all(isinstance(i, str) for i in value):
@@ -561,20 +623,36 @@ class Config:
         return self.config[item]
 
     def __str__(self):
-        return '\n'.join(f"{key}={value}" for key, value in self.config.items())
+        return "\n".join(f"{key}={value}" for key, value in self.config.items())
 
-    def update_config(self, dump_path=None, real_data=None, target_iter=None, white_list=None, enable_dataloader=None):
+    def update_config(
+        self,
+        dump_path=None,
+        real_data=None,
+        target_iter=None,
+        white_list=None,
+        enable_dataloader=None,
+    ):
         args = {
-            "dump_path": dump_path if dump_path else self.config.get("dump_path", './'),
-            "real_data": real_data if real_data else self.config.get("real_data", False),
-            "target_iter": target_iter if target_iter else self.config.get("target_iter", [1]),
-            "white_list": white_list if white_list else self.config.get("white_list", []),
-            "enable_dataloader": enable_dataloader if enable_dataloader else self.config.get("enable_dataloader", False)
+            "dump_path": dump_path if dump_path else self.config.get("dump_path", "./"),
+            "real_data": real_data
+            if real_data
+            else self.config.get("real_data", False),
+            "target_iter": target_iter
+            if target_iter
+            else self.config.get("target_iter", [1]),
+            "white_list": white_list
+            if white_list
+            else self.config.get("white_list", []),
+            "enable_dataloader": enable_dataloader
+            if enable_dataloader
+            else self.config.get("enable_dataloader", False),
         }
         for key, value in args.items():
             if key in self.config:
                 self.config[key] = self.validate(key, value)
             else:
                 raise ValueError(f"Invalid key '{key}'")
+
 
 seed_all()

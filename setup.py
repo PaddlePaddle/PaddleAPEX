@@ -1,4 +1,3 @@
-
 # Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +14,9 @@
 import setuptools
 
 setuptools.setup(
-    name='PaddleAPEX',
-    version='0.0.0',
-    description='Paddle Accuracy and Performance EXpansion pack',
-    author='Jinming Xu',
-    author_email='xujinming@baidu.com'
+    name="PaddleAPEX",
+    version="0.0.0",
+    description="Paddle Accuracy and Performance EXpansion pack",
+    author="Jinming Xu",
+    author_email="xujinming@baidu.com",
 )

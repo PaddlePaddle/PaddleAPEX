@@ -28,6 +28,7 @@ Paddle_Type_Map = {
     "INT64": "paddle.int64",
 }
 
+
 def get_type_name(name):
     left = name.index("'")
     right = name.rindex("'")

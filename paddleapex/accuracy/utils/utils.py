@@ -5,8 +5,8 @@ import stat
 import json
 import re
 import random
-from .file_check_util import *
-from .logger import *
+from .file_check_util import check_link, check_file_suffix, FileOpen
+from .logger import print_error_log
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
 
@@ -14,10 +14,11 @@ class Const:
     """
     Class for const
     """
+
     DIRECTORY_LENGTH = 4096
     FILE_NAME_LENGTH = 255
-    FILE_PATTERN = r'^[a-zA-Z0-9_./-]+$'
-    MODEL_TYPE = ['.onnx', '.pb', '.om']
+    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
+    MODEL_TYPE = [".onnx", ".pb", ".om"]
     SEMICOLON = ";"
     COLON = ":"
     EQUAL = "="
@@ -27,13 +28,22 @@ class Const:
     SUMMERY_DATA_NUMS = 256
     ONE_HUNDRED_MB = 100 * 1024 * 1024
     FLOAT_EPSILON = np.finfo(float).eps
-    SUPPORT_DUMP_MODE = ['api', 'acl']
-    ON = 'ON'
-    OFF = 'OFF'
-    BACKWARD = 'backward'
-    FORWARD = 'forward'
-    DELIMITER = '.'
-    FLOAT_TYPE = [np.half, np.single, float, np.double, np.float64, np.longdouble, np.float32, np.float16]
+    SUPPORT_DUMP_MODE = ["api", "acl"]
+    ON = "ON"
+    OFF = "OFF"
+    BACKWARD = "backward"
+    FORWARD = "forward"
+    DELIMITER = "."
+    FLOAT_TYPE = [
+        np.half,
+        np.single,
+        float,
+        np.double,
+        np.float64,
+        np.longdouble,
+        np.float32,
+        np.float16,
+    ]
     BOOL_TYPE = [bool, np.uint8]
     INT_TYPE = [np.int32, np.int64]
 
@@ -53,21 +63,20 @@ class Const:
     RAISE_PRECISION_PADDLE = {
         paddle.float16: paddle.float32,
         paddle.bfloat16: paddle.float32,
-        paddle.float32: paddle.float64
+        paddle.float32: paddle.float64,
     }
     CONVERT = {
         "int32_to_int64": ["paddle.int32", "paddle.int64"],
     }
 
-    CONVERT_API = {
-        "int32_to_int64": ["cross_entropy"]
-    }
+    CONVERT_API = {"int32_to_int64": ["cross_entropy"]}
 
 
 class FileCheckConst:
     """
     Class for file check const
     """
+
     READ_ABLE = "read"
     WRITE_ABLE = "write"
     READ_WRITE_ABLE = "read and write"
@@ -96,7 +105,7 @@ class FileCheckConst:
         JSON_SUFFIX: MAX_JSON_SIZE,
         PT_SUFFIX: MAT_PT_SIZE,
         CSV_SUFFIX: MAX_CSV_SIZE,
-        YAML_SUFFIX: MAX_YAML_SIZE
+        YAML_SUFFIX: MAX_YAML_SIZE,
     }
 
 
@@ -104,6 +113,7 @@ class CompareException(Exception):
     """
     Class for Accuracy Compare Exception
     """
+
     NONE_ERROR = 0
     INVALID_PATH_ERROR = 1
     OPEN_FILE_ERROR = 2
@@ -131,52 +141,41 @@ class CompareException(Exception):
     def __str__(self):
         return self.error_info
 
+
 def check_object_type(check_object, allow_type):
-    """
-    Function Description:
-        Check if the object belongs to a certain data type
-    Parameter:
-        check_object: the object to be checked
-        allow_type: legal data type
-    Exception Description:
-        when invalid data throw exception
-    """
     if not isinstance(check_object, allow_type):
         print_error_log(f"{check_object} not of {allow_type} type")
         raise CompareException(CompareException.INVALID_DATA_ERROR)
 
 
 def check_file_or_directory_path(path, isdir=False):
-    """
-    Function Description:
-        check whether the path is valid
-    Parameter:
-        path: the path to check
-        isdir: the path is dir or file
-    Exception Description:
-        when invalid data throw exception
-    """
     if isdir:
         if not os.path.exists(path):
-            print_error_log('The path {} is not exist.'.format(path))
+            print_error_log("The path {} is not exist.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
         if not os.path.isdir(path):
-            print_error_log('The path {} is not a directory.'.format(path))
+            print_error_log("The path {} is not a directory.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
         if not os.access(path, os.W_OK):
             print_error_log(
-                'The path {} does not have permission to write. Please check the path permission'.format(path))
+                "The path {} does not have permission to write. Please check the path permission".format(
+                    path
+                )
+            )
             raise CompareException(CompareException.INVALID_PATH_ERROR)
     else:
         if not os.path.isfile(path):
-            print_error_log('{} is an invalid file or non-exist.'.format(path))
+            print_error_log("{} is an invalid file or non-exist.".format(path))
             raise CompareException(CompareException.INVALID_PATH_ERROR)
 
     if not os.access(path, os.R_OK):
         print_error_log(
-            'The path {} does not have permission to read. Please check the path permission'.format(path))
+            "The path {} does not have permission to read. Please check the path permission".format(
+                path
+            )
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR)
 
 
@@ -187,26 +186,24 @@ def check_file_size(input_file, max_size):
         print_error_log('Failed to open "%s". %s' % (input_file, str(os_error)))
         raise CompareException(CompareException.INVALID_FILE_ERROR) from os_error
     if file_size > max_size:
-        print_error_log('The size (%d) of %s exceeds (%d) bytes, tools not support.'
-                        % (file_size, input_file, max_size))
+        print_error_log(
+            "The size (%d) of %s exceeds (%d) bytes, tools not support."
+            % (file_size, input_file, max_size)
+        )
         raise CompareException(CompareException.INVALID_FILE_ERROR)
 
 
 def create_directory(dir_path):
-    """
-    Function Description:
-        creating a directory with specified permissions in a thread-safe manner
-    Parameter:
-        dir_path: directory path
-    Exception Description:
-        when invalid data throw exception
-    """
     try:
         os.makedirs(dir_path, mode=FileCheckConst.DATA_DIR_AUTHORITY, exist_ok=True)
     except OSError as ex:
         print_error_log(
-            'Failed to create {}. Please check the path permission or disk space. {}'.format(dir_path, str(ex)))
+            "Failed to create {}. Please check the path permission or disk space. {}".format(
+                dir_path, str(ex)
+            )
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR) from ex
+
 
 def get_json_contents(file_path):
     ops = get_file_content_bytes(file_path)
@@ -216,12 +213,13 @@ def get_json_contents(file_path):
         print_error_log('Failed to load "%s". %s' % (file_path, str(error)))
         raise CompareException(CompareException.INVALID_FILE_ERROR) from error
     if not isinstance(json_obj, dict):
-        print_error_log('Json file %s, content is not a dictionary!' % file_path)
+        print_error_log("Json file %s, content is not a dictionary!" % file_path)
         raise CompareException(CompareException.INVALID_FILE_ERROR)
     return json_obj
 
+
 def get_file_content_bytes(file):
-    with FileOpen(file, 'rb') as file_handle:
+    with FileOpen(file, "rb") as file_handle:
         return file_handle.read()
 
 
@@ -235,23 +233,6 @@ def check_need_convert(api_name):
     return convert_type
 
 
-def api_info_preprocess(api_name, api_info_dict):
-    """
-    Function Description:
-        Preprocesses the API information.
-    Parameter:
-        api_name: Name of the API.
-        api_info_dict: argument of the API.
-    Return api_info_dict:
-        convert_type: Type of conversion.
-        api_info_dict: Processed argument of the API.
-    """
-    convert_type = check_need_convert(api_name)
-    if api_name == 'cross_entropy':
-        api_info_dict = cross_entropy_process(api_info_dict)
-    return convert_type, api_info_dict
-
-
 def get_full_data_path(data_path, real_data_path):
     if not data_path:
         return data_path
@@ -260,14 +241,17 @@ def get_full_data_path(data_path, real_data_path):
 
 
 def check_path_before_create(path):
-    if len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH or len(os.path.basename(path)) > \
-            Const.FILE_NAME_LENGTH:
-        print_error_log('The file path length exceeds limit.')
+    if (
+        len(os.path.realpath(path)) > Const.DIRECTORY_LENGTH
+        or len(os.path.basename(path)) > Const.FILE_NAME_LENGTH
+    ):
+        print_error_log("The file path length exceeds limit.")
         raise CompareException(CompareException.INVALID_PATH_ERROR)
 
     if not re.match(Const.FILE_PATTERN, os.path.realpath(path)):
-        print_error_log('The file path {} contains special characters.'.format(path))
+        print_error_log("The file path {} contains special characters.".format(path))
         raise CompareException(CompareException.INVALID_PATH_ERROR)
+
 
 def api_json_read(input_file):
     check_link(input_file)
@@ -282,19 +266,20 @@ def api_json_read(input_file):
     return forward_content
 
 
-def seed_all(seed=1234):
+def seed_all(seed=1234, dist=False):
     random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     paddle.seed(seed)
     # 分布式场景需额外加上
-    global_seed, local_seed = seed,seed # 这样ok?
-    tracker = get_rng_state_tracker()
-    try:
-        tracker.add("global_seed",global_seed)
-        tracker.add("local_seed",local_seed)
-    except Exception as err:
-        print('paddle tracker.add("global_seed",global_seed)', str(err))
+    if dist:
+        global_seed, local_seed = seed, seed
+        tracker = get_rng_state_tracker()
+        try:
+            tracker.add("global_seed", global_seed)
+            tracker.add("local_seed", local_seed)
+        except Exception as err:
+            print('paddle tracker.add("global_seed",global_seed)', str(err))
 
 
 def parse_args(args):
@@ -325,3 +310,16 @@ def parse_dict(dict_data):
             if not value.stop_gradient:
                 ret_tensor_list.append(value)
     return ret_tensor_list
+
+
+def check_grad_list(grad_list):
+    all_none = True
+    valid_varibale_list = []
+    for grad in grad_list:
+        if not isinstance(grad, type(None)):
+            valid_varibale_list.append(grad)
+            all_none = False
+    if all_none:
+        return None
+    else:
+        return valid_varibale_list

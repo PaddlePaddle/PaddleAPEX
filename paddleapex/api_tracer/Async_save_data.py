@@ -14,14 +14,16 @@
 import multiprocessing
 import time
 import os
-import shutil
 import paddle
+
 
 def save_tensor(tensor, file_path):
     paddle.save(tensor, file_path)
-    print(file_path," Finished!")
+    print(file_path, " Finished!")
+
 
 ctx = multiprocessing.get_context("fork")
+
 
 class ThreadPool:
     def __init__(self, max_process_num=3) -> None:
@@ -32,7 +34,7 @@ class ThreadPool:
 
     def safe_parellel_save(self, tensor, file_path, remote_path):
         self.allocate_subprocess()
-        name = file_path.split('/')
+        name = file_path.split("/")
         remote_path = os.path.join(remote_path, name[-1])
         print(f"Async save tensor:{remote_path}")
 
@@ -72,4 +74,5 @@ class ThreadPool:
                     continue
         print("Sub processes have done, async process exit.")
 
-event_queue=[]
+
+event_queue = []

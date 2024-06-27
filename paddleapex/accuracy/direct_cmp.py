@@ -8,9 +8,7 @@ import paddle
 import tqdm
 
 from compare_utils.compare import Comparator
-from compare_utils.compare_dependency import print_info_log, FileOpen, seed_all
-
-seed_all()
+from compare_utils.compare_dependency import print_info_log, FileOpen
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -59,14 +57,15 @@ def _compare_parser(parser):
         help="<Optional> The result out path",
     )
 
+
 def compare_command(args):
     out_path = os.path.realpath(args.out_path) if args.out_path else "./"
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
-    gpu_back_dir = args.gpu_data_dir+"_backward"
-    npu_back_dir = args.npu_data_dir+"_backward"
+    gpu_back_dir = args.gpu_data_dir + "_backward"
+    npu_back_dir = args.npu_data_dir + "_backward"
     compare_npu_gpu(
         result_csv_path,
         details_csv_path,
@@ -96,18 +95,12 @@ def compare_npu_gpu(
 
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
         try:
-            name = api_file.split("*")
-            print(name)
+            print("=" * 100)
             device1_pt_path = os.path.join(gpu_data_dir, api_file)
             device2_pt_path = os.path.join(npu_data_dir, api_file)
-            print("Loading:")
-            print(device1_pt_path)
-            print(device2_pt_path)
+            print(f"Loading {device1_pt_path} & {device2_pt_path}")
             gpu_out_tensor = paddle.load(device1_pt_path)
             npu_out_tensor = paddle.load(device2_pt_path)
-            print("device1 Tensor: ", gpu_out_tensor.dtype.name)
-            print("device2 Tensor: ", npu_out_tensor.dtype.name)
-
             gpu_grad_tensor_list, npu_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:
                 gpu_grad_path = os.path.join(gpu_grad_dir, api_file)
@@ -115,7 +108,8 @@ def compare_npu_gpu(
                 if os.path.exists(gpu_grad_path):
                     gpu_grad_tensor_list = paddle.load(gpu_grad_path)
                     npu_grad_tensor_list = paddle.load(npu_grad_path)
-                    print_info(gpu_grad_tensor_list, npu_grad_tensor_list)
+                    print(f"Loading {gpu_grad_path} & {npu_grad_path}")
+
                 else:
                     print(
                         f"{api_file} Doesn't exist! Please check BP_LIST in run_dualback_ut.py"
@@ -130,14 +124,6 @@ def compare_npu_gpu(
             )
         except Exception as err:
             print(err)
-
-
-def print_info(tensor_list1, tensor_list2):
-    for item1, item2 in zip(tensor_list1, tensor_list2):
-        if isinstance(item1, paddle.Tensor):
-            print("Load device1 grad Tensor: ", item1.dtype.name)
-        if isinstance(item2, paddle.Tensor):
-            print("Load device2 grad Tensor: ", item2.dtype.name)
 
 
 if __name__ == "__main__":

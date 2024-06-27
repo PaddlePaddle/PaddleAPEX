@@ -1,3 +1,5 @@
+ignored_op:
+
 target_op:
   -  paddle.nn.functional.adaptive_avg_pool1d
   -  paddle.nn.functional.adaptive_avg_pool2d
@@ -872,5 +874,3 @@ target_op:
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu
-
-ignored_op:
