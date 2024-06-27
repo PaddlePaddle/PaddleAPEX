@@ -2,19 +2,39 @@
     This script is used to transfer the json file from paddle format to torch format.
 """
 
-
 import json
 import inspect
+import argparse
 
-map_F = open("./api_mapping.json", "r")
-mapping = json.loads(map_F.read())
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-mapping",
+    dest="mapping_json",
+    default="",
+    type=str,
+    help="Dump json file path",
+    required=True,
+)
+parser.add_argument(
+    "-json_path",
+    dest="json_path",
+    default="./sample_dump.json",
+    type=str,
+    help="",
+    required=False,
+)
 
-INPLACE_OP = mapping["inplace_api"]
-api_mapping = mapping["mapping"]
 
 if __name__ == "__main__":
+    cfg = parser.parse_args()
+    mapping_json = cfg.mapping_json
+    map_F = open(mapping_json, "r")
+    mapping = json.loads(map_F.read())
+
+    INPLACE_OP = mapping["inplace_api"]
+    api_mapping = mapping["mapping"]
     Warning_list = []
-    json_path = "./sample_dump.json"
+    json_path = cfg.json_path
     W = open("./Json_transfer_warning.log", "a")
     F = open(json_path, "r")
     Paddle_F = open(json_path[:-5] + "_paddle.json", "w")
