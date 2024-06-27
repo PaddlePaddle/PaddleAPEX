@@ -62,7 +62,7 @@ command2 = [
     "python",
     "run_torch.py",
     "-json",
-    json_prefix[:-5] + "_torch.json",
+    json_prefix + "_torch.json",
     "-o",
     out_dir_paddle,
     "-enforce",

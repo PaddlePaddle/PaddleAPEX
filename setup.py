@@ -15,8 +15,8 @@ import setuptools
 
 setuptools.setup(
     name="PaddleAPEX",
-    version="0.0.0",
+    version="1.0.0",
     description="Paddle Accuracy and Performance EXpansion pack",
-    author="Jinming Xu",
-    author_email="xujinming@baidu.com",
+    author="Jinming Xu, Gexiao Tian",
+    author_email="xujinming,tiangexiao@baidu.com",
 )
