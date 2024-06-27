@@ -51,24 +51,6 @@ def _compare_parser(parser):
         required=True,
     )
     parser.add_argument(
-        "-gpu_back",
-        "--input_backward_path1",
-        dest="gpu_back_dir",
-        default="",
-        type=str,
-        help="The api param tool backward result directory on GPU",
-        required=False,
-    )
-    parser.add_argument(
-        "-npu_back",
-        "--input_backward_path2",
-        dest="npu_back_dir",
-        default="",
-        type=str,
-        help="The api param tool backward result directory on NPU",
-        required=False,
-    )
-    parser.add_argument(
         "-o",
         "--output_path",
         dest="out_path",
@@ -77,20 +59,21 @@ def _compare_parser(parser):
         help="<Optional> The result out path",
     )
 
-
 def compare_command(args):
     out_path = os.path.realpath(args.out_path) if args.out_path else "./"
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
+    gpu_back_dir = args.gpu_data_dir+"_backward"
+    npu_back_dir = args.npu_data_dir+"_backward"
     compare_npu_gpu(
         result_csv_path,
         details_csv_path,
         args.gpu_data_dir,
         args.npu_data_dir,
-        args.gpu_back_dir,
-        args.npu_back_dir,
+        gpu_back_dir,
+        npu_back_dir,
     )
 
 
