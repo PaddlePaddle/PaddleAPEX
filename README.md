@@ -1,8 +1,8 @@
 # PaddleAPEX
 PaddleAPEX：Paddle Accuracy and Performance EXpansion pack
-## Acc_tool:
-Accuracy auto-checker, which can grasp target operators in LLM models.
-![Acc Tool Architecture](./Acc/doc/APEX_Acc.png)
+## Api_tracer
+Accuracy auto-checker, which can grasp target operators in training models.
+![Acc Tool Architecture](./doc/APEX_Acc.png)
 <!-- <center>
     <img src="./Acc/doc/APEX_Acc.png" alt="example">
 </center> -->
@@ -15,92 +15,109 @@ Accuracy tool need some configuration before start, all settings are list in **P
 We provide two ways to set APEX config:
 
 1.
-    If you use default config, remember to change path in Acc/config.py:
-    ``` Python
-        # We recommand you set APEX_CONFIG_PATH as a real path.
-        config_path = os.environ.get('APEX_CONFIG_PATH','./PaddleAPEX/Acc/configs/tool_config.yaml')
-    ```
+    If you use default config file, you can modify specific variable in this file, such as target_step, dump_root_path.
 2.
-    You can also set this variable by environment variable via:
+    You can also set your own configuration file by setting environment variable via:
     ``` Shell
         # We recommand you set APEX_CONFIG_PATH as a real path.
         # Here is a sample:
-        export APEX_CONFIG_PATH=./PaddleAPEX/Acc/configs/tool_config.yaml
+        export APEX_CONFIG_PATH=your_own_path/tool_config.yaml
     ```
-#### Step3: Details to be noticed:
-1.  In Acc/Async_save_data.py, it provides an async way to save tensor, we fix the multi-processes number to 3, you can change it according to platform conditions.
+#### Step3: Install in to your python environment.
 
-    **Warning:** If you donot purchase super performance, **you'd better not** to update this value, it may cause system unstable!
+``` Shell
+    # Install APEX-Acc in your python environment.
+    cd PaddleAPEX
+    pip install -e .
+```
 
-
-2.  Check your repository structure
-
-        |-- demo.py    # Import Acc_Tool in this file.
-        |-- PaddleAPEX # Parellel to demo.py
-
-#### Runing Accuracy Tool:
-1. Insert APEX-Acc into code segment(Take **demo.py** as example).
+#### Step4: Record your target operators.
+1. Take **demo.py** as example.
     ``` Python
     import paddle
-    from PaddleAPEX import Acc
+    from paddleapex import Tracer
 
     if __name__ == "__main__":
         a = paddle.randn([2,2])
         b = paddle.randn([2,2])
 
-        apex = Acc()
+        apex = Tracer()
         apex.start()
         y = paddle.add(a,a)
         y = paddle.add(a,a)
         apex.stop()
+2. Take Llama2-13b traning as example:
+    For more details, please refer to [Llama2-13b](https://github.com/PaddlePaddle/PaddleNLP/pull/8503)
+
+3. Run your code, and get a json file:
     ```
     After running code above, our tool can dump real_data or tensor satistical data asynchronously.
     Here, we can get dumped json file and tensor(Optional).
-
+    ```
         |-- dump_info
             |-- rank0_step5
-            |-- rank1_step5
             |-- rank0_step20
-            |-- rank1_step20
                 |-- forward_rank0.json
                 |-- Paddle*add*0.0.pt
                 |-- Paddle*add*0.1.pt
                 |-- Paddle*add*1.0.pt
                 |-- Paddle*add*1.1.pt
 
-2.  We provide ut_test with two modes:
-    In comparision step, we provide you with two mode: **multi-backends comparision** and **deirect backends comparision**.
-    1. Three backends execute paddle apis:
-
-        ```Shell
-        # On GPU server:
-        python run_ut.py --forward [json_path] --dump_path [dump_path] --backend gpu --model real/random
-        # On NPU server:
-        python run_ut.py --forward [json_path] --dump_path [dump_path] --backend npu --model real/random
-        ```
-        Scripts perform comparision between npu<->cpu, gpu<->cpu, each script will outputs *accuracy_result.csv* and *accuracy_details.csv*.
-
-    2.  Directly execute paddle apis on two different backends.
-        ```Shell
-        # Directly Comparision between NPU/GPU:
-        python python run_dualback_ut.py --forward [json_path] -o [dump_path] --backend gpu/npu --mode real/random
-        ```
-        Given fixed seed on CPU, Paddle can generate producible data. Operates will be perform based on these data.
+4. If you have specific api which you want to trace, you can add its api call stack in **paddleapex/api_tracer/configs/op_target.yaml** like:
+```yaml
+  target op:
+  -  paddle.add
+  -  paddle.mul
+  -  xxxxx
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  -  paddle.xxxx.xxx
+  -  paddlenlp.transformers.fusion_ops.xxx
+```
+    Note, paddleapex only support paddle apis which contain regular types, not suppport custom object instance.
 
 
-3. Auto compare by multi-precision standards.
+#### Step5: Accuracy comparision.
+1.  Same framework, different backends comparision:
     ```Shell
-    # Three backends comparision:
-    python api_precision_compare.py --detail1 [detail_npu.csv]  --detail2  [detail_gpu.csv]  --output_path  [output_path]
-
-    # Directly backends comparision
-    # input_dir1 contains real tensors from specific backend.
-    python compare.py -gpu [gpu_out_dir]  -gpu_back  [gpu_grad_out_dir]  -npu  [npu_out_dir]  -npu_back  [npu_grad_out_dir] -o [result_path]
-
+    cd backend_cmp
+    python run_paddle_multiback.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] -enforce_dtype ["FP32","FP16","BF16"]
     ```
+    This script will generate a repository, which contains api fwd/bwd outputs results. The sturcture is as follows:
+            |-- local_path
+                |-- backend_output
+                |-- backend_output_backward
+                |-- Warning_list.txt
+    UT Runtime errors and warnings will be recorded in Warning_list.txt.
+    After runing this script twice on different backends, you can run comparision tool to get accuracy result:
 
+    ```Shell
+    python direct_cmp.py -gpu [gpu_dump_repo] -npu [npu_dump_repo] -o [result_path]
+    ```
+    This script will generate two csv files, which contains accuracy result and details.
+
+2.  Different frameworks, api accuracy comparision:
+    ```Shell
+    cd framework_cmp
+    # Dump json file shoule be converted to paddle/torch format.
+    # Modify json_transfer.py, check path to target json.
+    python json_transfer.py
+    # You can obtain two json, xx_paddle.json and xx_torch.json
+    # Run test case&compare
+    # Modify launch_test.py, check configurations.
+    python launch_test.py
+    # You can get accuracy result&details.
+
+3. Directly comparision standard:
     We provide a logic flow chart for Directly comparision between devices.
-    ![Acc Tool Architecture](./Acc/doc/Compare_Logic_img.jpg)
+    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
     <!-- <center>
         <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
     </center> -->
+
+
+4. Multi-end precision comparision.
+    Multi-end comparision is conducted on two direct comparision csv files.
+    ```Shell
+    # Three backends comparision:
+    python api_precision_compare.py --detail1 [detail_npu.csv]  --detail2  [detail_gpu.csv]  --output_path  [output_path]
+    ```
