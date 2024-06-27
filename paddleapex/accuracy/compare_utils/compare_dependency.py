@@ -517,18 +517,6 @@ class CompareException(Exception):
     def __str__(self):
         return self.error_info
 
-
-cur_path = os.path.dirname(os.path.realpath(__file__))
-yaml_path = os.path.join(os.path.dirname(cur_path),"configs","op_target.yaml")
-with FileOpen(yaml_path, 'r') as f:
-    Ops = yaml.safe_load(f)
-    WrapFunctionalOps = Ops.get('functional')
-    WrapTensorOps = Ops.get('tensor')
-    WrapTorchOps = Ops.get('paddle')
-
-WrapApi = set(WrapFunctionalOps) | set(WrapTensorOps) | set(WrapTorchOps)
-
-
 class Config:
     def __init__(self, yaml_file):
         check_file_or_directory_path(yaml_file, False)
@@ -567,9 +555,6 @@ class Config:
                 raise ValueError("white_list must be a list type")
             if not all(isinstance(i, str) for i in value):
                 raise ValueError("All elements in white_list must be of str type")
-            invalid_api = [i for i in value if i not in WrapApi]
-            if invalid_api:
-                raise ValueError(f"{', '.join(invalid_api)} is not in support_wrap_ops.yaml, please check the white_list")
         return value
 
     def __getattr__(self, item):

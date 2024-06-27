@@ -31,7 +31,8 @@ def wrapped_op(op_name):
         return OPTemplate(op_name)(*args, **kwargs)
     return op_template
 
-def try_import(package_str):
+
+def try_import(package_str="paddle"):
     try:
         MODULE = __import__(package_str)
         input(f"Import {package_str} success")

@@ -1,7 +1,7 @@
 # 定义比对算法及比对标准
 import paddle
 import numpy as np
-from compare.compare_utils import CompareConst, check_dtype_comparable
+from compare_utils.compare_utils import CompareConst, check_dtype_comparable
 
 
 #cos

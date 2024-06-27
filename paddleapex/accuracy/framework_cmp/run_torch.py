@@ -115,7 +115,8 @@ def ut_case_parsing(forward_content, cfg, out_path):
         seed_all(cfg.seed)
         if len(multi_dtype_ut)>0:
             for enforce_dtype in multi_dtype_ut:
-                print(api_call_name+"*"+enforce_dtype.__str__())
+                process = api_call_name+"*"+enforce_dtype.__str__() + "<--->" + api_info_dict["origin_paddle_op"]
+                print(process)              
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
                     api_call_name,
@@ -166,7 +167,9 @@ def run_api_case(
             key: recursive_arg_to_device(value, mode='to_torch') for key, value in kwargs.items()
         }
         device_args = enforce_convert(device_args,enforce_dtype)
-        device_kwargs = enforce_convert(device_kwargs,enforce_dtype)
+        device_kwargs = {
+            key: enforce_convert(value, enforce_dtype) for key, value in device_kwargs.items()
+        }
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
     except Exception as err:

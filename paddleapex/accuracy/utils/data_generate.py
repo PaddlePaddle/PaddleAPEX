@@ -2,6 +2,8 @@ import paddle
 import os
 import numpy
 import math
+import random
+import numpy as np
 from .utils import (
     check_object_type,
     Const,
@@ -10,6 +12,8 @@ from .utils import (
     print_warn_log,
     check_file_or_directory_path
 )
+
+seed=1234
 
 
 TENSOR_DATA_LIST_PADDLE = ["paddle.Tensor", "paddle.create_parameter"]
@@ -220,9 +224,11 @@ def gen_list_kwargs(kwargs_item_value):
 
 
 def gen_api_params(
-    api_info, seed=1234
+    api_info
 ):
-    numpy.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
     check_object_type(api_info, dict)
     kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
     if api_info.get("args"):
