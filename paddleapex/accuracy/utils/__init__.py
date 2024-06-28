@@ -36,7 +36,6 @@ __all__ = [
     "print_error_log",
     "print_info_log",
     "rand_like",
-    "print_warn_log",
     "check_object_type",
     "check_file_or_directory_path",
     "create_directory",
