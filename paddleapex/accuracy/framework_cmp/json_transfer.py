@@ -10,13 +10,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "-mapping",
     dest="mapping_json",
-    default="",
+    default="./api_mapping.json",
     type=str,
     help="Dump json file path",
     required=True,
 )
 parser.add_argument(
     "-json_path",
+    "--json",
     dest="json_path",
     default="./sample_dump.json",
     type=str,
@@ -123,6 +124,10 @@ if __name__ == "__main__":
                         single_torch_op["kwargs"].update(
                             {kwargs_change_dict[key]: variable}
                         )
+                    elif key in api_mapping[op_name]["unsupport_args"]:
+                        msg = f"{op_name} {key} is not supported in torch."
+                        print(msg)
+                        Warning_list.append(msg)
                     else:
                         msg = f"{op_name} Cannot idetify key word: {key}."
                         print(msg)

@@ -34,16 +34,16 @@ tqdm_params = {
 def _compare_parser(parser):
     parser.add_argument(
         "-gpu",
-        "--input_path1",
-        dest="gpu_data_dir",
+        "--benchmark",
+        dest="bench_dir",
         type=str,
         help="The executed output api tensor path directory on GPU",
         required=True,
     )
     parser.add_argument(
         "-npu",
-        "--input_path2",
-        dest="npu_data_dir",
+        "--device",
+        dest="device_dir",
         type=str,
         help="The executed output api tensor path directory on NPU",
         required=True,
@@ -60,17 +60,18 @@ def _compare_parser(parser):
 
 def compare_command(args):
     out_path = os.path.realpath(args.out_path) if args.out_path else "./"
+    os.mkdir(out_path, exits_ok=True)
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
-    gpu_back_dir = args.gpu_data_dir + "_backward"
-    npu_back_dir = args.npu_data_dir + "_backward"
+    gpu_back_dir = args.bench_dir + "_backward"
+    npu_back_dir = args.device_dir + "_backward"
     compare_npu_gpu(
         result_csv_path,
         details_csv_path,
-        args.gpu_data_dir,
-        args.npu_data_dir,
+        args.bench_dir,
+        args.device_dir,
         gpu_back_dir,
         npu_back_dir,
     )
@@ -79,8 +80,8 @@ def compare_command(args):
 def compare_npu_gpu(
     result_csv_path,
     details_csv_path,
-    gpu_data_dir,
-    npu_data_dir,
+    bench_dir,
+    device_dir,
     gpu_grad_dir=None,
     npu_grad_dir=None,
 ):
@@ -88,27 +89,27 @@ def compare_npu_gpu(
     with FileOpen(result_csv_path, "r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)
-    api_pt_files_gpu = os.listdir(gpu_data_dir)
-    api_pt_files_npu = os.listdir(npu_data_dir)
+    api_pt_files_gpu = os.listdir(bench_dir)
+    api_pt_files_npu = os.listdir(device_dir)
     api_pt_files_all = list(set(api_pt_files_gpu + api_pt_files_npu))
     api_pt_files_all = sorted(api_pt_files_all)
 
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
         try:
             print("=" * 100)
-            device1_pt_path = os.path.join(gpu_data_dir, api_file)
-            device2_pt_path = os.path.join(npu_data_dir, api_file)
-            print(f"Loading {device1_pt_path} & {device2_pt_path}")
-            gpu_out_tensor = paddle.load(device1_pt_path)
-            npu_out_tensor = paddle.load(device2_pt_path)
-            gpu_grad_tensor_list, npu_grad_tensor_list = None, None
+            bench_pt_path = os.path.join(bench_dir, api_file)
+            device_pt_path = os.path.join(device_dir, api_file)
+            print(f"Loading {bench_pt_path} & {device_pt_path}")
+            bench_out_tensor = paddle.load(bench_pt_path)
+            device_out_tensor = paddle.load(device_pt_path)
+            bench_grad_tensor_list, device_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:
-                gpu_grad_path = os.path.join(gpu_grad_dir, api_file)
-                npu_grad_path = os.path.join(npu_grad_dir, api_file)
-                if os.path.exists(gpu_grad_path):
-                    gpu_grad_tensor_list = paddle.load(gpu_grad_path)
-                    npu_grad_tensor_list = paddle.load(npu_grad_path)
-                    print(f"Loading {gpu_grad_path} & {npu_grad_path}")
+                bench_grad_path = os.path.join(bench_grad_tensor_list, api_file)
+                device_grad_path = os.path.join(device_grad_tensor_list, api_file)
+                if os.path.exists(bench_grad_path):
+                    bench_grad_tensor_list = paddle.load(bench_grad_path)
+                    device_grad_tensor_list = paddle.load(device_grad_path)
+                    print(f"Loading {bench_grad_path} & {device_grad_path}")
 
                 else:
                     print(
@@ -117,10 +118,10 @@ def compare_npu_gpu(
 
             compare.compare_output(
                 api_file,
-                gpu_out_tensor,
-                npu_out_tensor,
-                gpu_grad_tensor_list,
-                npu_grad_tensor_list,
+                bench_out_tensor,
+                device_out_tensor,
+                bench_grad_tensor_list,
+                device_grad_tensor_list,
             )
         except Exception as err:
             print(err)

@@ -348,7 +348,7 @@
       "x": "input",
       "y": "other"
     },
-    "unsupport_args": null,
+    "unsupport_args": ["transpose_x", "transpose_y"],
     "torch_args_list": [
       "input",
       "other",
@@ -430,15 +430,13 @@
     "torch_api": "torch.softmax",
     "kwargs_change": {
       "x": "input",
-      "axis": "dim",
-      "dtype": "dtype"
+      "axis": "dim"
     },
-    "unsupport_args": null,
+    "unsupport_args": ["dtype"],
     "torch_args_list": [
       "input",
       "dim",
-      "*",
-      "dtype"
+      "*"
     ],
     "paddle_args_list": [
       "x",

@@ -25,7 +25,7 @@ dtype_mapping2torch = {
     "BF16": torch.bfloat16,
 }
 
-dtype_map = {"torch.float16": "FP16", "torch.float32": "FP32", "torch.bfloat16": "BF16"}
+dtype_map = {torch.float16: "FP16", torch.float32: "FP32", torch.bfloat16: "BF16"}
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
