@@ -118,19 +118,17 @@ def recursive_arg_to_device(arg_in, mode="to_torch"):
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [item for item in multi_dtype_ut]
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
-    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
-    os.makedirs(fwd_output_dir, exist_ok=True)
-    os.makedirs(bwd_output_dir, exist_ok=True)
+    for item in multi_dtype_ut:
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
+        bwd_output_dir = os.path.abspath(
+            os.path.join(out_path, item, "output_backward")
+        )
+        os.makedirs(fwd_output_dir, exist_ok=True)
+        os.makedirs(bwd_output_dir, exist_ok=True)
 
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
-        # if api_call_name !="torch.concat*0":
-        #     continue
-        # if api_call_name !="torch.Tensor.__add__*0":
-        #     continue
         try:
             eval(api_call_name.split("*")[0])
         except Exception:
@@ -154,9 +152,13 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 fwd_res, bp_res = run_api_case(
                     api_call_name, api_info_dict_copy, enforce_dtype
                 )
-                paddle_name = api_info_dict["origin_paddle_op"] + "*" + enforce_dtype
-                fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
-                bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
+                paddle_name = api_info_dict["origin_paddle_op"]
+                fwd_output_path = os.path.join(
+                    out_path, enforce_dtype, "output", paddle_name
+                )
+                bwd_output_path = os.path.join(
+                    out_path, enforce_dtype, "output_backward", paddle_name
+                )
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
                 bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
                 if not isinstance(fwd_res, type(None)):
@@ -170,9 +172,12 @@ def ut_case_parsing(forward_content, cfg, out_path):
             print(api_call_name)
             fwd_res, bp_res = run_api_case(api_call_name, api_info_dict)
             paddle_name = api_info_dict["origin_paddle_op"]
-
-            fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
-            bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
+            fwd_output_path = os.path.join(
+                out_path, enforce_dtype, "output", paddle_name
+            )
+            bwd_output_path = os.path.join(
+                out_path, enforce_dtype, "output_backward", paddle_name
+            )
             if not isinstance(fwd_res, type(None)):
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
                 paddle.save(fwd_res, fwd_output_path)

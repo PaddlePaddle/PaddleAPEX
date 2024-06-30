@@ -133,7 +133,7 @@ def compare_npu_gpu(
                     Warning_list.append(msg)
                     print(msg)
                 else:
-                    f"{api_file} has no grad output, please refer to run_ut warning log info."
+                    msg = f"{api_file} has no grad output, please refer to run_ut warning log info."
                     Warning_list.append(msg)
                     print(msg)
 

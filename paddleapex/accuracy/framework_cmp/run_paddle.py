@@ -44,11 +44,17 @@ tqdm_params = {
 
 def recursive_arg_to_device(arg_in, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
-        return type(arg_in)(recursive_arg_to_device(arg) for arg in arg_in)
+        res = []
+        for item in arg_in:
+            res.append(recursive_arg_to_device(item, enforce_dtype))
+        return res
     elif isinstance(arg_in, paddle.Tensor):
         arg_in = arg_in.cuda()
         if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
-            arg_in = arg_in.cast(enforce_dtype)
+            grad_status = arg_in.stop_gradient
+            with paddle.no_grad():
+                arg_in = arg_in.cast(enforce_dtype)
+            arg_in.stop_gradient = grad_status
         return arg_in
     else:
         return arg_in
@@ -57,26 +63,33 @@ def recursive_arg_to_device(arg_in, enforce_dtype=None):
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
-    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
-    os.makedirs(fwd_output_dir, exist_ok=True)
-    os.makedirs(bwd_output_dir, exist_ok=True)
+    for item in multi_dtype_ut:
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
+        bwd_output_dir = os.path.abspath(
+            os.path.join(out_path, item, "output_backward")
+        )
+        os.makedirs(fwd_output_dir, exist_ok=True)
+        os.makedirs(bwd_output_dir, exist_ok=True)
+    enforce_types = [type_map[item] for item in multi_dtype_ut]
 
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        if "scatter_nd" in api_call_name:
+            continue
         if len(multi_dtype_ut) > 0:
-            for enforce_dtype in multi_dtype_ut:
+            for enforce_dtype in enforce_types:
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
                     api_call_name, api_info_dict_copy, enforce_dtype
                 )
-                if enforce_dtype:
-                    save_name = api_call_name + "*" + enforce_dtype.name
-                fwd_output_path = os.path.join(fwd_output_dir, save_name)
-                bwd_output_path = os.path.join(bwd_output_dir, save_name)
+                fwd_output_path = os.path.join(
+                    out_path, enforce_dtype.name, "output", api_call_name
+                )
+                bwd_output_path = os.path.join(
+                    out_path, enforce_dtype.name, "output_backward", api_call_name
+                )
                 if not isinstance(fwd_res, type(None)):
                     paddle.save(fwd_res, fwd_output_path)
                 if not isinstance(bp_res, type(None)):
@@ -98,8 +111,6 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
     args, kwargs, need_backward = gen_api_params(api_info_dict)
-    if api_name == "scatter_nd":
-        return None, None
 
     ##################################################################
     ##      RUN FORWARD

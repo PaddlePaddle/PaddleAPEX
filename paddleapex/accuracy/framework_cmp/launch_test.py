@@ -1,6 +1,6 @@
 import subprocess
 import argparse
-
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -28,8 +28,6 @@ enforce_dtype = cfg.multi_dtype_ut
 json_prefix = cfg.json_path[:-5]
 out_dir_paddle = out_dir + "paddle"
 out_dir_torch = out_dir + "torch"
-out_dir_paddle_forward = out_dir_paddle + "/output"
-out_dir_torch_forward = out_dir_torch + "/output"
 
 
 # Json transfer
@@ -70,14 +68,17 @@ command2 = [
 ]
 subprocess.run(command2)
 
-cmp_command = [
-    "python",
-    "../direct_cmp.py",
-    "-gpu",
-    out_dir_paddle_forward,
-    "-npu",
-    out_dir_torch_forward,
-    "-o",
-    out_dir,
-]
-subprocess.run(cmp_command)
+for item in ["BF16", "FP32", "FP16"]:
+    out_dir_paddle_forward = os.path.join(out_dir_paddle, item, "/output")
+    out_dir_torch_forward = os.path.join(out_dir_torch, item, "/output")
+    cmp_command = [
+        "python",
+        "../direct_cmp.py",
+        "-gpu",
+        out_dir_paddle_forward,
+        "-npu",
+        out_dir_torch_forward,
+        "-o",
+        out_dir,
+    ]
+    subprocess.run(cmp_command)
