@@ -22,6 +22,7 @@ type_map = {
     "BF16": paddle.bfloat16,
 }
 
+Warning_list = []
 
 current_time = time.strftime("%Y%m%d%H%M%S")
 
@@ -61,7 +62,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
     bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
-    filename = os.path.join(out_path, "./warning_log.txt")
+
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
@@ -70,7 +71,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, filename, enforce_dtype
+                    api_call_name, api_info_dict_copy, enforce_dtype
                 )
                 if enforce_dtype:
                     save_name = api_call_name + "*" + enforce_dtype.name
@@ -83,7 +84,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, filename)
+            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict)
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
             if not isinstance(fwd_res, type(None)):
@@ -93,8 +94,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
             print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype=None):
-    Warning_list = []
+def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
     args, kwargs, need_backward = gen_api_params(api_info_dict)
@@ -117,10 +117,6 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype=No
         msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
-        File = open(warning_log_pth, "a")
-        for item in Warning_list:
-            File.write(item + "\n")
-        File.close()
         return None, None
 
     ##################################################################
@@ -139,7 +135,14 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype=No
             for k, v in device_kwargs.items():
                 if isinstance(v, paddle.Tensor):
                     device_grad_out.append(v.grad)
+                if isinstance(v, list):  # op: concat
+                    for x in v:
+                        if isinstance(x, paddle.Tensor):
+                            device_grad_out.append(x.grad)
             device_grad_out = check_grad_list(device_grad_out)
+            if device_grad_out is None:
+                msg = f"{api_call_name} grad_list is None"
+                Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
             msg = f"Run API {api_name} backward Error: %s" % str(err)
@@ -152,10 +155,6 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype=No
         Warning_list.append(msg)
         return device_out, None
 
-    File = open(warning_log_pth, "a")
-    for item in Warning_list:
-        File.write(item + "\n")
-    File.close()
     return device_out, device_grad_out
 
 
@@ -196,4 +195,9 @@ if __name__ == "__main__":
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     ut_case_parsing(forward_content, cfg, out_path)
+    warning_log_pth = os.path.join(out_path, "./warning_log.txt")
+    File = open(warning_log_pth, "w")
+    for item in Warning_list:
+        File.write(item + "\n")
+    File.close()
     print_info_log("UT save completed")

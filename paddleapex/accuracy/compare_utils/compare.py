@@ -43,9 +43,6 @@ from compare_utils.compare_dependency import (
     print_warn_log,
 )
 from compare_utils.compare_dependency import FileOpen
-from compare_utils.compare_dependency import seed_all
-
-seed_all()
 
 PRECISION = 14
 

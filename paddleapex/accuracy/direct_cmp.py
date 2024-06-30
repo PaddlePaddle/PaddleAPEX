@@ -60,18 +60,20 @@ def _compare_parser(parser):
 
 def compare_command(args):
     out_path = os.path.realpath(args.out_path) if args.out_path else "./"
-    os.mkdir(out_path, exits_ok=True)
+    os.makedirs(out_path, exist_ok=True)
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
-    gpu_back_dir = args.bench_dir + "_backward"
-    npu_back_dir = args.device_dir + "_backward"
+    gpu_back_dir = os.path.join(args.bench_dir, "../output_backward")
+    npu_back_dir = os.path.join(args.device_dir, "../output_backward")
+
     compare_npu_gpu(
         result_csv_path,
         details_csv_path,
         args.bench_dir,
         args.device_dir,
+        out_path,
         gpu_back_dir,
         npu_back_dir,
     )
@@ -82,9 +84,11 @@ def compare_npu_gpu(
     details_csv_path,
     bench_dir,
     device_dir,
+    out_path,
     gpu_grad_dir=None,
     npu_grad_dir=None,
 ):
+    Warning_list = []
     compare = Comparator(result_csv_path, details_csv_path, False)
     with FileOpen(result_csv_path, "r") as file:
         csv_reader = csv.reader(file)
@@ -99,22 +103,39 @@ def compare_npu_gpu(
             print("=" * 100)
             bench_pt_path = os.path.join(bench_dir, api_file)
             device_pt_path = os.path.join(device_dir, api_file)
-            print(f"Loading {bench_pt_path} & {device_pt_path}")
-            bench_out_tensor = paddle.load(bench_pt_path)
-            device_out_tensor = paddle.load(device_pt_path)
+            if os.path.exists(bench_pt_path) and os.path.exists(device_pt_path):
+                print(f"Loading {bench_pt_path} & {device_pt_path}")
+                bench_out_tensor = paddle.load(bench_pt_path)
+                device_out_tensor = paddle.load(device_pt_path)
+            elif os.path.exists(bench_pt_path) or os.path.exists(device_pt_path):
+                msg = f"{api_file} One framework has No output!"
+                Warning_list.append(msg)
+                print(msg)
+                continue
+            else:
+                msg = f"{api_file} has no output, please refer to run_ut warning log info."
+                Warning_list.append(msg)
+                print(msg)
+                continue
+
             bench_grad_tensor_list, device_grad_tensor_list = None, None
             if gpu_grad_dir and npu_grad_dir:
-                bench_grad_path = os.path.join(bench_grad_tensor_list, api_file)
-                device_grad_path = os.path.join(device_grad_tensor_list, api_file)
-                if os.path.exists(bench_grad_path):
+                bench_grad_path = os.path.join(gpu_grad_dir, api_file)
+                device_grad_path = os.path.join(npu_grad_dir, api_file)
+                if os.path.exists(bench_grad_path) and os.path.exists(device_grad_path):
                     bench_grad_tensor_list = paddle.load(bench_grad_path)
                     device_grad_tensor_list = paddle.load(device_grad_path)
                     print(f"Loading {bench_grad_path} & {device_grad_path}")
-
+                elif os.path.exists(bench_grad_path) or os.path.exists(
+                    device_grad_path
+                ):
+                    msg = f"{api_file} One framework has No gard output!"
+                    Warning_list.append(msg)
+                    print(msg)
                 else:
-                    print(
-                        f"{api_file} Doesn't exist! Please check BP_LIST in run_dualback_ut.py"
-                    )
+                    f"{api_file} has no grad output, please refer to run_ut warning log info."
+                    Warning_list.append(msg)
+                    print(msg)
 
             compare.compare_output(
                 api_file,
@@ -125,11 +146,15 @@ def compare_npu_gpu(
             )
         except Exception as err:
             print(err)
+    warning_log_pth = os.path.join(out_path, "./compare_warning.txt")
+    File = open(warning_log_pth, "w")
+    for item in Warning_list:
+        File.write(item + "\n")
+    File.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     _compare_parser(parser)
     args = parser.parse_args(sys.argv[1:])
-    paddle.set_device("cpu")
     compare_command(args)
