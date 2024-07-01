@@ -75,8 +75,6 @@ def ut_case_parsing(forward_content, cfg, out_path):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
-        if "scatter_nd" in api_call_name:
-            continue
         if len(multi_dtype_ut) > 0:
             for enforce_dtype in enforce_types:
                 print(api_call_name + "*" + enforce_dtype.name)

@@ -27,8 +27,6 @@ dtype_mapping = {
     "BF16": paddle.bfloat16,
 }
 
-# dtype_map = {torch.float16: "FP16", torch.float32: "FP32", torch.bfloat16: "BF16"}
-
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
     "desc": "Processing",  # 进度条前的描述文字
@@ -135,8 +133,6 @@ def ut_case_parsing(forward_content, cfg, out_path):
             paddle_api_name = api_info_dict["origin_paddle_op"]
             msg = f"{paddle_api_name} No matching api!"
             Warning_list.append(msg)
-            continue
-        if "scatter_nd" in api_call_name:
             continue
         if len(multi_dtype_ut) > 0:
             for enforce_dtype in multi_dtype_ut:

@@ -5,7 +5,7 @@
 import json
 import inspect
 import argparse
-import paddle
+import paddle  # noqa
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -50,7 +50,6 @@ if __name__ == "__main__":
     for item in content:
         # item: dumped api info.
         func_stack = item.split("*")[0]
-        print(paddle.__version__)
         func = eval(func_stack)
         try:
             # full args_list of paddle api
@@ -90,7 +89,7 @@ if __name__ == "__main__":
             number += 1
             msg = f"Paddle api {op_name} has no matched api in torch."
             Warning_list.append(msg)
-            # No match, directly assign to op info dict.
+
             torch_call_stack = f"unmatched_op*{number}"
             single_torch_op = []
             single_torch_op = single_paddle_op
