@@ -14,9 +14,9 @@
 
 
 from .. import config
+from ..utils import try_import
 from .get_target_op import GetTargetOP
 from .OPTemplate import OPTemplate, HookOp
-from importlib import import_module
 
 cfg = config.cfg
 
@@ -26,13 +26,6 @@ def wrapped_op(op_name):
         return OPTemplate(op_name)(*args, **kwargs)
 
     return op_template
-
-
-def try_import(moduleName="paddle"):
-    try:
-        globals()[moduleName] = import_module(moduleName)
-    except ImportError as err:
-        print(f"Import {moduleName} failed, error message is {err}")
 
 
 def hijack_api():

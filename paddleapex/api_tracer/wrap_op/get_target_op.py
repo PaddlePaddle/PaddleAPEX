@@ -13,17 +13,10 @@
 # limitations under the License.
 
 import yaml
-from importlib import import_module
 from .. import config
+from ..utils import try_import
 
 cfg = config.cfg
-
-
-def try_import(moduleName="paddle"):
-    try:
-        globals()[moduleName] = import_module(moduleName)
-    except ImportError as err:
-        print(f"Import {moduleName} failed, error message is {err}")
 
 
 class GetTargetOP:

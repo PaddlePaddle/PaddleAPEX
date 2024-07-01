@@ -15,6 +15,7 @@ import multiprocessing
 import time
 import os
 import paddle
+from importlib import import_module
 
 
 def save_tensor(tensor, file_path):
@@ -23,6 +24,13 @@ def save_tensor(tensor, file_path):
 
 
 ctx = multiprocessing.get_context("fork")
+
+
+def try_import(moduleName="paddle"):
+    try:
+        globals()[moduleName] = import_module(moduleName)
+    except ImportError as err:
+        print(f"Import {moduleName} failed, error message is {err}")
 
 
 class ThreadPool:
