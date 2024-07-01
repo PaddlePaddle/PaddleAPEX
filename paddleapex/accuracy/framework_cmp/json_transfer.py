@@ -127,7 +127,8 @@ if __name__ == "__main__":
                             {kwargs_change_dict[key]: variable}
                         )
                     elif key in api_mapping[op_name]["unsupport_args"]:
-                        msg = f"{op_name} {key} is not supported in torch."
+                        # If torch has unmatched args, please remove it from torch args list, and append to unsupport list!
+                        msg = f"{op_name} {key} is not supported in torch, It could cause error in comparision!"
                         print(msg)
                         Warning_list.append(msg)
                     else:
