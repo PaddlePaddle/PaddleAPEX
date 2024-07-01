@@ -23,6 +23,7 @@ type_map = {
     "FP32": paddle.float32,
     "BF16": paddle.bfloat16,
 }
+Warning_list = []
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
@@ -46,16 +47,19 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
             recursive_arg_to_device(arg, backend, enforce_dtype) for arg in arg_in
         )
     elif isinstance(arg_in, paddle.Tensor):
-        if "gpu" in backend:
-            arg_in = arg_in.cuda()
-        if "cpu" in backend:
-            arg_in = arg_in.cpu()
-            if arg_in.dtype.name == "BF16":
-                arg_in = arg_in.cast("float32")
-        else:
-            arg_in = arg_in.to(backend)
-        if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
-            arg_in = arg_in.cast(enforce_dtype)
+        grad_status = arg_in.stop_gradient
+        with paddle.no_grad():
+            if "gpu" in backend:
+                arg_in = arg_in.cuda()
+            if "cpu" in backend:
+                arg_in = arg_in.cpu()
+                if arg_in.dtype.name == "BF16":
+                    arg_in = arg_in.cast("float32")
+            else:
+                arg_in = arg_in.to(backend)
+            if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
+                arg_in = arg_in.cast(enforce_dtype)
+            arg_in.stop_gradient = grad_status
         return arg_in
     else:
         return arg_in
@@ -64,29 +68,32 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 def ut_case_parsing(forward_content, cfg, out_path):
     backend = cfg.backend
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [type_map[item] for item in multi_dtype_ut]  # 如果列表项是整数的话
-
+    for item in multi_dtype_ut:
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
+        bwd_output_dir = os.path.abspath(
+            os.path.join(out_path, item, "output_backward")
+        )
+        os.makedirs(fwd_output_dir, exist_ok=True)
+        os.makedirs(bwd_output_dir, exist_ok=True)
+    enforce_types = [type_map[item] for item in multi_dtype_ut]  # 如果列表项是整数的话
     print_info_log("start UT save")
 
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
-    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
-    os.makedirs(fwd_output_dir, exist_ok=True)
-    os.makedirs(bwd_output_dir, exist_ok=True)
-    filename = os.path.join(out_path, "./warning_log.txt")
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
         if len(multi_dtype_ut) > 0:
-            for enforce_dtype in multi_dtype_ut:
+            for enforce_dtype in enforce_types:
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, backend, filename, enforce_dtype
+                    api_call_name, api_info_dict_copy, backend, enforce_dtype
                 )
-                if enforce_dtype:
-                    save_name = api_call_name + "*" + enforce_dtype.name
-                fwd_output_path = os.path.join(fwd_output_dir, save_name)
-                bwd_output_path = os.path.join(bwd_output_dir, save_name)
+                fwd_output_path = os.path.join(
+                    out_path, enforce_dtype.name, "output", api_call_name
+                )
+                bwd_output_path = os.path.join(
+                    out_path, enforce_dtype.name, "output_backward", api_call_name
+                )
                 if not isinstance(fwd_res, type(None)):
                     paddle.save(fwd_res, fwd_output_path)
                 if not isinstance(bp_res, type(None)):
@@ -94,9 +101,7 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(
-                api_call_name, api_info_dict, backend, filename
-            )
+            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, backend)
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
             if not isinstance(fwd_res, type(None)):
@@ -106,16 +111,10 @@ def ut_case_parsing(forward_content, cfg, out_path):
             print("*" * 100)
 
 
-def run_api_case(
-    api_call_name, api_info_dict, backend, warning_log_pth, enforce_dtype=None
-):
-    Warning_list = []
+def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
     args, kwargs, need_backward = gen_api_params(api_info_dict)
-
-    if api_name == "scatter_nd":
-        return None, None
 
     ##################################################################
     ##      RUN FORWARD
@@ -133,10 +132,6 @@ def run_api_case(
         msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
-        File = open(warning_log_pth, "a")
-        for item in Warning_list:
-            File.write(item + "\n")
-        File.close()
         return None, None
 
     ##################################################################
@@ -152,11 +147,17 @@ def run_api_case(
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
                     device_grad_out.append(arg.grad)
-            for _, v in device_kwargs.items():
+            for k, v in device_kwargs.items():
                 if isinstance(v, paddle.Tensor):
                     device_grad_out.append(v.grad)
+                if isinstance(v, list):  # op: concat
+                    for x in v:
+                        if isinstance(x, paddle.Tensor):
+                            device_grad_out.append(x.grad)
             device_grad_out = check_grad_list(device_grad_out)
-
+            if device_grad_out is None:
+                msg = f"{api_call_name} grad_list is None"
+                Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
             msg = f"Run API {api_name} backward Error: %s" % str(err)
@@ -169,10 +170,6 @@ def run_api_case(
         Warning_list.append(msg)
         return device_out, None
 
-    File = open(warning_log_pth, "a")
-    for item in Warning_list:
-        File.write(item + "\n")
-    File.close()
     return device_out, device_grad_out
 
 
@@ -223,3 +220,8 @@ if __name__ == "__main__":
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     ut_case_parsing(forward_content, cfg, out_path)
     print_info_log("UT save completed")
+    warning_log_pth = os.path.join(out_path, "./warning_log.txt")
+    File = open(warning_log_pth, "w")
+    for item in Warning_list:
+        File.write(item + "\n")
+    File.close()

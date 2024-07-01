@@ -2,15 +2,19 @@ import paddle
 import os
 import numpy
 import math
+import random
+import numpy as np
 from .utils import (
     check_object_type,
-    seed_all,
     CompareException,
-    print_error_log,
-    print_warn_log,
     check_file_or_directory_path,
 )
+from .logger import (
+    print_error_log,
+    print_warn_log,
+)
 
+seed = 1234
 TENSOR_DATA_LIST_PADDLE = ["paddle.Tensor", "paddle.create_parameter"]
 PADDLE_TYPE = ["paddle.CPUPlace", "paddle.Tensor.dtype"]
 FLOAT_TYPE_PADDLE = [
@@ -170,7 +174,9 @@ def gen_bool_tensor(shape):
 
 
 def gen_args(args_info, need_grad=False):
-    seed_all()
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
     check_object_type(args_info, list)
     args_result = []
     for arg in args_info:
@@ -190,7 +196,9 @@ def gen_args(args_info, need_grad=False):
 
 
 def gen_kwargs(api_info):
-    seed_all()
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
     check_object_type(api_info, dict)
     kwargs_params = api_info.get("kwargs")
     need_grad = False
@@ -231,7 +239,10 @@ def gen_list_kwargs(kwargs_item_value):
     return kwargs_item_result, has_grad_tensor
 
 
-def gen_api_params(api_info):
+def gen_api_params(api_info, seed=1234):
+    # random.seed(seed)
+    # os.environ['PYTHONHASHSEED'] = str(seed)
+    # np.random.seed(seed)
     check_object_type(api_info, dict)
     kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
     if api_info.get("args"):
@@ -239,12 +250,16 @@ def gen_api_params(api_info):
     else:
         args_need_grad = False
         args_params = []
+    # print(args_params, kwargs_params)
+    # input()
     need_grad = kwargs_need_grad or args_need_grad
     return args_params, kwargs_params, need_grad
 
 
-def rand_like(data):
-    seed_all()
+def rand_like(data, seed=1234):
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
     if isinstance(data, paddle.Tensor):
         if data.dtype.name in ["BF16", "FP16"]:
             random_normals = numpy.random.randn(*data.shape)
@@ -259,4 +274,5 @@ def rand_like(data):
             rand_data = paddle.to_tensor(rand_data, dtype=data.dtype)
             return rand_data
     elif isinstance(data, (list, tuple)):
-        return [rand_like(item) for item in data]
+        lst = [rand_like(item) for item in data]
+        return lst

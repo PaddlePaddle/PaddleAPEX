@@ -43,9 +43,6 @@ from compare_utils.compare_dependency import (
     print_warn_log,
 )
 from compare_utils.compare_dependency import FileOpen
-from compare_utils.compare_dependency import seed_all
-
-seed_all()
 
 PRECISION = 14
 
@@ -257,7 +254,12 @@ class Comparator:
         self.write_detail_csv(args)
 
     def compare_output(
-        self, full_api_name, bench_output, device_output, bench_grad=None, npu_grad=None
+        self,
+        full_api_name,
+        bench_output,
+        device_output,
+        bench_grad=None,
+        device_grad=None,
     ):
         _, api_name, _ = full_api_name.split("*")
         compare_func = (
@@ -268,16 +270,16 @@ class Comparator:
         fwd_success_status, fwd_compare_alg_results = compare_func(
             api_name, bench_output, device_output
         )
-        if not (bench_grad and npu_grad):
+        if not (bench_grad and device_grad):
             bwd_success_status, bwd_compare_alg_results = (CompareConst.SPACE, [])
         else:
             if "dropout" in full_api_name:
                 bwd_success_status, bwd_compare_alg_results = compare_func(
-                    api_name, bench_grad[0], npu_grad[0]
+                    api_name, bench_grad[0], device_grad[0]
                 )
             else:
                 bwd_success_status, bwd_compare_alg_results = compare_func(
-                    api_name, bench_grad, npu_grad
+                    api_name, bench_grad, device_grad
                 )
         self.record_results(
             full_api_name,
@@ -495,34 +497,37 @@ class Comparator:
 
         cos_res, cos_status, msg = cosine_sim(bench_output, device_output)
         compare_column.cosine_sim = cos_res
+        max_abs_res, max_abs_status = get_max_abs_err(abs_err)
+        compare_column.max_abs_err = max_abs_res
+        rel_err_orign = get_rel_err_origin(abs_err, abs_bench_with_eps)
+        thousand_res, thousand_status = get_rel_err_ratio(rel_err_orign, 0.001)
+        compare_column.rel_err_thousandth = thousand_res
+        ten_thousand_res, ten_thousand_status = get_rel_err_ratio(rel_err_orign, 0.0001)
+        compare_column.rel_err_ten_thousandth = ten_thousand_res
+
         message += msg + "\n"
         if not cos_status:
             message += "Cosine similarity is less than 0.99, consider as error, skip other check and set to SPACE.\n"
             return CompareConst.ERROR, compare_column, message
 
-        max_abs_res, max_abs_status = get_max_abs_err(abs_err)
-        compare_column.max_abs_err = max_abs_res
         if max_abs_status:
             message += "Max abs error is less than 0.001, consider as pass, skip other check and set to SPACE.\n"
             return CompareConst.PASS, compare_column, message
 
-        rel_err_orign = get_rel_err_origin(abs_err, abs_bench_with_eps)
         if dtype in [paddle.float16, paddle.bfloat16]:
             hundred_res, hundred_status = get_rel_err_ratio(rel_err_orign, 0.01)
             compare_column.rel_err_hundredth = hundred_res
             if not hundred_status:
                 message += "Relative error is greater than 0.01, consider as error, skip other check and set to SPACE.\n"
                 return CompareConst.ERROR, compare_column, message
-        thousand_res, thousand_status = get_rel_err_ratio(rel_err_orign, 0.001)
-        compare_column.rel_err_thousandth = thousand_res
+
         if dtype in [paddle.float16, paddle.bfloat16]:
             if thousand_status:
                 message += "Relative error is less than 0.001, consider as pass, skip other check and set to SPACE.\n"
                 return CompareConst.PASS, compare_column, message
             message += "Relative error is greater than 0.001, consider as warning, skip other check and set to SPACE.\n"
             return CompareConst.WARNING, compare_column, message
-        ten_thousand_res, ten_thousand_status = get_rel_err_ratio(rel_err_orign, 0.0001)
-        compare_column.rel_err_ten_thousandth = ten_thousand_res
+
         if dtype in [paddle.float32, paddle.float64]:
             if not thousand_status:
                 message += "Relative error is greater than 0.001, consider as error, skip other check and set to SPACE.\n"

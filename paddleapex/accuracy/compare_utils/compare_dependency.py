@@ -6,26 +6,9 @@ import sys
 import yaml
 import re
 import json
-import random
 import csv
 
 import paddle
-from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
-
-
-def seed_all(seed=1234):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    paddle.seed(seed)
-    # 分布式场景需额外加上
-    global_seed, local_seed = seed, seed + 1
-    tracker = get_rng_state_tracker()
-    try:
-        tracker.add("global_seed", global_seed)
-        tracker.add("local_seed", local_seed)
-    except Exception as err:
-        print('paddle tracker.add("global_seed",global_seed)', str(err))
 
 
 class Const:
@@ -653,6 +636,3 @@ class Config:
                 self.config[key] = self.validate(key, value)
             else:
                 raise ValueError(f"Invalid key '{key}'")
-
-
-seed_all()

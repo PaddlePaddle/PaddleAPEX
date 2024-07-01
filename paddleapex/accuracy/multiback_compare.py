@@ -241,7 +241,7 @@ def analyse_csv(npu_data, gpu_data, config):
             direction_status,
             _,
             _,
-        ) = full_api_name_with_direction_status.split(".")
+        ) = full_api_name_with_direction_status.rsplit(".", 3)
         if row_gpu.empty:
             print_warn_log(
                 f"This API : {full_api_name_with_direction_status} does not exist in the GPU data."
@@ -254,7 +254,7 @@ def analyse_csv(npu_data, gpu_data, config):
         # 当前API的输出为空（例如反向过程中requires_grad=False）,跳过比对
         if row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE].isspace():
             continue
-        _, api_name, _ = full_api_name.split("*")
+        api_name = full_api_name.split("*")[0]
         new_status = CompareConst.SPACE
         compare_column.api_name = full_api_name_with_direction_status
         if (
@@ -289,7 +289,7 @@ def analyse_csv(npu_data, gpu_data, config):
             else:
                 forward_result = get_api_checker_result(forward_status)
                 backward_result = get_api_checker_result(backward_status)
-                _, last_api_name, _ = full_last_api_name.split("*")
+                last_api_name = full_last_api_name.split("*")[0]
                 message += (
                     CompareMessage.get(last_api_name, "")
                     if forward_result == CompareConst.ERROR
@@ -328,7 +328,7 @@ def analyse_csv(npu_data, gpu_data, config):
         else:
             forward_result = get_api_checker_result(forward_status)
             backward_result = get_api_checker_result(backward_status)
-            _, last_api_name, _ = full_last_api_name.split("*")
+            last_api_name = full_last_api_name.split("*")[0]
             message += (
                 CompareMessage.get(last_api_name, "")
                 if forward_result == CompareConst.ERROR

@@ -315,11 +315,15 @@ def parse_dict(dict_data):
 def check_grad_list(grad_list):
     all_none = True
     valid_varibale_list = []
+    if grad_list is None:
+        print("grad_output is None!")
+        return None
     for grad in grad_list:
         if not isinstance(grad, type(None)):
             valid_varibale_list.append(grad)
             all_none = False
     if all_none:
+        print("grad_output is None!")
         return None
     else:
         return valid_varibale_list

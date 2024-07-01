@@ -10,6 +10,7 @@ import sys
 sys.path.append(os.path.abspath("../"))
 from utils import (
     print_info_log,
+    check_grad_list,
     gen_api_params,
     api_json_read,
     rand_like,
@@ -17,15 +18,14 @@ from utils import (
 )
 
 current_time = time.strftime("%Y%m%d%H%M%S")
+Warning_list = []
 
 
-dtype_mapping2torch = {
-    "FP16": torch.float16,
-    "FP32": torch.float32,
-    "BF16": torch.bfloat16,
+dtype_mapping = {
+    "FP16": paddle.float16,
+    "FP32": paddle.float32,
+    "BF16": paddle.bfloat16,
 }
-
-dtype_map = {"torch.float16": "FP16", "torch.float32": "FP32", "torch.bfloat16": "BF16"}
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
@@ -47,12 +47,10 @@ tqdm_params = {
 def enforce_convert(arg_in, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
         return type(arg_in)(enforce_convert(arg, enforce_dtype) for arg in arg_in)
-    elif isinstance(arg_in, torch.Tensor):
-        if arg_in.dtype in dtype_map:
+    elif isinstance(arg_in, paddle.Tensor):
+        if arg_in.dtype.name in dtype_mapping:
             return (
-                arg_in.to(dtype_mapping2torch[enforce_dtype])
-                if enforce_dtype
-                else arg_in
+                arg_in.cast(dtype_mapping[enforce_dtype]) if enforce_dtype else arg_in
             )
         else:
             return arg_in
@@ -86,11 +84,15 @@ def recursive_arg_to_device(arg_in, mode="to_torch"):
             arg_in_np = arg_in.numpy()
             arg_in = torch.from_numpy(arg_in_np)
             arg_in = arg_in.cuda()
-            if grad_state:
-                arg_in.requires_grad = False
+            if type_convert:
+                arg_in_device = arg_in.to(torch.bfloat16).cuda()
             else:
-                arg_in.requires_grad = True
-            return arg_in.to(torch.bfloat16) if type_convert else arg_in
+                arg_in_device = arg_in.cuda()
+            if grad_state:
+                arg_in_device.requires_grad = False
+            else:
+                arg_in_device.requires_grad = True
+            return arg_in_device
         elif mode == "to_paddle":
             if arg_in.dtype == torch.bfloat16:
                 type_convert = True
@@ -114,19 +116,24 @@ def recursive_arg_to_device(arg_in, mode="to_torch"):
 def ut_case_parsing(forward_content, cfg, out_path):
     print_info_log("start UT save")
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
-    multi_dtype_ut = [item for item in multi_dtype_ut]
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
-    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
-    os.makedirs(fwd_output_dir, exist_ok=True)
-    os.makedirs(bwd_output_dir, exist_ok=True)
-    filename = os.path.join(out_path, "./warning_log.txt")
+    for item in multi_dtype_ut:
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
+        bwd_output_dir = os.path.abspath(
+            os.path.join(out_path, item, "output_backward")
+        )
+        os.makedirs(fwd_output_dir, exist_ok=True)
+        os.makedirs(bwd_output_dir, exist_ok=True)
+
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
-        api_name = api_call_name.rsplit(".")[-1]
-        if api_name == "scatter_nd":
-            return None, None
-
+        try:
+            eval(api_call_name.split("*")[0])
+        except Exception:
+            paddle_api_name = api_info_dict["origin_paddle_op"]
+            msg = f"{paddle_api_name} No matching api!"
+            Warning_list.append(msg)
+            continue
         if len(multi_dtype_ut) > 0:
             for enforce_dtype in multi_dtype_ut:
                 process = (
@@ -139,11 +146,15 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print(process)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, filename, enforce_dtype
+                    api_call_name, api_info_dict_copy, enforce_dtype
                 )
-                paddle_name = api_info_dict["origin_paddle_op"] + "*" + enforce_dtype
-                fwd_output_path = os.path.join(fwd_output_dir, paddle_name)
-                bwd_output_path = os.path.join(bwd_output_dir, paddle_name)
+                paddle_name = api_info_dict["origin_paddle_op"]
+                fwd_output_path = os.path.join(
+                    out_path, enforce_dtype, "output", paddle_name
+                )
+                bwd_output_path = os.path.join(
+                    out_path, enforce_dtype, "output_backward", paddle_name
+                )
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
                 bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
                 if not isinstance(fwd_res, type(None)):
@@ -155,9 +166,14 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, filename)
-            fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-            bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict)
+            paddle_name = api_info_dict["origin_paddle_op"]
+            fwd_output_path = os.path.join(
+                out_path, enforce_dtype, "output", paddle_name
+            )
+            bwd_output_path = os.path.join(
+                out_path, enforce_dtype, "output_backward", paddle_name
+            )
             if not isinstance(fwd_res, type(None)):
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
                 paddle.save(fwd_res, fwd_output_path)
@@ -167,32 +183,32 @@ def ut_case_parsing(forward_content, cfg, out_path):
             print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype):
-    Warning_list = []
+def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
     api_call_stack = api_call_name.rsplit("*")[0]
-    api_name = api_call_name.rsplit(".")[-1]
-    try:
-        eval(api_call_stack)
-    except Exception:
-        api_name = api_call_name.split("*")[0]
-        msg = "No matching api!"
-        return None, None
 
+    # generate paddle tensor
     args, kwargs, need_backward = gen_api_params(api_info_dict)
     ##################################################################
     ##      RUN FORWARD
     ##################################################################
     try:
+        # dtype convert
+        if enforce_dtype:
+            args = enforce_convert(args, enforce_dtype)
+            kwargs = {
+                key: enforce_convert(value, enforce_dtype)
+                for key, value in kwargs.items()
+            }
+        # print(args,kwargs)
+        # input()
+        # paddle to torch
         device_args = recursive_arg_to_device(args, mode="to_torch")
         device_kwargs = {
             key: recursive_arg_to_device(value, mode="to_torch")
             for key, value in kwargs.items()
         }
-        device_args = enforce_convert(device_args, enforce_dtype)
-        device_kwargs = {
-            key: enforce_convert(value, enforce_dtype)
-            for key, value in device_kwargs.items()
-        }
+        # print(device_args, device_kwargs)
+        # input()
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
     except Exception as err:
@@ -200,10 +216,6 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype):
         msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
-        File = open(warning_log_pth, "a")
-        for item in Warning_list:
-            File.write(item + "\n")
-        File.close()
         return None, None
 
     ##################################################################
@@ -222,6 +234,16 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype):
             for k, v in device_kwargs.items():
                 if isinstance(v, torch.Tensor):
                     device_grad_out.append(v.grad)
+                if isinstance(v, list):  # op: concat
+                    for x in v:
+                        if isinstance(x, torch.Tensor):
+                            device_grad_out.append(x.grad)
+            # print(device_grad_out)
+            # input()
+            device_grad_out = check_grad_list(device_grad_out)
+            if device_grad_out is None:
+                msg = f"{api_call_name} grad_list is None"
+                Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
             msg = f"Run API {api_name} backward Error: %s" % str(err)
@@ -233,11 +255,6 @@ def run_api_case(api_call_name, api_info_dict, warning_log_pth, enforce_dtype):
         print_warn_log(msg)
         Warning_list.append(msg)
         return device_out, None
-
-    File = open(warning_log_pth, "a")
-    for item in Warning_list:
-        File.write(item + "\n")
-    File.close()
     return device_out, device_grad_out
 
 
@@ -278,4 +295,9 @@ if __name__ == "__main__":
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     ut_case_parsing(forward_content, cfg, out_path)
+    warning_log_pth = os.path.join(out_path, "./warning_log.txt")
+    File = open(warning_log_pth, "w")
+    for item in Warning_list:
+        File.write(item + "\n")
+    File.close()
     print_info_log("UT save completed")

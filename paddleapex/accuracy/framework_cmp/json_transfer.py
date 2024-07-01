@@ -5,18 +5,20 @@
 import json
 import inspect
 import argparse
+import paddle  # noqa
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-mapping",
     dest="mapping_json",
-    default="",
+    default="./api_mapping.json",
     type=str,
     help="Dump json file path",
     required=True,
 )
 parser.add_argument(
     "-json_path",
+    "--json",
     dest="json_path",
     default="./sample_dump.json",
     type=str,
@@ -87,7 +89,7 @@ if __name__ == "__main__":
             number += 1
             msg = f"Paddle api {op_name} has no matched api in torch."
             Warning_list.append(msg)
-            # No match, directly assign to op info dict.
+
             torch_call_stack = f"unmatched_op*{number}"
             single_torch_op = []
             single_torch_op = single_paddle_op
@@ -123,6 +125,11 @@ if __name__ == "__main__":
                         single_torch_op["kwargs"].update(
                             {kwargs_change_dict[key]: variable}
                         )
+                    elif key in api_mapping[op_name]["unsupport_args"]:
+                        # If torch has unmatched args, please remove it from torch args list, and append to unsupport list!
+                        msg = f"{op_name} {key} is not supported in torch, It could cause error in comparision!"
+                        print(msg)
+                        Warning_list.append(msg)
                     else:
                         msg = f"{op_name} Cannot idetify key word: {key}."
                         print(msg)

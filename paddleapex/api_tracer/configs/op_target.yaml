@@ -403,8 +403,8 @@ target_op:
   -  paddle.scale
   -  paddle.scatter
   -  paddle.scatter_
-  -  paddle.scatter_nd
-  -  paddle.scatter_nd_add
+  # -  paddle.scatter_nd # cause CUDA_ERROR ignored.
+  # -  paddle.scatter_nd_add
   -  paddle.searchsorted
   -  paddle.select_scatter
   -  paddle.sgn
@@ -417,7 +417,7 @@ target_op:
   -  paddle.sinh
   -  paddle.sinh_
   -  paddle.slice
-  -  paddle.slice_scatter
+  # -  paddle.slice_scatter
   -  paddle.sort
   -  paddle.split
   -  paddle.sqrt
@@ -771,8 +771,8 @@ target_op:
   -  paddle.Tensor.scale_
   -  paddle.Tensor.scatter
   -  paddle.Tensor.scatter_
-  -  paddle.Tensor.scatter_nd
-  -  paddle.Tensor.scatter_nd_add
+  # -  paddle.Tensor.scatter_nd
+  # -  paddle.Tensor.scatter_nd_add
   -  paddle.Tensor.select_scatter
   -  paddle.Tensor.sgn
   -  paddle.Tensor.shard_index

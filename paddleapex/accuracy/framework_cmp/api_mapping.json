@@ -1,6 +1,18 @@
 {
+"notice":["It's a mapping file for paddle to torch api. inplace api refer to those args has implicit name, ",
+          "but keep same sequence with paddle api.",
+          "If this api is a inplace api,you need to add info to mapping, inplace_api.",
+          "If paddle&torch has same api but receiving different args name, you can refer to api:concat setting.",
+          "If paddle&torch has same api but has different args number(like matmul), you can refer to api:matmul and softmax setting."],
 "mapping":
 {
+  "paddle.Tensor.__pow__":{
+    "torch_api":"torch.Tensor.__pow__",
+    "kwargs_change": null,
+    "unsupport_args": null,
+    "torch_args_list": null,
+    "paddle_args_list": null
+  },
   "paddle.Tensor.__add__":{
     "torch_api":"torch.Tensor.__add__",
     "kwargs_change": null,
@@ -348,7 +360,7 @@
       "x": "input",
       "y": "other"
     },
-    "unsupport_args": null,
+    "unsupport_args": ["transpose_x", "transpose_y"],
     "torch_args_list": [
       "input",
       "other",
@@ -430,15 +442,13 @@
     "torch_api": "torch.softmax",
     "kwargs_change": {
       "x": "input",
-      "axis": "dim",
-      "dtype": "dtype"
+      "axis": "dim"
     },
-    "unsupport_args": null,
+    "unsupport_args": ["dtype"],
     "torch_args_list": [
       "input",
       "dim",
-      "*",
-      "dtype"
+      "*"
     ],
     "paddle_args_list": [
       "x",
@@ -861,7 +871,7 @@
   }
 },
 "inplace_api":[
-  "paddle.Tensor.__add__","paddle.Tensor.__radd__","paddle.Tensor.__mul__","paddle.Tensor.__rmul__",
+  "paddle.Tensor.__pow__","paddle.Tensor.__add__","paddle.Tensor.__radd__","paddle.Tensor.__mul__","paddle.Tensor.__rmul__",
   "paddle.Tensor.__truediv__","paddle.Tensor.__rtruediv__","paddle.Tensor.__sub__","paddle.Tensor.__rsub__",
   "paddle.Tensor.__lt__","paddle.Tensor.__ne__","paddle.Tensor.__neg__","paddle.Tensor.__eq__","paddle.Tensor.expand_as",
   "paddle.Tensor.expand","paddle.arange","paddle.Tensor.square","paddle.Tensor.multiply_","paddle.Tensor.repeat_interleave",
