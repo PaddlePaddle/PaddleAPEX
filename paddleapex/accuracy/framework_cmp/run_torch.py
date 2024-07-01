@@ -5,10 +5,8 @@ import paddle
 import torch
 import copy
 from tqdm import tqdm
-import sys
 
-sys.path.append(os.path.abspath("../"))
-from utils import (
+from ..utils import (
     print_info_log,
     check_grad_list,
     gen_api_params,

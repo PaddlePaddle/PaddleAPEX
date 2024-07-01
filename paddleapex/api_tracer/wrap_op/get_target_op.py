@@ -14,7 +14,7 @@
 
 import yaml
 from .. import config
-from ..utils import try_import
+from ...utils import try_import
 
 cfg = config.cfg
 
@@ -34,7 +34,8 @@ class GetTargetOP:
         for api in self.api_to_catch:
             try:
                 pack = api.split(".")[0]
-                try_import(pack)
+                package_name, module = try_import(pack)
+                globals()[package_name] = module
                 func = eval(api)
                 if not func:
                     print(f"{api} is not available!")

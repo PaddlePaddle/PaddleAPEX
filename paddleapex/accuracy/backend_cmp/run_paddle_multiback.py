@@ -4,10 +4,8 @@ import time
 import paddle
 import copy
 from tqdm import tqdm
-import sys
 
-sys.path.append(os.path.abspath("../"))
-from utils import (
+from ..utils import (
     print_info_log,
     gen_api_params,
     api_json_read,

@@ -14,7 +14,7 @@
 
 
 from .. import config
-from ..utils import try_import
+from ...utils import try_import
 from .get_target_op import GetTargetOP
 from .OPTemplate import OPTemplate, HookOp
 
@@ -35,7 +35,8 @@ def hijack_api():
         parent_package, method_name = op_name.rsplit(".", maxsplit=1)
         try:
             pack = parent_package.split(".")[0]
-            try_import(pack)
+            package_name, module = try_import(pack)
+            globals()[package_name] = module
             setattr(
                 HookOp, "wrap_" + op_name, getattr(eval(parent_package), method_name)
             )

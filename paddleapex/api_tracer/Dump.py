@@ -14,7 +14,7 @@
 import json
 import os
 from .config import cfg
-from .utils import ThreadPool, save_tensor
+from ..utils import ThreadPool, save_tensor
 
 
 def create_directory(data_route):
