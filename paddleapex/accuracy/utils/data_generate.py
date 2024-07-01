@@ -7,9 +7,11 @@ import numpy as np
 from .utils import (
     check_object_type,
     CompareException,
+    check_file_or_directory_path,
+)
+from .logger import (
     print_error_log,
     print_warn_log,
-    check_file_or_directory_path,
 )
 
 seed = 1234

@@ -5,6 +5,7 @@
 import json
 import inspect
 import argparse
+import paddle
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -49,6 +50,7 @@ if __name__ == "__main__":
     for item in content:
         # item: dumped api info.
         func_stack = item.split("*")[0]
+        print(paddle.__version__)
         func = eval(func_stack)
         try:
             # full args_list of paddle api
