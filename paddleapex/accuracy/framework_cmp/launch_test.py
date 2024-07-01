@@ -69,8 +69,8 @@ command2 = [
 subprocess.run(command2)
 
 for item in ["BF16", "FP32", "FP16"]:
-    out_dir_paddle_forward = os.path.join(out_dir_paddle, item, "/output")
-    out_dir_torch_forward = os.path.join(out_dir_torch, item, "/output")
+    out_dir_paddle_forward = os.path.join(out_dir_paddle, item, "./output")
+    out_dir_torch_forward = os.path.join(out_dir_torch, item, "./output")
     cmp_command = [
         "python",
         "../direct_cmp.py",
