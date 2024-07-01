@@ -13,9 +13,17 @@
 # limitations under the License.
 
 import yaml
+from importlib import import_module
 from .. import config
 
 cfg = config.cfg
+
+
+def try_import(moduleName="paddle"):
+    try:
+        globals()[moduleName] = import_module(moduleName)
+    except ImportError as err:
+        print(f"Import {moduleName} failed, error message is {err}")
 
 
 class GetTargetOP:
@@ -32,8 +40,10 @@ class GetTargetOP:
     def check_api_stack(self):
         for api in self.api_to_catch:
             try:
+                pack = api.split(".")[0]
+                try_import(pack)
                 func = eval(api)
-                if func:
+                if not func:
                     print(f"{api} is not available!")
             except Exception as err:
                 print(f"For api: {api}   ", str(err))
