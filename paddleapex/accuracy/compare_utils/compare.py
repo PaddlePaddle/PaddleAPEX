@@ -261,7 +261,7 @@ class Comparator:
         bench_grad=None,
         device_grad=None,
     ):
-        _, api_name, _ = full_api_name.split("*")
+        api_name = full_api_name.split("*")[0]
         compare_func = (
             self._compare_dropout
             if "dropout" in full_api_name
