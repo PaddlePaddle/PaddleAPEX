@@ -15,6 +15,7 @@ import multiprocessing
 import time
 import os
 import paddle
+from importlib import import_module
 
 
 def save_tensor(tensor, file_path):
@@ -25,9 +26,20 @@ def save_tensor(tensor, file_path):
 ctx = multiprocessing.get_context("fork")
 
 
+def try_import(moduleName="paddle"):
+    try:
+        MODULE = import_module(moduleName)
+        # globals()[moduleName]
+        return moduleName, MODULE
+    except ImportError as err:
+        print(f"Import {moduleName} failed, error message is {err}")
+        return None, None
+
+
 class ThreadPool:
     def __init__(self, max_process_num=3) -> None:
         self.max_process_num = max_process_num
+        self.event_queue = []
 
     def __del__(self):
         self.async_exit()
@@ -40,39 +52,36 @@ class ThreadPool:
 
         p = ctx.Process(target=save_tensor, args=(tensor, remote_path))
         p.start()
-        event_queue.append(p)
+        self.event_queue.append(p)
 
     def allocate_subprocess(self):
         """
         wait until all async save task to be done.
         """
-        while len(event_queue) > self.max_process_num:
-            task = event_queue.pop()
+        while len(self.event_queue) > self.max_process_num:
+            task = self.event_queue.pop()
             if task and task.is_alive():
                 if task.is_alive():
-                    event_queue.append(task)
+                    self.event_queue.append(task)
                     continue
-        if len(event_queue) < self.max_process_num:
+        if len(self.event_queue) < self.max_process_num:
             return
         else:
-            while len(event_queue) == self.max_process_num:
-                task = event_queue.pop()
+            while len(self.event_queue) == self.max_process_num:
+                task = self.event_queue.pop()
                 if task and task.is_alive():
                     if task.is_alive():
-                        event_queue.append(task)
+                        self.event_queue.append(task)
                         time.sleep(0.5)
                         continue
 
     def async_exit(self):
-        while len(event_queue) > 0:
-            task = event_queue.pop()
+        while len(self.event_queue) > 0:
+            task = self.event_queue.pop()
             if task and task.is_alive():
                 if task.is_alive():
-                    event_queue.append(task)
+                    self.event_queue.append(task)
                     print("waiting.....")
                     time.sleep(0.5)
                     continue
         print("Sub processes have done, async process exit.")
-
-
-event_queue = []

@@ -194,7 +194,6 @@ target_op:
   -  paddle.combinations
   -  paddle.concat
   -  paddle.conj
-  -  paddle.corrcoef
   -  paddle.copysign
   -  paddle.copysign_
   -  paddle.cos
@@ -267,7 +266,7 @@ target_op:
   -  paddle.greater_than_
   -  paddle.heaviside
   -  paddle.histogram
-  -  paddle.histogramadd
+  -  paddle.histogramdd
   -  paddle.hsplit
   -  paddle.hstack
   -  paddle.hypot
@@ -489,7 +488,7 @@ target_op:
   -  paddle.Tensor.__mul__
   -  paddle.Tensor.__ne__
   -  paddle.Tensor.__neg__
-  -  paddle.Tensor.__nonezero__
+  -  paddle.Tensor.__nonzero__
   -  paddle.Tensor.__or__
   -  paddle.Tensor.__pow__
   -  paddle.Tensor.__radd__
@@ -636,9 +635,8 @@ target_op:
   -  paddle.Tensor.greater_than_
   -  paddle.Tensor.heaviside
   -  paddle.Tensor.histogram
-  -  paddle.Tensor.histogramadd
+  -  paddle.Tensor.histogramdd
   -  paddle.Tensor.hsplit
-  -  paddle.Tensor.hstack
   -  paddle.Tensor.hypot
   -  paddle.Tensor.hypot_
   -  paddle.Tensor.i0
@@ -842,21 +840,21 @@ target_op:
   -  paddle.Tensor.where_
   -  paddle.Tensor.zero_
   #### experiment op:
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
   -  paddle._C_ops.fused_gemm_epilogue
   -  paddle._legacy_C_ops.fused_gemm_epilogue
   -  paddle.incubate.nn.functional.fused_multi_head_attention
   -  paddle.incubate.nn.functional.fused_feedforward
   -  paddle.incubate.nn.functional.fused_multi_transformer
-  -  paddle.incubalte.nn.functional.fused_linear
+  -  paddle.incubate.nn.functional.fused_linear
   -  paddle.incubate.nn.functional.fused_linear_activation
   -  paddle.incubate.nn.functional.fused_bias_dropout_residual_layer_norm
   -  paddle.incubate.nn.functional.fused_ec_moe
   -  paddle.incubate.nn.functional.fused_dropout_add
   -  paddle.incubate.nn.functional.fused_rotary_position_embedding
-  -  paddle.incubate.nn.functional..variable_length_memory_efficient_attention
+  -  paddle.incubate.nn.functional.variable_length_memory_efficient_attention
   -  paddle.incubate.nn.functional.fused_rms_norm
   -  paddle.incubate.nn.functional.fused_layer_norm
   -  paddle.incubate.nn.functional.masked_multihead_attention

@@ -65,14 +65,16 @@ def compare_command(args):
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
-    gpu_back_dir = os.path.join(args.bench_dir, "../output_backward")
-    npu_back_dir = os.path.join(args.device_dir, "../output_backward")
+    bench_dir = os.path.join(args.bench_dir, "./output")
+    device_dir = os.path.join(args.device_dir, "./output")
+    gpu_back_dir = os.path.join(args.bench_dir, "./output_backward")
+    npu_back_dir = os.path.join(args.device_dir, "./output_backward")
 
     compare_npu_gpu(
         result_csv_path,
         details_csv_path,
-        args.bench_dir,
-        args.device_dir,
+        bench_dir,
+        device_dir,
         out_path,
         gpu_back_dir,
         npu_back_dir,

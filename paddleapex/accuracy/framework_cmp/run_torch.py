@@ -5,10 +5,8 @@ import paddle
 import torch
 import copy
 from tqdm import tqdm
-import sys
 
-sys.path.append(os.path.abspath("../"))
-from utils import (
+from paddleapex.accuracy.utils import (
     print_info_log,
     check_grad_list,
     gen_api_params,
@@ -199,16 +197,12 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
                 key: enforce_convert(value, enforce_dtype)
                 for key, value in kwargs.items()
             }
-        # print(args,kwargs)
-        # input()
         # paddle to torch
         device_args = recursive_arg_to_device(args, mode="to_torch")
         device_kwargs = {
             key: recursive_arg_to_device(value, mode="to_torch")
             for key, value in kwargs.items()
         }
-        # print(device_args, device_kwargs)
-        # input()
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
     except Exception as err:
@@ -231,6 +225,10 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
             for arg in device_args:
                 if isinstance(arg, torch.Tensor):
                     device_grad_out.append(arg.grad)
+                if isinstance(arg, list):  # op: concat/stack
+                    for x in arg:
+                        if isinstance(x, torch.Tensor):
+                            device_grad_out.append(x.grad)
             for k, v in device_kwargs.items():
                 if isinstance(v, torch.Tensor):
                     device_grad_out.append(v.grad)
@@ -238,8 +236,6 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
                     for x in v:
                         if isinstance(x, torch.Tensor):
                             device_grad_out.append(x.grad)
-            # print(device_grad_out)
-            # input()
             device_grad_out = check_grad_list(device_grad_out)
             if device_grad_out is None:
                 msg = f"{api_call_name} grad_list is None"

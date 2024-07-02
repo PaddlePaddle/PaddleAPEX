@@ -14,7 +14,7 @@
 
 import paddle
 import numpy as np
-from .Dump import dump_util
+from paddleapex.api_tracer.Dump import dump_util
 
 Paddle_Type_Map = {
     "FP64": "paddle.float64",

@@ -4,10 +4,8 @@ import time
 import paddle
 import copy
 from tqdm import tqdm
-import sys
 
-sys.path.append(os.path.abspath("../"))
-from utils import (
+from paddleapex.accuracy.utils import (
     print_info_log,
     gen_api_params,
     api_json_read,
@@ -129,7 +127,11 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
 
     except Exception as err:
         api_name = api_call_name.split("*")[0]
-        msg = f"Run API {api_name} Forward Error: %s" % str(err)
+        if enforce_dtype:
+            name = api_name + "*" + enforce_dtype.name
+            msg = f"Run API{name} Forward Error: %s" % str(err)
+        else:
+            msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
         return None, None
@@ -147,10 +149,14 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
                     device_grad_out.append(arg.grad)
+                if isinstance(arg, list):  # op: concat/stack
+                    for x in arg:
+                        if isinstance(x, paddle.Tensor):
+                            device_grad_out.append(x.grad)
             for k, v in device_kwargs.items():
                 if isinstance(v, paddle.Tensor):
                     device_grad_out.append(v.grad)
-                if isinstance(v, list):  # op: concat
+                if isinstance(v, list):  # op: concat/stack
                     for x in v:
                         if isinstance(x, paddle.Tensor):
                             device_grad_out.append(x.grad)
@@ -160,12 +166,20 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
                 Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
-            msg = f"Run API {api_name} backward Error: %s" % str(err)
+            if enforce_dtype:
+                name = api_name + "*" + enforce_dtype.name
+                msg = f"{name} has no tensor required grad, SKIP Backward"
+            else:
+                msg = f"Run API {api_name} backward Error: %s" % str(err)
             print_warn_log(msg)
             Warning_list.append(msg)
             return device_out, None
     else:
-        msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
+        if enforce_dtype:
+            name = api_call_name + "*" + enforce_dtype.name
+            msg = f"{name} has no tensor required grad, SKIP Backward"
+        else:
+            msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
         print_warn_log(msg)
         Warning_list.append(msg)
         return device_out, None

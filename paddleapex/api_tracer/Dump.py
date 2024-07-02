@@ -13,8 +13,8 @@
 # limitations under the License.
 import json
 import os
-from .config import cfg
-from .Async_save_data import ThreadPool, save_tensor
+from paddleapex.api_tracer.config import cfg
+from paddleapex.utils import ThreadPool, save_tensor
 
 
 def create_directory(data_route):

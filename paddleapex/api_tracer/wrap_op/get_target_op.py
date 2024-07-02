@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import yaml
-from .. import config
+from paddleapex.api_tracer import config
+from paddleapex.utils import try_import
 
 cfg = config.cfg
 
@@ -32,8 +33,11 @@ class GetTargetOP:
     def check_api_stack(self):
         for api in self.api_to_catch:
             try:
+                pack = api.split(".")[0]
+                package_name, module = try_import(pack)
+                globals()[package_name] = module
                 func = eval(api)
-                if func:
+                if not func:
                     print(f"{api} is not available!")
             except Exception as err:
                 print(f"For api: {api}   ", str(err))
