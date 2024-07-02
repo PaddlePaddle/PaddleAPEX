@@ -62,15 +62,15 @@ command2 = [
     "-json",
     json_prefix + "_torch.json",
     "-o",
-    out_dir_paddle,
+    out_dir_torch,
     "-enforce",
     enforce_dtype,
 ]
 subprocess.run(command2)
 
 for item in ["BF16", "FP32", "FP16"]:
-    out_dir_paddle_forward = os.path.join(out_dir_paddle, item, "./output")
-    out_dir_torch_forward = os.path.join(out_dir_torch, item, "./output")
+    out_dir_paddle_forward = os.path.join(out_dir_paddle, item)
+    out_dir_torch_forward = os.path.join(out_dir_torch, item)
     cmp_command = [
         "python",
         "../direct_cmp.py",

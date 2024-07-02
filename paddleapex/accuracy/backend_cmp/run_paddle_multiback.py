@@ -127,7 +127,11 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
 
     except Exception as err:
         api_name = api_call_name.split("*")[0]
-        msg = f"Run API {api_name} Forward Error: %s" % str(err)
+        if enforce_dtype:
+            name = api_name + "*" + enforce_dtype.name
+            msg = f"Run API{name} Forward Error: %s" % str(err)
+        else:
+            msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
         return None, None
@@ -162,12 +166,20 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
                 Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
-            msg = f"Run API {api_name} backward Error: %s" % str(err)
+            if enforce_dtype:
+                name = api_name + "*" + enforce_dtype.name
+                msg = f"{name} has no tensor required grad, SKIP Backward"
+            else:
+                msg = f"Run API {api_name} backward Error: %s" % str(err)
             print_warn_log(msg)
             Warning_list.append(msg)
             return device_out, None
     else:
-        msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
+        if enforce_dtype:
+            name = api_call_name + "*" + enforce_dtype.name
+            msg = f"{name} has no tensor required grad, SKIP Backward"
+        else:
+            msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
         print_warn_log(msg)
         Warning_list.append(msg)
         return device_out, None
