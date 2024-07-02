@@ -5,8 +5,8 @@ import stat
 import json
 import re
 import random
-from utils.file_check_util import check_link, check_file_suffix, FileOpen
-from utils.logger import print_error_log
+from .file_check_util import check_link, check_file_suffix, FileOpen
+from .logger import print_error_log
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 
 

@@ -17,7 +17,7 @@
 """
 import os
 import re
-from utils.logger import print_error_log, print_warn_log
+from .logger import print_error_log, print_warn_log
 
 
 class FileCheckConst:

@@ -145,10 +145,14 @@ def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None):
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
                     device_grad_out.append(arg.grad)
+                if isinstance(arg, list):  # op: concat/stack
+                    for x in arg:
+                        if isinstance(x, paddle.Tensor):
+                            device_grad_out.append(x.grad)
             for k, v in device_kwargs.items():
                 if isinstance(v, paddle.Tensor):
                     device_grad_out.append(v.grad)
-                if isinstance(v, list):  # op: concat
+                if isinstance(v, list):  # op: concat/stack
                     for x in v:
                         if isinstance(x, paddle.Tensor):
                             device_grad_out.append(x.grad)

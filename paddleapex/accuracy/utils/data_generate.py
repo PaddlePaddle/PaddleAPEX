@@ -4,12 +4,12 @@ import numpy
 import math
 import random
 import numpy as np
-from accuracy.utils import (
+from .utils import (
     check_object_type,
     CompareException,
     check_file_or_directory_path,
 )
-from accuracy.utils.logger import (
+from .logger import (
     print_error_log,
     print_warn_log,
 )
