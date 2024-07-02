@@ -6,7 +6,7 @@ import torch
 import copy
 from tqdm import tqdm
 
-from ..utils import (
+from paddleapex.accuracy.utils import (
     print_info_log,
     check_grad_list,
     gen_api_params,

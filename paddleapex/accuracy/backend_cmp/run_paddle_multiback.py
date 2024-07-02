@@ -5,7 +5,7 @@ import paddle
 import copy
 from tqdm import tqdm
 
-from ..utils import (
+from paddleapex.accuracy.utils import (
     print_info_log,
     gen_api_params,
     api_json_read,
