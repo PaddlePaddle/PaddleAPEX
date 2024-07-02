@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .Dump import dump_util
-from .wrap_op.hijack_tool import hijack_api
-from .config import cfg
+from paddleapex.api_tracer.Dump import dump_util
+from paddleapex.api_tracer.wrap_op.hijack_tool import hijack_api
+from paddleapex.api_tracer.config import cfg
 
 
 class Tracer:

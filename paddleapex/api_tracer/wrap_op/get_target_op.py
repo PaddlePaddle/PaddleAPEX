@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import yaml
-from .. import config
-from ...utils import try_import
+from paddleapex.api_tracer import config
+from paddleapex.utils import try_import
 
 cfg = config.cfg
 
