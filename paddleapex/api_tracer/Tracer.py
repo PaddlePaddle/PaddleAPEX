@@ -21,6 +21,9 @@ class Tracer:
         hijack_api()
 
     def start(self):
+        # Evoke stop implicity.
+        if cfg.dump_state:
+            dump_util.dump()
         # global step counting.
         cfg.new_step()
 

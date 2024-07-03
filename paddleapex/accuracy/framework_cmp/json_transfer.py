@@ -68,6 +68,7 @@ if __name__ == "__main__":
         # dumped api args_list
         args_list = content[item]["args"]
         single_paddle_op = {}
+        single_paddle_op["dout_list"] = content[item]["dout_list"]
         single_paddle_op["kwargs"] = {}
         if inplace_flag:
             single_paddle_op["args"] = args_list
@@ -102,6 +103,8 @@ if __name__ == "__main__":
         single_torch_op["args"] = []
         single_torch_op["kwargs"] = {}
         single_torch_op["origin_paddle_op"] = item
+        single_torch_op["dout_list"] = content[item]["dout_list"]
+
         if inplace_flag:
             single_torch_op["args"] = args_list
             single_torch_op["inplace"] = True
