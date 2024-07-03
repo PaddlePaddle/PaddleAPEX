@@ -68,6 +68,8 @@ class API:
         self.mode = mode
         self.args_num = 0
         self.embedding_num = 0
+        self.output_num = 0
+        self.dout_list = []
 
     """
         Adjust data format.
@@ -80,7 +82,6 @@ class API:
         self.api_info_struct = {
             self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
         }
-        dump_util.update_api_dict(self.api_info_struct, self.rank)
 
     def update_APIInfo(self, op_name, rank):
         print("dump api: ", op_name)
@@ -91,6 +92,18 @@ class API:
         self.args = inputs
         self.kwargs = kwargs
         self.reformat()
+
+    def record_dout(self, grad_value):
+        if grad_value is None:
+            self.api_info_struct[self.op_name].update({"dout_list": ["Failed"]})
+            dump_util.update_api_dict(self.api_info_struct, self.rank)
+        else:
+            dout = self.analyze_element(grad_value)
+            self.dout_list.append(dout)
+            self.output_num -= 1
+            if self.output_num == 0:
+                self.api_info_struct[self.op_name].update({"dout_list": self.dout_list})
+                dump_util.update_api_dict(self.api_info_struct, self.rank)
 
     def analyze_element(self, element):
         if isinstance(element, (list, tuple)):

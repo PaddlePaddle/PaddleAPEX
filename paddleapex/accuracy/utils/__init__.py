@@ -14,7 +14,7 @@ from .utils import (
     seed_all,
     api_json_read,
 )
-from .data_generate import gen_api_params, rand_like
+from .data_generate import gen_api_params, rand_like, gen_args
 from .file_check_util import (
     FileCheckException,
     FileChecker,
@@ -46,6 +46,7 @@ __all__ = [
     "get_full_data_path",
     "check_path_before_create",
     "seed_all",
+    "gen_args",
     "gen_api_params",
     "FileCheckConst",
     "FileCheckException",

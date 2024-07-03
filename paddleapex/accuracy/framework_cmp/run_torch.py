@@ -8,22 +8,22 @@ from tqdm import tqdm
 
 from paddleapex.accuracy.utils import (
     print_info_log,
-    check_grad_list,
     gen_api_params,
     api_json_read,
+    check_grad_list,
     rand_like,
+    gen_args,
     print_warn_log,
 )
-
-current_time = time.strftime("%Y%m%d%H%M%S")
-Warning_list = []
-
 
 dtype_mapping = {
     "FP16": paddle.float16,
     "FP32": paddle.float32,
     "BF16": paddle.bfloat16,
 }
+Warning_list = []
+
+current_time = time.strftime("%Y%m%d%H%M%S")
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
@@ -111,9 +111,14 @@ def recursive_arg_to_device(arg_in, mode="to_torch"):
         return arg_in
 
 
-def ut_case_parsing(forward_content, cfg, out_path):
+def ut_case_parsing(forward_content, cfg):
     print_info_log("start UT save")
+    out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
+    debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
+    debug_mode = False
+    if len(debug_case) > 0:
+        debug_mode = True
     for item in multi_dtype_ut:
         fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
         bwd_output_dir = os.path.abspath(
@@ -125,12 +130,14 @@ def ut_case_parsing(forward_content, cfg, out_path):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        paddle_api_name = api_info_dict["origin_paddle_op"]
         try:
             eval(api_call_name.split("*")[0])
         except Exception:
-            paddle_api_name = api_info_dict["origin_paddle_op"]
             msg = f"{paddle_api_name} No matching api!"
             Warning_list.append(msg)
+            continue
+        if debug_mode and paddle_api_name not in debug_case:
             continue
         if len(multi_dtype_ut) > 0:
             for enforce_dtype in multi_dtype_ut:
@@ -144,14 +151,13 @@ def ut_case_parsing(forward_content, cfg, out_path):
                 print(process)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, enforce_dtype
+                    api_call_name, api_info_dict_copy, enforce_dtype, debug_case
                 )
-                paddle_name = api_info_dict["origin_paddle_op"]
                 fwd_output_path = os.path.join(
-                    out_path, enforce_dtype, "output", paddle_name
+                    out_path, enforce_dtype, "output", paddle_api_name
                 )
                 bwd_output_path = os.path.join(
-                    out_path, enforce_dtype, "output_backward", paddle_name
+                    out_path, enforce_dtype, "output_backward", paddle_api_name
                 )
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
                 bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
@@ -165,12 +171,11 @@ def ut_case_parsing(forward_content, cfg, out_path):
         else:
             print(api_call_name)
             fwd_res, bp_res = run_api_case(api_call_name, api_info_dict)
-            paddle_name = api_info_dict["origin_paddle_op"]
             fwd_output_path = os.path.join(
-                out_path, enforce_dtype, "output", paddle_name
+                out_path, enforce_dtype, "output", paddle_api_name
             )
             bwd_output_path = os.path.join(
-                out_path, enforce_dtype, "output_backward", paddle_name
+                out_path, enforce_dtype, "output_backward", paddle_api_name
             )
             if not isinstance(fwd_res, type(None)):
                 fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
@@ -181,28 +186,31 @@ def ut_case_parsing(forward_content, cfg, out_path):
             print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
+def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=None):
     api_call_stack = api_call_name.rsplit("*")[0]
-
     # generate paddle tensor
     args, kwargs, need_backward = gen_api_params(api_info_dict)
+
     ##################################################################
     ##      RUN FORWARD
     ##################################################################
     try:
         # dtype convert
-        if enforce_dtype:
-            args = enforce_convert(args, enforce_dtype)
-            kwargs = {
-                key: enforce_convert(value, enforce_dtype)
-                for key, value in kwargs.items()
-            }
+        args = enforce_convert(args, enforce_dtype)
+        kwargs = {
+            key: enforce_convert(value, enforce_dtype) for key, value in kwargs.items()
+        }
         # paddle to torch
         device_args = recursive_arg_to_device(args, mode="to_torch")
         device_kwargs = {
             key: recursive_arg_to_device(value, mode="to_torch")
             for key, value in kwargs.items()
         }
+        if api_call_name in debug_case:
+            x = [device_args, device_kwargs]
+            out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
+            save_pth = os.path.join(out_path, "input_data", api_call_name)
+            paddle.save(x, save_pth)
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
 
     except Exception as err:
@@ -218,9 +226,15 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
     if need_backward:
         try:
             device_grad_out = []
-            out = recursive_arg_to_device(device_out, mode="to_paddle")
-            dout = rand_like(out)
+            if api_info_dict["dout_list"] != "Failed":
+                dout, _ = gen_args(api_info_dict["dout_list"])
+            else:
+                print("dout dump json is None!")
+                dout = rand_like(device_out)
+            dout = enforce_convert(dout, enforce_dtype)
             dout = recursive_arg_to_device(dout, mode="to_torch")
+            if isinstance(device_out, torch.Tensor):
+                dout = dout[0].reshape(device_out.shape)
             torch.autograd.backward([device_out], [dout])
             for arg in device_args:
                 if isinstance(arg, torch.Tensor):
@@ -232,7 +246,7 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
             for k, v in device_kwargs.items():
                 if isinstance(v, torch.Tensor):
                     device_grad_out.append(v.grad)
-                if isinstance(v, list):  # op: concat
+                if isinstance(v, list):  # op: concat/stack
                     for x in v:
                         if isinstance(x, torch.Tensor):
                             device_grad_out.append(x.grad)
@@ -242,15 +256,24 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None):
                 Warning_list.append(msg)
         except Exception as err:
             api_name = api_call_name.split("*")[0]
-            msg = f"Run API {api_name} backward Error: %s" % str(err)
+            if enforce_dtype:
+                name = api_name + "*" + enforce_dtype
+                msg = f"Run API {name} backward Error: %s" % str(err)
+            else:
+                msg = f"Run API {api_name} backward Error: %s" % str(err)
             print_warn_log(msg)
             Warning_list.append(msg)
             return device_out, None
     else:
-        msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
+        if enforce_dtype:
+            name = api_call_name + "*" + enforce_dtype
+            msg = f"{name} has no tensor required grad, SKIP Backward"
+        else:
+            msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
         print_warn_log(msg)
         Warning_list.append(msg)
         return device_out, None
+
     return device_out, device_grad_out
 
 
@@ -268,7 +291,7 @@ def arg_parser(parser):
         "-out",
         "--dump_path",
         dest="out_path",
-        default="./paddle",
+        default="./torch",
         type=str,
         help="<optional> The ut task result out path.",
         required=False,
@@ -282,6 +305,15 @@ def arg_parser(parser):
         help="",
         required=False,
     )
+    parser.add_argument(
+        "-op",
+        "--op_name",
+        dest="test_case_name",
+        default="",
+        type=str,
+        help="",
+        required=False,
+    )
 
 
 if __name__ == "__main__":
@@ -290,10 +322,10 @@ if __name__ == "__main__":
     cfg = parser.parse_args()
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
-    ut_case_parsing(forward_content, cfg, out_path)
+    ut_case_parsing(forward_content, cfg)
+    print_info_log("UT save completed")
     warning_log_pth = os.path.join(out_path, "./warning_log.txt")
     File = open(warning_log_pth, "w")
     for item in Warning_list:
         File.write(item + "\n")
     File.close()
-    print_info_log("UT save completed")

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import paddle.distributed as dist
+import paddle
 from .. import config
 from ..api_info import API
 
@@ -41,6 +42,19 @@ class OPTemplate:
             api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
             output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
             api_recorder.update_real_data(args, kwargs)
+            try:
+                if isinstance(output, paddle.Tensor):
+                    if not output.stop_gradient:
+                        output.register_hook(api_recorder.record_dout)
+                        api_recorder.output_num = 1
+                if isinstance(output, (list, tuple)):
+                    for item in output:
+                        if isinstance(item, paddle.Tensor) and not item.stop_gradient:
+                            api_recorder.output_num += 1
+                            item.register_hook(api_recorder.record_dout)
+            except Exception as e:
+                print(self.op_name_, " register hook failed. Due to :", e)
+                api_recorder.record_dout(None)
         else:
             output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
         return output

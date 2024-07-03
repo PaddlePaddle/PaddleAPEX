@@ -21,6 +21,14 @@ parser.add_argument(
     help="",
     required=False,
 )
+parser.add_argument(
+    "-op",
+    dest="debug_op",
+    default="",
+    type=str,
+    help="",
+    required=False,
+)
 cfg = parser.parse_args()
 
 cwd = __file__.rsplit("/", 1)[0]
@@ -59,10 +67,12 @@ command1 = [
     paddle_script,
     "-json",
     json_prefix + "_paddle.json",
-    "-o",
+    "-out",
     out_dir_paddle,
     "-enforce",
     enforce_dtype,
+    "-op",
+    cfg.debug_op,
 ]
 subprocess.run(command1)
 
@@ -73,10 +83,12 @@ command2 = [
     torch_script,
     "-json",
     json_prefix + "_torch.json",
-    "-o",
+    "-out",
     out_dir_torch,
     "-enforce",
     enforce_dtype,
+    "-op",
+    cfg.debug_op,
 ]
 subprocess.run(command2)
 
