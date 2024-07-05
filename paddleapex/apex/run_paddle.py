@@ -5,7 +5,7 @@ import paddle
 import copy
 from tqdm import tqdm
 
-from paddleapex.accuracy.utils import (
+from paddleapex.apex.utils import (
     print_info_log,
     gen_api_params,
     api_json_read,
@@ -92,7 +92,11 @@ def ut_case_parsing(forward_content, cfg):
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, backend, enforce_dtype, debug_case
+                    api_call_name,
+                    api_info_dict_copy,
+                    backend,
+                    enforce_dtype,
+                    debug_case,
                 )
                 fwd_output_path = os.path.join(
                     out_path, enforce_dtype.name, "output", api_call_name
@@ -107,7 +111,9 @@ def ut_case_parsing(forward_content, cfg):
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, backend, debug_case)
+            fwd_res, bp_res = run_api_case(
+                api_call_name, api_info_dict, backend, debug_case
+            )
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
             if not isinstance(fwd_res, type(None)):
@@ -117,7 +123,9 @@ def ut_case_parsing(forward_content, cfg):
             print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None, debug_case=None):
+def run_api_case(
+    api_call_name, api_info_dict, backend, enforce_dtype=None, debug_case=None
+):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
     args, kwargs, need_backward = gen_api_params(api_info_dict)

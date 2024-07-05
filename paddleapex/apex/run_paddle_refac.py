@@ -64,6 +64,21 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
         return arg_in
 
 
+def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
+    fwd_output_dir = os.path.abspath(os.path.join(out_path, dtype_name, "output"))
+    bwd_output_dir = os.path.abspath(
+        os.path.join(out_path, dtype_name, "output_backward")
+    )
+    os.makedirs(fwd_output_dir, exist_ok=True)
+    os.makedirs(bwd_output_dir, exist_ok=True)
+    fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+    bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+    if not isinstance(forward_res, type(None)):
+        paddle.save(forward_res, fwd_output_path)
+    if not isinstance(backward_res, type(None)):
+        paddle.save(backward_res, bwd_output_path)
+
+
 def ut_case_parsing(forward_content, cfg):
     print_info_log("start UT save")
     backend = cfg.backend
@@ -73,13 +88,7 @@ def ut_case_parsing(forward_content, cfg):
     debug_mode = False
     if len(debug_case) > 0:
         debug_mode = True
-    for item in multi_dtype_ut:
-        fwd_output_dir = os.path.abspath(os.path.join(out_path, item, "output"))
-        bwd_output_dir = os.path.abspath(
-            os.path.join(out_path, item, "output_backward")
-        )
-        os.makedirs(fwd_output_dir, exist_ok=True)
-        os.makedirs(bwd_output_dir, exist_ok=True)
+
     enforce_types = [type_map[item] for item in multi_dtype_ut]
 
     for i, (api_call_name, api_info_dict) in enumerate(
@@ -91,60 +100,58 @@ def ut_case_parsing(forward_content, cfg):
             for enforce_dtype in enforce_types:
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
-                fwd_res, bp_res = run_api_case(
+                run_acc_case(
                     api_call_name,
                     api_info_dict_copy,
                     backend,
+                    out_path,
                     enforce_dtype,
                     debug_case,
                 )
-                fwd_output_path = os.path.join(
-                    out_path, enforce_dtype.name, "output", api_call_name
-                )
-                bwd_output_path = os.path.join(
-                    out_path, enforce_dtype.name, "output_backward", api_call_name
-                )
-                if not isinstance(fwd_res, type(None)):
-                    paddle.save(fwd_res, fwd_output_path)
-                if not isinstance(bp_res, type(None)):
-                    paddle.save(bp_res, bwd_output_path)
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(
-                api_call_name, api_info_dict, backend, debug_case
-            )
-            fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-            bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
-            if not isinstance(fwd_res, type(None)):
-                paddle.save(fwd_res, fwd_output_path)
-            if not isinstance(bp_res, type(None)):
-                paddle.save(bp_res, bwd_output_path)
+            run_acc_case(api_call_name, api_info_dict, backend, out_path, debug_case)
             print("*" * 100)
 
 
-def run_api_case(
-    api_call_name, api_info_dict, backend, enforce_dtype=None, debug_case=None
+def create_input_args(api_info, backend, enforce_dtype=None, debug_case=None):
+    args, kwargs, need_backward = gen_api_params(api_info)
+    device_args = recursive_arg_to_device(args, backend, enforce_dtype)
+    device_kwargs = {
+        key: recursive_arg_to_device(value, backend, enforce_dtype)
+        for key, value in kwargs.items()
+    }
+    return device_args, device_kwargs, need_backward
+
+
+def create_dout(
+    dout_info_dict,
+    device_out,
+    backend,
+):
+    if dout_info_dict != "Failed":
+        dout, _ = gen_args(dout_info_dict)
+    else:
+        print("dout dump json is None!")
+        dout = rand_like(device_out)
+    dout = recursive_arg_to_device(dout, backend)
+    return dout
+
+
+def run_forward(
+    api_call_name, device_args, device_kwargs, enforce_dtype=None, debug_case=None
 ):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
-    args, kwargs, need_backward = gen_api_params(api_info_dict)
-
-    ##################################################################
-    ##      RUN FORWARD
-    ##################################################################
     try:
-        device_args = recursive_arg_to_device(args, backend, enforce_dtype)
-        device_kwargs = {
-            key: recursive_arg_to_device(value, backend, enforce_dtype)
-            for key, value in kwargs.items()
-        }
         if api_call_name in debug_case:
             x = [device_args, device_kwargs]
             out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
             save_pth = os.path.join(out_path, "input_data", api_call_name)
             paddle.save(x, save_pth)
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
+        return device_out
 
     except Exception as err:
         api_name = api_call_name.split("*")[0]
@@ -155,60 +162,90 @@ def run_api_case(
             msg = f"Run API {api_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
-        return None, None
+        return None
 
-    ##################################################################
-    ##      RUN BACKWARD
-    ##################################################################
+
+def get_grad_tensor(args, kwargs):
+    device_grad_out = []
+    for arg in args:
+        if isinstance(arg, paddle.Tensor):
+            device_grad_out.append(arg.grad)
+        if isinstance(arg, list):  # op: concat/stack
+            for x in arg:
+                if isinstance(x, paddle.Tensor):
+                    device_grad_out.append(x.grad)
+    for k, v in kwargs.items():
+        if isinstance(v, paddle.Tensor):
+            device_grad_out.append(v.grad)
+        if isinstance(v, list):  # op: concat/stack
+            for x in v:
+                if isinstance(x, paddle.Tensor):
+                    device_grad_out.append(x.grad)
+    return device_grad_out
+
+
+def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=None):
     if need_backward:
         try:
-            device_grad_out = []
-            if api_info_dict["dout_list"] != "Failed":
-                dout, _ = gen_args(api_info_dict["dout_list"])
-            else:
-                print("dout dump json is None!")
-                dout = rand_like(device_out)
-            dout = recursive_arg_to_device(dout, backend, enforce_dtype)
             paddle.autograd.backward([device_out], dout)
-            for arg in device_args:
-                if isinstance(arg, paddle.Tensor):
-                    device_grad_out.append(arg.grad)
-                if isinstance(arg, list):  # op: concat/stack
-                    for x in arg:
-                        if isinstance(x, paddle.Tensor):
-                            device_grad_out.append(x.grad)
-            for k, v in device_kwargs.items():
-                if isinstance(v, paddle.Tensor):
-                    device_grad_out.append(v.grad)
-                if isinstance(v, list):  # op: concat/stack
-                    for x in v:
-                        if isinstance(x, paddle.Tensor):
-                            device_grad_out.append(x.grad)
+            device_grad_out = get_grad_tensor(args, kwargs)
             device_grad_out = check_grad_list(device_grad_out)
             if device_grad_out is None:
                 msg = f"{api_call_name} grad_list is None"
                 Warning_list.append(msg)
+            return device_grad_out
         except Exception as err:
             api_name = api_call_name.split("*")[0]
-            if enforce_dtype:
-                name = api_name + "*" + enforce_dtype.name
-                msg = f"Run API {name} backward Error: %s" % str(err)
-            else:
-                msg = f"Run API {api_name} backward Error: %s" % str(err)
+            msg = f"Run API {api_name} backward Error: %s" % str(err)
             print_warn_log(msg)
             Warning_list.append(msg)
-            return device_out, None
+            return None
     else:
-        if enforce_dtype:
-            name = api_call_name + "*" + enforce_dtype.name
-            msg = f"{name} has no tensor required grad, SKIP Backward"
-        else:
-            msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
+        msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
         print_warn_log(msg)
         Warning_list.append(msg)
-        return device_out, None
+        return None
 
-    return device_out, device_grad_out
+
+def run_acc_case(
+    api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=None
+):
+    device_args, device_kwargs, need_backward = create_input_args(
+        api_info_dict, backend, enforce_dtype, debug_case
+    )
+    try:
+        device_out = run_forward(
+            api_call_name, device_args, device_kwargs, enforce_dtype, debug_case
+        )
+    except Exception as err:
+        msg = "Run_forward Error: %s" % str(err)
+        print_warn_log(msg)
+        return None, None
+
+    try:
+        device_grad_out = []
+        dout = create_dout(api_info_dict["dout_list"], device_out, backend)
+        device_grad_out = run_backward(
+            api_call_name, device_out, dout, device_args, device_kwargs, need_backward
+        )
+    except Exception as err:
+        msg = "Run_backward Error: %s" % str(err)
+        print_warn_log(msg)
+        return device_out, None
+    save_tensor(
+        device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
+    )
+    return
+
+
+def run_profile_case(
+    api_call_name, api_info_dict_copy, backend, enforce_dtype, debug_case
+):
+    pass
+
+
+def run_mem_case(api_call_name, api_info_dict_copy, backend, enforce_dtype, debug_case):
+    pass
 
 
 def arg_parser(parser):
@@ -225,7 +262,7 @@ def arg_parser(parser):
         "-out",
         "--dump_path",
         dest="out_path",
-        default="./output/",
+        default="./paddle/",
         type=str,
         help="<optional> The ut task result out path.",
         required=False,
@@ -234,7 +271,7 @@ def arg_parser(parser):
         "-backend",
         "--backend",
         dest="backend",
-        default="npu",
+        default="gpu",
         type=str,
         help="<optional> The running device NPU or GPU.",
         required=False,
