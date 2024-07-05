@@ -40,17 +40,23 @@ tqdm_params = {
 }
 
 
-def recursive_arg_to_device(arg_in, enforce_dtype=None):
+def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
     if isinstance(arg_in, (list, tuple)):
-        res = []
-        for item in arg_in:
-            res.append(recursive_arg_to_device(item, enforce_dtype))
-        return res
+        return type(arg_in)(
+            recursive_arg_to_device(arg, backend, enforce_dtype) for arg in arg_in
+        )
     elif isinstance(arg_in, paddle.Tensor):
-        arg_in = arg_in.cuda()
-        if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
-            grad_status = arg_in.stop_gradient
-            with paddle.no_grad():
+        grad_status = arg_in.stop_gradient
+        with paddle.no_grad():
+            if "gpu" in backend:
+                arg_in = arg_in.cuda()
+            if "cpu" in backend:
+                arg_in = arg_in.cpu()
+                if arg_in.dtype.name == "BF16":
+                    arg_in = arg_in.cast("float32")
+            else:
+                arg_in = arg_in.to(backend)
+            if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
                 arg_in = arg_in.cast(enforce_dtype)
             arg_in.stop_gradient = grad_status
         return arg_in
@@ -60,6 +66,7 @@ def recursive_arg_to_device(arg_in, enforce_dtype=None):
 
 def ut_case_parsing(forward_content, cfg):
     print_info_log("start UT save")
+    backend = cfg.backend
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
     debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
@@ -85,7 +92,7 @@ def ut_case_parsing(forward_content, cfg):
                 print(api_call_name + "*" + enforce_dtype.name)
                 api_info_dict_copy = copy.deepcopy(api_info_dict)
                 fwd_res, bp_res = run_api_case(
-                    api_call_name, api_info_dict_copy, enforce_dtype, debug_case
+                    api_call_name, api_info_dict_copy, backend, enforce_dtype, debug_case
                 )
                 fwd_output_path = os.path.join(
                     out_path, enforce_dtype.name, "output", api_call_name
@@ -100,7 +107,7 @@ def ut_case_parsing(forward_content, cfg):
                 print("*" * 100)
         else:
             print(api_call_name)
-            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, debug_case)
+            fwd_res, bp_res = run_api_case(api_call_name, api_info_dict, backend, debug_case)
             fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
             bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
             if not isinstance(fwd_res, type(None)):
@@ -110,7 +117,7 @@ def ut_case_parsing(forward_content, cfg):
             print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=None):
+def run_api_case(api_call_name, api_info_dict, backend, enforce_dtype=None, debug_case=None):
     api_call_stack = api_call_name.rsplit("*")[0]
     api_name = api_call_stack.rsplit(".")[-1]
     args, kwargs, need_backward = gen_api_params(api_info_dict)
@@ -119,9 +126,9 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=No
     ##      RUN FORWARD
     ##################################################################
     try:
-        device_args = recursive_arg_to_device(args, enforce_dtype)
+        device_args = recursive_arg_to_device(args, backend, enforce_dtype)
         device_kwargs = {
-            key: recursive_arg_to_device(value, enforce_dtype)
+            key: recursive_arg_to_device(value, backend, enforce_dtype)
             for key, value in kwargs.items()
         }
         if api_call_name in debug_case:
@@ -153,7 +160,7 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=No
             else:
                 print("dout dump json is None!")
                 dout = rand_like(device_out)
-            dout = recursive_arg_to_device(dout, enforce_dtype)
+            dout = recursive_arg_to_device(dout, backend, enforce_dtype)
             paddle.autograd.backward([device_out], dout)
             for arg in device_args:
                 if isinstance(arg, paddle.Tensor):
@@ -213,6 +220,15 @@ def arg_parser(parser):
         default="./paddle/",
         type=str,
         help="<optional> The ut task result out path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-backend",
+        "--backend",
+        dest="backend",
+        default="gpu",
+        type=str,
+        help="<optional> The running device NPU or GPU.",
         required=False,
     )
     parser.add_argument(
