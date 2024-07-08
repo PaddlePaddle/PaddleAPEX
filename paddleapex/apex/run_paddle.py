@@ -3,7 +3,6 @@ import os
 import shutil
 import time
 import copy
-import numpy as np
 from tqdm import tqdm
 import paddle
 from paddle import framework
@@ -41,6 +40,8 @@ tqdm_params = {
     "dynamic_ncols": True,  # 动态调整进度条宽度以适应控制台
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
+
+PROFILE_RUN_TIMES = 100
 
 
 def recursive_delete_arg(arg_in):
@@ -91,14 +92,17 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, dtype_name, "output"))
-    bwd_output_dir = os.path.abspath(
-        os.path.join(out_path, dtype_name, "output_backward")
-    )
+    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
+    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
+    if dtype_name == "":
+        fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+        bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+    else:
+        fwd_output_path = os.path.join(fwd_output_dir, api_call_name + "*" + dtype_name)
+        bwd_output_path = os.path.join(bwd_output_dir, api_call_name + "*" + dtype_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
-    fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-    bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+
     if not isinstance(forward_res, type(None)):
         paddle.save(forward_res, fwd_output_path)
     if not isinstance(backward_res, type(None)):
@@ -106,22 +110,25 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
 
 
 def evoke_related_test_func(test_mode):
-    if test_mode == "acc":
-        return run_acc_case
-    elif test_mode == "mem":
-        return run_mem_case
-    elif test_mode == "pro":
-        return run_profile_case
-    elif test_mode == "all":
+    func_method = []
+    if "acc" in test_mode:
+        func_method.append(run_acc_case)
+    if "mem" in test_mode:
+        func_method.append(run_mem_case)
+    if "pro" in test_mode:
+        func_method.append(run_profile_case)
+    if test_mode == "all":
         return [run_acc_case, run_mem_case, run_profile_case]
-    else:
-        raise ValueError("test_mode should be acc, mem, pro or all!")
+    if len(func_method) == 0:
+        raise ValueError("test mode is not supported!")
+    return func_method
 
 
 def ut_case_parsing(forward_content, cfg):
     run_case_funcs = evoke_related_test_func(cfg.test_mode)
     backend = cfg.backend
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
+    os.mkdir(out_path) if not os.path.exists(out_path) else None
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
     debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
     debug_mode = False
@@ -138,11 +145,8 @@ def ut_case_parsing(forward_content, cfg):
                 print(api_call_name + "*" + enforce_dtype.name)
                 args = api_call_name, api_info_dict, backend, out_path
                 kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case}
-                if isinstance(run_case_funcs, list):
-                    for run_case in run_case_funcs:
-                        run_case(*args, **kwargs)
-                else:
-                    run_case_funcs(*args, **kwargs)
+                for run_case in run_case_funcs:
+                    run_case(*args, **kwargs)
                 print("*" * 100)
         else:
             print(api_call_name)
@@ -271,20 +275,12 @@ def run_acc_case(
     return
 
 
-def get_eps_time(api_call_name):
-    api_call_stack = api_call_name.rsplit("*")[0]
-    begin = time.time()
-    eval(api_call_stack)
-    end = time.time()
-    return end - begin
-
-
 def run_profile_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[]
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    device_args, device_kwargs, need_backward = create_input_args(
+    device_args, device_kwargs, _ = create_input_args(
         api_info_dict_copy, backend, enforce_dtype
     )
     if api_call_name in debug_case:
@@ -293,16 +289,25 @@ def run_profile_case(
         save_pth = os.path.join(out_path, "input_data", api_call_name)
         paddle.save(x, save_pth)
 
-    # get dout firstly.
-    device_out = run_forward(api_call_name, device_args, device_kwargs)
-    dout = create_dout(api_info_dict["dout_list"], device_out, backend, enforce_dtype)
-    op_forward_time = []
-    op_backward_time = []
+    # device warmming up
+    try:
+        device_out = run_forward(api_call_name, device_args, device_kwargs)
+        dout = create_dout(
+            api_info_dict["dout_list"], device_out, backend, enforce_dtype
+        )
+        paddle.autograd.backward([device_out], dout)
+    except Exception as err:
+        msg = "Failed in device warming up: %s" % str(err)
+        print_warn_log(msg)
+        return
 
     def profile_inner_loop_():
         try:
+            place = framework._current_expected_place_()
             fwd_start_time = time.time()
-            device_out = run_forward(api_call_name, device_args, device_kwargs)
+            for _ in range(PROFILE_RUN_TIMES):
+                device_out = run_forward(api_call_name, device_args, device_kwargs)
+            paddle.device.synchronize(device=place)
             fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
         except Exception as err:
@@ -311,10 +316,12 @@ def run_profile_case(
             return -1, -1
         try:
             bwd_start_time = time.time()
-            paddle.autograd.backward([device_out], dout)
+            paddle.device.synchronize(device=place)
+            for _ in range(PROFILE_RUN_TIMES):
+                paddle.autograd.backward([device_out], dout, retain_graph=True)
+            paddle.device.synchronize(device=place)
             bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time
-            del device_out
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
@@ -322,28 +329,21 @@ def run_profile_case(
         return fwd_time, bwd_time
 
     try:
-        for i in range(110):
-            fwd_time, bwd_time = profile_inner_loop_()
-            if i >= 10:
-                op_forward_time.append(fwd_time)
-                op_backward_time.append(bwd_time)
-        return fwd_time, bwd_time
+        fwd_time, bwd_time = profile_inner_loop_()
     except Exception as err:
         msg = f"Run {api_call_name} profile Error: %s" % str(err)
         print_warn_log(msg)
         Warning_list.append(msg)
         return
-    fwd_time = np.array(op_forward_time).mean()
-    bwd_time = np.array(op_backward_time).mean()
     log_path = os.path.join(out_path, "profile_analyze.log")
-    os.mkdir(out_path) if not os.path.exists(out_path) else None
 
-    eps_time = get_eps_time(api_call_name)
     F = open(log_path, "a")
     op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
     op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
-    F.write(f"{op_fwd}:\t{fwd_time-eps_time}\n")
-    F.write(f"{op_bwd}:\t{bwd_time-eps_time}\n")
+    print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
+    print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
+    F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\n")
+    F.write(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}\n")
     F.close()
     return
 
@@ -382,7 +382,7 @@ def run_mem_case(
     log_path = os.path.join(out_path, "memory_analyze.log")
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
-    op_name = api_call_name + "*" + enforce_dtype.name
+    op_name = api_call_name + "*" + enforce_dtype.name + ".forward"
     F.write(f"{op_name}:\t{str(activation_cost)}\n")
     F.close()
     return
@@ -438,8 +438,7 @@ def arg_parser(parser):
         "-mode",
         "--mode",
         dest="test_mode",
-        default="acc",
-        choices=["acc", "pro", "mem", "all"],
+        default="all",
         type=str,
         help="debug_op name",
         required=False,
