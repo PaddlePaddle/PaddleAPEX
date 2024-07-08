@@ -88,19 +88,13 @@ def analyze_log(raw_data):
 
 
 def get_cmp_result_mem(value1, value2):
-    if value1 == value2:
-        return "pass"
-    else:
-        return "error"
+    return str(int(value1) - int(value2))
 
 
 def get_cmp_result_prof(value1, value2):
     value1 = float(value1)
     value2 = float(value2)
-    if value1 / value2 > TIME_RATIO:
-        return "pass"
-    else:
-        return "error"
+    return str(value1 / value2)
 
 
 def compare_npu_gpu(

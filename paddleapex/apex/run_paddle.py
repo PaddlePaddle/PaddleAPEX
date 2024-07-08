@@ -92,14 +92,16 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
-    fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     if dtype_name == "":
-        fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
-        bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
+        bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
     else:
-        fwd_output_path = os.path.join(fwd_output_dir, api_call_name + "*" + dtype_name)
-        bwd_output_path = os.path.join(bwd_output_dir, api_call_name + "*" + dtype_name)
+        bwd_output_dir = os.path.abspath(
+            os.path.join(out_path, dtype_name, "output_backward")
+        )
+        fwd_output_dir = os.path.abspath(os.path.join(out_path, dtype_name, "output"))
+    fwd_output_path = os.path.join(fwd_output_dir, api_call_name)
+    bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
 
