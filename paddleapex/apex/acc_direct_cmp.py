@@ -3,14 +3,17 @@ import os
 import csv
 import argparse
 import sys
+import time
 import paddle
 import tqdm
 
 from compare_utils.compare import Comparator
 from compare_utils.compare_dependency import print_info_log, FileOpen
 
-RESULT_FILE_NAME = "accuracy_checking_result_" + ".csv"
-DETAILS_FILE_NAME = "accuracy_checking_details_" + ".csv"
+current_time = time.strftime("%Y%m%d%H%M%S")
+
+RESULT_FILE_NAME = "accuracy_checking_result_" + current_time + ".csv"
+DETAILS_FILE_NAME = "accuracy_checking_details_" + current_time + ".csv"
 
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
