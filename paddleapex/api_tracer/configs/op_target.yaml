@@ -1,6 +1,8 @@
 ignored_op:
 
 target_op:
+  # Special op, paddle has wrapped op in framework. #noqa
+  -  paddle._C_ops.layer_norm #noqa
   -  paddle.nn.functional.adaptive_avg_pool1d
   -  paddle.nn.functional.adaptive_avg_pool2d
   -  paddle.nn.functional.adaptive_avg_pool3d
@@ -864,8 +866,8 @@ target_op:
   -  paddle.tensor.fill_constant
   -  paddle.nn.clip._squared_l2_norm
   -  paddle.uniform
-  -  paddle._C_ops.gaussian
-  -  paddle._legacy_C_ops.c_identity
+  # -  paddle._C_ops.gaussian
+  # -  paddle._legacy_C_ops.c_identity
   # -  paddle.distributed.fleet.layers.mpu.mp_ops.
   # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
   # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
