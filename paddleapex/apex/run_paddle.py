@@ -172,7 +172,7 @@ def create_input_args(api_info, backend, enforce_dtype=None):
 
 
 def create_dout(dout_info_dict, device_out, backend, enforce_dtype=None):
-    if dout_info_dict != "Failed":
+    if dout_info_dict[0] != "Failed":
         dout, _ = gen_args(dout_info_dict)
     else:
         print("dout dump json is None!")
