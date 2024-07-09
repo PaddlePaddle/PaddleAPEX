@@ -127,22 +127,29 @@ def gen_random_tensor(info, stop_gradient):
     return data
 
 
+def generate_random_tensor(shape, min_value, max_value):
+    tensor = np.random.randn(*shape)
+    tensor_min = np.min(tensor)
+    tensor_max = np.max(tensor)
+    tensor_normalized = (tensor - tensor_min) / (tensor_max - tensor_min + 1e-6)
+    tensor_scaled = (max_value - min_value) * tensor_normalized + min_value
+    return tensor_scaled
+
+
 def gen_common_tensor(low_info, high_info, shape, data_dtype):
     low = low_info[0]
     high = high_info[0]
     if data_dtype in FLOAT_TYPE_PADDLE:
         if math.isnan(high) or math.isnan(low) or math.isinf(high) or math.isinf(low):
-            tensor = numpy.random.randn(*shape)
+            tensor = generate_random_tensor(shape, 0, 1)
             tensor = paddle.to_tensor(
                 tensor, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
             )
             return tensor
         else:
-            scale = high - low
             if len(shape) == 0:
                 shape = [1]
-            rand = numpy.random.randn(*shape).astype(numpy.float32)
-            tensor = rand * scale + low
+            tensor = generate_random_tensor(shape, low, high).astype(numpy.float32)
             tensor = paddle.to_tensor(
                 tensor, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
             )

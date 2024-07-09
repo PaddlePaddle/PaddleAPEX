@@ -125,17 +125,19 @@ def compare_npu_gpu(
     for key in mem_dict1.keys():
         temp_dict = {}
         temp_dict["API Name"] = key
-        temp_dict["GPU Memory Used(Byte)"] = mem_dict1[key]
+        temp_dict["GPU Memory Used(B)"] = mem_dict1[key]
         if key in prof_dict1.keys():
-            temp_dict["GPU Time"] = prof_dict1[key]
+            temp_dict["GPU Time(μs)"] = prof_dict1[key]
         if key in mem_dict2.keys():
-            temp_dict["Device Memory Used(Byte)"] = mem_dict2[key]
+            temp_dict["Device Memory Used(B)"] = mem_dict2[key]
             if key in prof_dict2.keys():
-                temp_dict["Device Time"] = prof_dict2[key]
-                temp_dict["prof_status"] = get_cmp_result_prof(
+                temp_dict["Device Time(μs)"] = prof_dict2[key]
+                temp_dict["GPU/Device Time Ratio"] = get_cmp_result_prof(
                     prof_dict1[key], prof_dict2[key]
                 )
-            temp_dict["mem_status"] = get_cmp_result_mem(mem_dict1[key], mem_dict2[key])
+            temp_dict["memory_usage_diff"] = get_cmp_result_mem(
+                mem_dict1[key], mem_dict2[key]
+            )
         ensemble_data.append(temp_dict)
 
     with open(result_csv_path, "w", newline="") as file:

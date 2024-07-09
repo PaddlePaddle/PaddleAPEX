@@ -40,7 +40,6 @@ tqdm_params = {
     "dynamic_ncols": True,  # 动态调整进度条宽度以适应控制台
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
-
 PROFILE_RUN_TIMES = 100
 
 
@@ -305,25 +304,27 @@ def run_profile_case(
 
     def profile_inner_loop_():
         try:
-            place = framework._current_expected_place_()
+            paddle.device.synchronize()
             fwd_start_time = time.time()
             for _ in range(PROFILE_RUN_TIMES):
                 device_out = run_forward(api_call_name, device_args, device_kwargs)
-            paddle.device.synchronize(device=place)
+            paddle.device.synchronize()
             fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
+            fwd_time = fwd_time * 1000000  # fwd_time is in us
         except Exception as err:
             msg = "Run_forward Error: %s" % str(err)
             print_warn_log(msg)
             return -1, -1
         try:
+            paddle.device.synchronize()
             bwd_start_time = time.time()
-            paddle.device.synchronize(device=place)
             for _ in range(PROFILE_RUN_TIMES):
                 paddle.autograd.backward([device_out], dout, retain_graph=True)
-            paddle.device.synchronize(device=place)
+            paddle.device.synchronize()
             bwd_end_time = time.time()
-            bwd_time = bwd_end_time - bwd_start_time
+            bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
+            bwd_time = bwd_time * 1000000  # bwd_time is in us
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
