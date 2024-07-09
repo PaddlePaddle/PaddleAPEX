@@ -1,34 +1,40 @@
+[简体中文🀄](./README_CN.md) | **English🌎**
 # PaddleAPEX
-PaddleAPEX：Paddle Accuracy and Performance EXpansion pack
+<p align="center">
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
+    <a href=""><img src="https://img.shields.io/badge/python-3.7+-aff.svg"></a>
+    <a href=""><img src="https://img.shields.io/badge/os-linux%2C%20win%2C%20mac-pink.svg"></a>
+    <a href="https://github.com/PaddlePaddle/PaddleAPEX/graphs/contributors"><img src="https://img.shields.io/github/contributors/PaddlePaddle/PaddleAPEX?color=9ea"></a>
+    <a href="https://github.com/PaddlePaddle/PaddleAPEX/commits"><img src="https://img.shields.io/github/commit-activity/m/PaddlePaddle/PaddleAPEX?color=3af"></a>
+</p>
+
+**PaddleAPEX** is a accuracy and performance expansion pack for PaddlePaddle, supporting operator accuracy checking & operator performance profiling and run-time device memory cost analysis. PaddleAPEX is designed to help developers achieve auto accuracy checking and performance profiling for various devices on paddlepaddle.
+
 ## Api_tracer
 Accuracy auto-checker, which can grasp target operators in training models.
-![Acc Tool Architecture](./doc/APEX_Acc.png)
-<!-- <center>
-    <img src="./Acc/doc/APEX_Acc.png" alt="example">
-</center> -->
 ### Before run: Let us check our global config
 
 #### Step1: Set up your config.
-Accuracy tool need some configuration before start, all settings are list in **PaddleAPEX/Acc/configs/tool_config.yaml**
+Accuracy tool need some configuration before start, all settings are list in **PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**
 
 #### Step2: Set config path.
-We provide two ways to set APEX config:
 
-1.
-    If you use default config file, you can modify specific variable in this file, such as target_step, dump_root_path.
-2.
-    You can also set your own configuration file by setting environment variable via:
-    ``` Shell
-        # We recommand you set APEX_CONFIG_PATH as a real path.
-        # Here is a sample:
-        export APEX_CONFIG_PATH=your_own_path/tool_config.yaml
-    ```
-#### Step3: Install in to your python environment.
+If you use default config file, you can modify specific variable in this file, such as target_step, dump_root_path.
+
+**Advanced usage:**
+    You can also set your own configuration file by setting environment variable via: ```  export APEX_CONFIG_PATH=your_own_path/tool_config.yaml ```
+#### Step3: Install into your python environment.
 
 ``` Shell
-    # Install APEX-Acc in your python environment.
+    # If you are using conda, you can install it by:
     cd PaddleAPEX
     pip install -e .
+
+    # If you are using virtualenv, you can add it to your virtualenv by:
+    export PYTHONPATH=[abs_path to PaddleAPEX]:$PYTHONPATH
+    e.g.:
+    export PYTHONPATH=/root/paddlejob/workspace/xjm/0708/PaddleAPEX:$PYTHONPATH
+
 ```
 
 #### Step4: Record your target operators.
@@ -63,7 +69,7 @@ We provide two ways to set APEX config:
                 |-- Paddle*add*1.0.pt
                 |-- Paddle*add*1.1.pt
 
-4. If you have specific api which you want to trace, you can add its api call stack in **paddleapex/api_tracer/configs/op_target.yaml** like:
+4. **Advanced Usage:** If you have specific api which you want to trace, you can add its api call stack in **paddleapex/api_tracer/configs/op_target.yaml** like:
 ```yaml
   target op:
   -  paddle.add
@@ -73,39 +79,41 @@ We provide two ways to set APEX config:
   -  paddle.xxxx.xxx
   -  paddlenlp.transformers.fusion_ops.xxx
 ```
-    Note, paddleapex only support paddle apis which contain regular types, not suppport custom object instance.
+    Please note that paddleapex only support paddle apis which contain regular types, not suppport custom object instance.
 
 
 #### Step5: Accuracy comparision.
-1.  Same framework, different backends comparision:
+1.  Directly comparision:
     ```Shell
-    cd backend_cmp
-    python run_paddle_multiback.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] -enforce_dtype ["FP32","FP16","BF16"]
+    cd paddleapex/apex
+    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+    # mode can combine mem, acc, pro arbitary. E.g.:-mode mem,acc or -mode all
+    # -op is optional args, if you want to run specific op.
     ```
     This script will generate a repository, which contains api fwd/bwd outputs results. The sturcture is as follows:
-            |-- local_path
-                |-- backend_output
-                |-- backend_output_backward
-                |-- Warning_list.txt
+
+        |-- local_path
+            |-- backend_output
+            |-- backend_output_backward
+            |-- Warning_list.txt
     UT Runtime errors and warnings will be recorded in Warning_list.txt.
     After runing this script twice on different backends, you can run comparision tool to get accuracy result:
 
     ```Shell
-    python direct_cmp.py -gpu [gpu_dump_repo] -npu [npu_dump_repo] -o [result_path]
+    python acc_direct_cmp.py -gpu [gpu_dump_repo] -npu [npu_dump_repo] -o [result_path]
     ```
     This script will generate two csv files, which contains accuracy result and details.
 
-2.  Different frameworks, api accuracy comparision:
+2.  Multi-end precision comparision.
     ```Shell
-    cd framework_cmp
-    # Dump json file shoule be converted to paddle/torch format.
-    # Modify json_transfer.py, check path to target json.
-    python json_transfer.py
-    # You can obtain two json, xx_paddle.json and xx_torch.json
-    # Run test case&compare
-    # Modify launch_test.py, check configurations.
-    python launch_test.py
-    # You can get accuracy result&details.
+    # We use run_paddle.py to run the same operator on different devices and generate corresponding outputs.
+    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+    # This script will generate a repository, which contains api fwd/bwd outputs results.
+    # Then we need to execute two times directly comparision tool.
+    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -gpu [gpubf16_dump_repo] -o [result_path]
+    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -npu [npubf16_dump_repo] -o [result_path]
+    python acc_multi_cmp.py -gpu [gpufp32_gpubf16] -npu [gpufp32_npubf16] -o [third_party_cmp_path]
 
 3. Directly comparision standard:
     We provide a logic flow chart for Directly comparision between devices.
@@ -114,10 +122,18 @@ We provide two ways to set APEX config:
         <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
     </center> -->
 
+4.
+    For cross framework comparision is in WIP, it will coming soon!
 
-4. Multi-end precision comparision.
-    Multi-end comparision is conducted on two direct comparision csv files.
-    ```Shell
-    # Three backends comparision:
-    python api_precision_compare.py --detail1 [detail_npu.csv]  --detail2  [detail_gpu.csv]  --output_path  [output_path]
+#### Step6: Performance/Memory comparision.
+     1. Test cases running:
+     ```
+        cd paddleapex/apex
+        python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype [dtype] -mode mem,pro
+        # exec code above on different devices, and generate corresponding outputs.
+    ```
+    2. Test cases comparision:
+    ```
+        cd paddleapex/apex
+        python prof_cmp.py -gpu [gpu_repo] -npu [npu_repo] -o [result_path]
     ```
