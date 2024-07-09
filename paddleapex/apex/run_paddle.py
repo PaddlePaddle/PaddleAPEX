@@ -53,6 +53,20 @@ def recursive_delete_arg(arg_in):
         return
 
 
+def recursive_arg_to_add_info(arg_in):
+    if isinstance(arg_in, (list, tuple)):
+        res = []
+        for item in arg_in:
+            res.append(recursive_arg_to_add_info(item))
+        return res
+    elif isinstance(arg_in, paddle.Tensor):
+        if arg_in.dtype.name == "BF16":
+            arg_in = arg_in.cast("float32")
+            return {"BF16Tensor": arg_in}
+        else:
+            return arg_in
+
+
 def recursive_arg_to_cpu(arg_in):
     if isinstance(arg_in, (list, tuple)):
         res = []
@@ -91,6 +105,8 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
+    forward_res = recursive_arg_to_add_info(forward_res)
+    backward_res = recursive_arg_to_add_info(backward_res)
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -103,7 +119,9 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
     bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
-
+    print(forward_res)
+    print(backward_res)
+    input()
     if not isinstance(forward_res, type(None)):
         paddle.save(forward_res, fwd_output_path)
     if not isinstance(backward_res, type(None)):

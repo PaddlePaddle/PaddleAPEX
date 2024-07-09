@@ -15,7 +15,12 @@ Accuracy auto-checker, which can grasp target operators in training models.
 ### Before run: Let us check our global config
 
 #### Step1: Set up your config.
-Accuracy tool need some configuration before start, all settings are list in **PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**
+Accuracy tool need some configuration before start, you need set target_step, dump_mode.
+If you set dump_mode=real_data, you need set dump_root_path.(This path can be a local path or a remote path)
+
+**Advanced usage:**
+    You can set Async_data=True to dump real_data asynchronously. Apex will work better when you set a remote path.
+For more details, please refer to **PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**.
 
 #### Step2: Set config path.
 
@@ -100,7 +105,7 @@ If you use default config file, you can modify specific variable in this file, s
     After runing this script twice on different backends, you can run comparision tool to get accuracy result:
 
     ```Shell
-    python acc_direct_cmp.py -gpu [gpu_dump_repo] -npu [npu_dump_repo] -o [result_path]
+    python acc_direct_cmp.py --benchmark [gpu_dump_repo] --device [npu_dump_repo] -o [result_path]
     ```
     This script will generate two csv files, which contains accuracy result and details.
 
@@ -111,9 +116,9 @@ If you use default config file, you can modify specific variable in this file, s
     python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
     # This script will generate a repository, which contains api fwd/bwd outputs results.
     # Then we need to execute two times directly comparision tool.
-    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -gpu [gpubf16_dump_repo] -o [result_path]
-    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -npu [npubf16_dump_repo] -o [result_path]
-    python acc_multi_cmp.py -gpu [gpufp32_gpubf16] -npu [gpufp32_npubf16] -o [third_party_cmp_path]
+    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
+    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
+    python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
 
 3. Directly comparision standard:
     We provide a logic flow chart for Directly comparision between devices.
@@ -135,5 +140,5 @@ If you use default config file, you can modify specific variable in this file, s
     2. Test cases comparision:
     ```
         cd paddleapex/apex
-        python prof_cmp.py -gpu [gpu_repo] -npu [npu_repo] -o [result_path]
+        python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
     ```

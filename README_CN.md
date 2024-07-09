@@ -15,7 +15,12 @@
 ### 在开始之前，让我们先检查一下全局配置
 
 #### Step1: 设置你的配置文件。
-抓取工具需要一些配置才能启动，所有设置都列在**PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**中。
+抓取工具需要一些配置才能启动，你需要设置target_step, dump_mode。
+如果你设置dump_mode=real_data，你需要设置dump_root_path。（这个路径可以是本地路径或远程路径）
+
+**进阶用法：**
+    你可以设置Async_data=True来异步地传输数据。当使用远端路径时，Apex会加快抓取速度。
+更多细节问题请参考文件**PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**。
 
 #### Step2: 设置配置文件位置。
 
@@ -102,7 +107,7 @@
     在不同后端运行两次该脚本后，你可以运行比对工具来获得精度结果：
 
     ```Shell
-    python acc_direct_cmp.py -gpu [gpu_dump_repo] -npu [npu_dump_repo] -o [result_path]
+    python acc_direct_cmp.py --benchmark [gpu_dump_repo] --device [npu_dump_repo] -o [result_path]
     ```
     这个脚本生成两个csv文件，他们分别包含精度结果和细节。
 
@@ -112,9 +117,9 @@
     python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
     python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
     # 接下来使用两次直接比较方法，获得比对csv结果。
-    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -gpu [gpubf16_dump_repo] -o [result_path]
-    python acc_direct_cmp.py -gpu [gpufp32_dump_repo] -npu [npubf16_dump_repo] -o [result_path]
-    python acc_multi_cmp.py -gpu [gpufp32_gpubf16] -npu [gpufp32_npubf16] -o [third_party_cmp_path]
+    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
+    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
+    python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
 
 3. 直接比对的标准：
     我们提供了一个逻辑流程图，用于直接比较不同设备之间的精度。
@@ -135,5 +140,5 @@
     2. 用例比对
     ```
         cd paddleapex/apex
-        python prof_cmp.py -gpu [gpu_repo] -npu [npu_repo] -o [result_path]
+        python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
     ```
