@@ -53,6 +53,7 @@ class ThreadPool:
         p = ctx.Process(target=save_tensor, args=(tensor, remote_path))
         p.start()
         self.event_queue.append(p)
+        return remote_path
 
     def allocate_subprocess(self):
         """

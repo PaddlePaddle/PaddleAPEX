@@ -47,11 +47,17 @@ class OPTemplate:
                     if not output.stop_gradient:
                         output.register_hook(api_recorder.record_dout)
                         api_recorder.output_num = 1
+                    else:
+                        api_recorder.record_dout(None)
                 if isinstance(output, (list, tuple)):
+                    need_record = False
                     for item in output:
                         if isinstance(item, paddle.Tensor) and not item.stop_gradient:
                             api_recorder.output_num += 1
+                            need_record = True
                             item.register_hook(api_recorder.record_dout)
+                    if not need_record:
+                        api_recorder.record_dout(None)
             except Exception as e:
                 print(self.op_name_, " register hook failed. Due to :", e)
                 api_recorder.record_dout(None)

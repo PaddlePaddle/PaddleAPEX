@@ -71,7 +71,8 @@ class Dump:
                 cfg.remote_path, f"rank{rank}_step{cfg.global_step}"
             )
             create_directory(remote_repo)
-            self.pool.safe_parellel_save(tensor, file_path, remote_repo)
+            file_path = self.pool.safe_parellel_save(tensor, file_path, remote_repo)
+            full_path = os.path.realpath(file_path)
         else:
             save_tensor(tensor, file_path)
 
