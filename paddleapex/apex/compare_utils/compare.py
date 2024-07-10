@@ -307,7 +307,7 @@ class Comparator:
             status, compare_result, message = [], [], []
             if len(bench_output) != len(device_output):
                 status = [CompareConst.ERROR]
-                message = ["bench and npu output structure is different."]
+                message = ["bench and device output structure is different."]
             else:
                 for b_out_i, n_out_i in zip(bench_output, device_output):
                     status_i, compare_result_i, message_i = self._compare_core(
@@ -345,7 +345,7 @@ class Comparator:
             return (
                 CompareConst.ERROR,
                 compare_column,
-                "bench and npu output type is different.",
+                "bench and device output type is different.",
             )
         elif isinstance(bench_output, dict):
             b_keys, n_keys = set(bench_output.keys()), set(device_output.keys())
@@ -353,7 +353,7 @@ class Comparator:
                 return (
                     CompareConst.ERROR,
                     compare_column,
-                    "bench and npu output dict keys are different.",
+                    "bench and device output dict keys are different.",
                 )
             else:
                 status, compare_result, message = self._compare_core(
@@ -365,22 +365,22 @@ class Comparator:
             copy_bench_out = bench_output.detach().clone()
             copy_device_output = device_output.detach().clone()
             if self.device_BF16:
-                npu_dtype = paddle.bfloat16
+                device_dtype = paddle.bfloat16
             else:
-                npu_dtype = device_output.dtype
+                device_dtype = device_output.dtype
             if self.bench_BF16:
                 bench_dtype = paddle.bfloat16
             else:
                 bench_dtype = bench_output.dtype
             compare_column.bench_type = str(bench_dtype)
-            compare_column.npu_type = str(npu_dtype)
+            compare_column.device_type = str(device_dtype)
             compare_column.shape = tuple(device_output.shape)
             status, compare_result, message = self._compare_paddle_tensor(
                 api_name, copy_bench_out, copy_device_output, compare_column
             )
         elif isinstance(device_output, (bool, int, float, str)):
             compare_column.bench_type = str(type(bench_output))
-            compare_column.npu_type = str(type(device_output))
+            compare_column.device_type = str(type(device_output))
             status, compare_result, message = self._compare_builtin_type(
                 bench_output, device_output, compare_column
             )
@@ -399,32 +399,32 @@ class Comparator:
     def _compare_paddle_tensor(
         self, api_name, bench_output, device_output, compare_column
     ):
-        cpu_shape = bench_output.shape
-        npu_shape = device_output.shape
+        bench_shape = bench_output.shape
+        device_shape = device_output.shape
         bench_dtype = bench_output.dtype
-        npu_dtype = device_output.dtype
-        if npu_dtype == paddle.bfloat16 or bench_dtype == paddle.bfloat16:
+        device_dtype = device_output.dtype
+        if device_dtype == paddle.bfloat16 or bench_dtype == paddle.bfloat16:
             bench_output = bench_output.to(paddle.float32)
             device_output = device_output.to(paddle.float32)
         if self.device_BF16:
-            npu_dtype = paddle.bfloat16
+            device_dtype = paddle.bfloat16
         else:
-            npu_dtype = device_output.dtype
+            device_dtype = device_output.dtype
         bench_output = bench_output.cpu().numpy()
         device_output = device_output.cpu().numpy()
-        if cpu_shape != npu_shape:
+        if bench_shape != device_shape:
             return (
                 CompareConst.ERROR,
                 compare_column,
-                f"The shape of bench{str(cpu_shape)} "
-                f"and npu{str(npu_shape)} not equal.",
+                f"The shape of bench{str(bench_shape)} "
+                f"and device{str(device_shape)} not equal.",
             )
         if not check_dtype_comparable(bench_output, device_output):
             return (
                 CompareConst.ERROR,
                 compare_column,
                 f"Bench out dtype is {bench_output.dtype} but "
-                f"npu output dtype is {device_output.dtype}, cannot compare.",
+                f"device output dtype is {device_output.dtype}, cannot compare.",
             )
         message = ""
         if bench_output.dtype in [
@@ -450,7 +450,7 @@ class Comparator:
             return status, compare_column, message
         else:
             status, compare_column, message = self._compare_float_tensor(
-                api_name, bench_output, device_output, compare_column, npu_dtype
+                api_name, bench_output, device_output, compare_column, device_dtype
             )
             return status, compare_column, message
 

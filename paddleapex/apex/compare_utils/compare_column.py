@@ -4,7 +4,7 @@ from compare_utils.compare_utils import CompareConst
 class CompareColumn:
     def __init__(self):
         self.bench_type = CompareConst.SPACE
-        self.npu_type = CompareConst.SPACE
+        self.device_type = CompareConst.SPACE
         self.shape = CompareConst.SPACE
         self.cosine_sim = CompareConst.SPACE
         self.max_abs_err = CompareConst.SPACE
@@ -24,7 +24,7 @@ class CompareColumn:
     def to_column_value(self, is_pass, message):
         return [
             self.bench_type,
-            self.npu_type,
+            self.device_type,
             self.shape,
             self.cosine_sim,
             self.max_abs_err,
@@ -66,6 +66,9 @@ class ApiPrecisionOutputColumn:
         self.abs_err_ratio_status = CompareConst.SPACE
         self.error_rate = CompareConst.SPACE
         self.error_rate_status = CompareConst.SPACE
+        self.hundred_percent_ratio = CompareConst.SPACE
+        self.thounsand_percent_ratio = CompareConst.SPACE
+        self.million_percent_ratio = CompareConst.SPACE
         self.compare_result = CompareConst.SPACE
         self.compare_algorithm = CompareConst.SPACE
         self.compare_message = CompareConst.SPACE
@@ -91,6 +94,9 @@ class ApiPrecisionOutputColumn:
             self.abs_err_ratio_status,
             self.error_rate,
             self.error_rate_status,
+            self.hundred_percent_ratio,
+            self.thounsand_percent_ratio,
+            self.million_percent_ratio,
             self.compare_result,
             self.compare_algorithm,
             self.compare_message,

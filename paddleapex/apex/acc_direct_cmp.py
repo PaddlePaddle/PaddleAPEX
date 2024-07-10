@@ -33,19 +33,19 @@ tqdm_params = {
 
 def _compare_parser(parser):
     parser.add_argument(
-        "-gpu",
+        "-bench",
         "--benchmark",
         dest="bench_dir",
         type=str,
-        help="The executed output api tensor path directory on GPU",
+        help="The executed output api tensor path directory on BENCH",
         required=True,
     )
     parser.add_argument(
-        "-npu",
+        "-device",
         "--device",
         dest="device_dir",
         type=str,
-        help="The executed output api tensor path directory on NPU",
+        help="The executed output api tensor path directory on DEVICE",
         required=True,
     )
     parser.add_argument(
@@ -67,37 +67,37 @@ def compare_command(args):
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
     bench_dir = os.path.join(args.bench_dir, "./output")
     device_dir = os.path.join(args.device_dir, "./output")
-    gpu_back_dir = os.path.join(args.bench_dir, "./output_backward")
-    npu_back_dir = os.path.join(args.device_dir, "./output_backward")
+    bench_back_dir = os.path.join(args.bench_dir, "./output_backward")
+    device_back_dir = os.path.join(args.device_dir, "./output_backward")
 
-    compare_npu_gpu(
+    compare_device_bench(
         result_csv_path,
         details_csv_path,
         bench_dir,
         device_dir,
         out_path,
-        gpu_back_dir,
-        npu_back_dir,
+        bench_back_dir,
+        device_back_dir,
     )
 
 
-def compare_npu_gpu(
+def compare_device_bench(
     result_csv_path,
     details_csv_path,
     bench_dir,
     device_dir,
     out_path,
-    gpu_grad_dir=None,
-    npu_grad_dir=None,
+    bench_grad_dir=None,
+    device_grad_dir=None,
 ):
     Warning_list = []
     compare = Comparator(result_csv_path, details_csv_path, False)
     with FileOpen(result_csv_path, "r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)
-    api_pt_files_gpu = os.listdir(bench_dir)
-    api_pt_files_npu = os.listdir(device_dir)
-    api_pt_files_all = list(set(api_pt_files_gpu + api_pt_files_npu))
+    api_pt_files_bench = os.listdir(bench_dir)
+    api_pt_files_device = os.listdir(device_dir)
+    api_pt_files_all = list(set(api_pt_files_bench + api_pt_files_device))
     api_pt_files_all = sorted(api_pt_files_all)
 
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
@@ -121,9 +121,9 @@ def compare_npu_gpu(
                 continue
 
             bench_grad_tensor_list, device_grad_tensor_list = None, None
-            if gpu_grad_dir and npu_grad_dir:
-                bench_grad_path = os.path.join(gpu_grad_dir, api_file)
-                device_grad_path = os.path.join(npu_grad_dir, api_file)
+            if bench_grad_dir and device_grad_dir:
+                bench_grad_path = os.path.join(bench_grad_dir, api_file)
+                device_grad_path = os.path.join(device_grad_dir, api_file)
                 if os.path.exists(bench_grad_path) and os.path.exists(device_grad_path):
                     _, bench_grad_tensor_list = paddle.load(bench_grad_path)
                     _, device_grad_tensor_list = paddle.load(device_grad_path)

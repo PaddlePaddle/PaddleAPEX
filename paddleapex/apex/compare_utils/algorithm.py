@@ -143,16 +143,16 @@ def get_abs_bench_with_eps(bench, dtype):
 
 def check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol):
     """
-    新精度标准的绝对阈值法中，检查npu和golden输出的inf、nan是否一致
+    新精度标准的绝对阈值法中，检查device和golden输出的inf、nan是否一致
     输入：
-        inf_nan_mask：npu输出和golden输出的inf、nan的mask
+        inf_nan_mask：device输出和golden输出的inf、nan的mask
         bench_output：golden输出
-        device_output：npu输出
-        dtype：npu输出的dtype
+        device_output：device输出
+        dtype：device输出的dtype
     输出：
-        inf_nan_err_ratio：npu输出和golden输出的inf、nan不一致的比例
+        inf_nan_err_ratio：device输出和golden输出的inf、nan不一致的比例
     """
-    abs_gpu, abs_gpu_with_eps = get_abs_bench_with_eps(bench_output, dtype)
+    abs_bench, abs_bench_with_eps = get_abs_bench_with_eps(bench_output, dtype)
     golden_same_dtype = bench_output.astype(device_output.dtype)
     a_min = (
         np.finfo(device_output.dtype).min
@@ -165,9 +165,9 @@ def check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol):
         else CompareConst.BFLOAT16_MAX
     )
     golden_clip = np.clip(golden_same_dtype, a_min, a_max)
-    npu_clip = np.clip(device_output, a_min, a_max)
-    clipped_abs_ae = np.abs(npu_clip - golden_clip)
-    clipped_re = clipped_abs_ae / abs_gpu_with_eps
+    device_clip = np.clip(device_output, a_min, a_max)
+    clipped_abs_ae = np.abs(device_clip - golden_clip)
+    clipped_re = clipped_abs_ae / abs_bench_with_eps
     pass_mask = np.less_equal(clipped_re, rtol)
     both_nan_mask = np.logical_and(np.isnan(device_output), np.isnan(golden_clip))
     pass_mask = np.logical_or(pass_mask, both_nan_mask)
@@ -180,13 +180,13 @@ def check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol):
 
 def check_small_value(abs_err, small_value_mask, small_value_atol):
     """
-    新精度标准的相对阈值法中，检查npu和golden小值域输出的相对误差是否满足阈值
+    新精度标准的相对阈值法中，检查device和golden小值域输出的相对误差是否满足阈值
     输入：
-        rel_err：npu输出和golden输出的相对误差
-        normal_value_mask：npu输出和golden输出的正常值mask
+        rel_err：device输出和golden输出的相对误差
+        normal_value_mask：device输出和golden输出的正常值mask
         rtol：相对误差的阈值
     输出：
-        rel_err_ratio：npu输出和golden输出的相对误差不满足阈值的比例
+        rel_err_ratio：device输出和golden输出的相对误差不满足阈值的比例
     """
     greater_mask = np.greater(abs_err, small_value_atol)
     err_mask = np.logical_and(greater_mask, small_value_mask)
@@ -196,13 +196,13 @@ def check_small_value(abs_err, small_value_mask, small_value_atol):
 
 def check_norm_value(normal_value_mask, rel_err, rtol):
     """
-    新精度标准的绝对阈值法中，检查npu和golden正常值输出的绝对误差是否满足阈值
+    新精度标准的绝对阈值法中，检查device和golden正常值输出的绝对误差是否满足阈值
     输入：
-        abs_err：npu输出和golden输出的绝对误差
-        normal_value_mask：npu输出和golden输出的正常值mask
+        abs_err：device输出和golden输出的绝对误差
+        normal_value_mask：device输出和golden输出的正常值mask
         atol：绝对误差的阈值
     输出：
-        abs_err_ratio：npu输出和golden输出的绝对误差不满足阈值的比例
+        abs_err_ratio：device输出和golden输出的绝对误差不满足阈值的比例
     """
     err_mask = np.greater(rel_err, rtol)
     err_mask = np.logical_and(err_mask, normal_value_mask)

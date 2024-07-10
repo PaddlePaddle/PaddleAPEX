@@ -116,6 +116,12 @@ class ApiPrecisionCompareColumn:
     ABS_ERR_RATIO_STATUS = "绝对误差判定结果"
     FINAL_RESULT = "比对结果"
     ALGORITHM = "比对算法"
+    HUNDREDS_PERCENT = "双百指标"
+    THOUSANDS_PERCENT = "双千指标"
+    MILLIONS_PERCENT = "双万指标"
+    HUNDREDS_PERCENT_RATIO = "双百错误率(Device与Bench比较)"
+    THOUSANDS_PERCENT_RATIO = "双千错误率(Device与Bench比较)"
+    MILLIONS_PERCENT_RATIO = "双万错误率(Device与Bench比较)"
     FORWWARD_STATUS = "Forward Test Success"
     BACKWARD_STATUS = "Backward Test Success"
     MESSAGE = "Message"
@@ -134,6 +140,9 @@ class ApiPrecisionCompareColumn:
             ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO,
             ApiPrecisionCompareColumn.REL_ERR_RATIO,
             ApiPrecisionCompareColumn.ABS_ERR_RATIO,
+            ApiPrecisionCompareColumn.HUNDREDS_PERCENT,
+            ApiPrecisionCompareColumn.THOUSANDS_PERCENT,
+            ApiPrecisionCompareColumn.MILLIONS_PERCENT,
         ]
 
     @staticmethod
@@ -158,6 +167,9 @@ class ApiPrecisionCompareColumn:
             ApiPrecisionCompareColumn.ABS_ERR_RATIO_STATUS,
             ApiPrecisionCompareColumn.ERROR_RATE,
             ApiPrecisionCompareColumn.ERROR_RATE_STATUS,
+            ApiPrecisionCompareColumn.HUNDREDS_PERCENT_RATIO,
+            ApiPrecisionCompareColumn.THOUSANDS_PERCENT_RATIO,
+            ApiPrecisionCompareColumn.MILLIONS_PERCENT_RATIO,
             ApiPrecisionCompareColumn.FINAL_RESULT,
             ApiPrecisionCompareColumn.ALGORITHM,
             ApiPrecisionCompareColumn.MESSAGE,
@@ -174,7 +186,7 @@ class ApiPrecisionCompareColumn:
 
 
 CompareMessage = {
-    "topk": "在npu上，topk的入参sorted=False时不生效，会返回有序tensor，而cpu上会返回无序tensor。 如果topk精度不达标，请检查是否是该原因导致的。"
+    "topk": "在device上，topk的入参sorted=False时不生效，会返回有序tensor，而cpu上会返回无序tensor。 如果topk精度不达标，请检查是否是该原因导致的。"
 }
 
 
@@ -197,14 +209,14 @@ def check_dtype_comparable(x, y):
 
 def convert_str_to_float(input_data):
     if isinstance(input_data, str) and input_data.strip() == "":
-        msg = "ERROR: Input data is an empty string"
+        msg = "ERROR: input data is an empty string"
         raise CompareException(CompareException.INVALID_DATA_ERROR, msg)
     try:
         float_data = float(input_data)
         if str(float_data) in ("inf", "-inf", "nan"):
-            msg = 'ERROR: Input data is either "inf", "-inf", "nan"'
+            msg = 'ERROR: input data is either "inf", "-inf", "nan"'
             raise CompareException(CompareException.INVALID_DATA_ERROR, msg)
         return float_data
     except ValueError as e:
-        msg = "ERROR: Input data cannot be converted to float"
+        msg = "ERROR: input data cannot be converted to float"
         raise CompareException(CompareException.INVALID_DATA_ERROR, msg) from e

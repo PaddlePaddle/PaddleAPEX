@@ -236,7 +236,7 @@ def _user_interactive_confirm(message):
             print_warn_log("User canceled.")
             raise FileCheckException(FileCheckException.INVALID_PATH_ERROR)
         else:
-            print("Input is error, please enter 'c' or 'e'.")
+            print("input is error, please enter 'c' or 'e'.")
 
 
 def check_path_owner_consistent(path):
