@@ -139,6 +139,6 @@
 #### 直接比对的标准：
     我们提供了一个逻辑流程图，用于直接比较不同设备之间的精度。
     ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
-    <!-- <center>
+    <center>
         <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
-    </center> -->
+    </center>

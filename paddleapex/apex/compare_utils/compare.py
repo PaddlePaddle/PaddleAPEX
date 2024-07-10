@@ -260,7 +260,11 @@ class Comparator:
         device_output,
         bench_grad=None,
         device_grad=None,
+        bench_BF16_flag=False,
+        device_BF16_flag=False,
     ):
+        self.device_BF16 = device_BF16_flag
+        self.bench_BF16 = bench_BF16_flag
         api_name = full_api_name.split("*")[0]
         compare_func = (
             self._compare_dropout
@@ -337,43 +341,39 @@ class Comparator:
 
     def _compare_core(self, api_name, bench_output, device_output):
         compare_column = CompareColumn()
-        if isinstance(device_output, dict):
-            print(device_output)
-            if (
-                "BF16Tensor" in device_output.keys()
-            ):  # run_ut will cast BF16 tensor to FP32, but give a field name "BF16Tensor"
-                device_output = device_output["BF16Tensor"]
-                copy_bench_out = bench_output.detach().clone()
-                copy_device_output = device_output.detach().clone()
-                compare_column.bench_type = str(copy_bench_out.dtype)
-                compare_column.npu_type = "paddle.bfloat16"
-                compare_column.shape = tuple(device_output.shape)
-                status, compare_result, message = self._compare_paddle_tensor(
-                    api_name,
-                    copy_bench_out,
-                    copy_device_output,
+        if not isinstance(bench_output, type(device_output)):
+            return (
+                CompareConst.ERROR,
+                compare_column,
+                "bench and npu output type is different.",
+            )
+        elif isinstance(bench_output, dict):
+            b_keys, n_keys = set(bench_output.keys()), set(device_output.keys())
+            if b_keys != n_keys:
+                return (
+                    CompareConst.ERROR,
                     compare_column,
-                    npu_dtype=paddle.bfloat16,
+                    "bench and npu output dict keys are different.",
                 )
             else:
-                b_keys, n_keys = set(bench_output.keys()), set(device_output.keys())
-                if b_keys != n_keys:
-                    return (
-                        CompareConst.ERROR,
-                        compare_column,
-                        "bench and npu output dict keys are different.",
-                    )
-                else:
-                    status, compare_result, message = self._compare_core(
-                        api_name,
-                        list(bench_output.values()),
-                        list(device_output.values()),
-                    )
+                status, compare_result, message = self._compare_core(
+                    api_name,
+                    list(bench_output.values()),
+                    list(device_output.values()),
+                )
         elif isinstance(device_output, paddle.Tensor):
             copy_bench_out = bench_output.detach().clone()
             copy_device_output = device_output.detach().clone()
-            compare_column.bench_type = str(copy_bench_out.dtype)
-            compare_column.npu_type = str(copy_device_output.dtype)
+            if self.device_BF16:
+                npu_dtype = paddle.bfloat16
+            else:
+                npu_dtype = device_output.dtype
+            if self.bench_BF16:
+                bench_dtype = paddle.bfloat16
+            else:
+                bench_dtype = bench_output.dtype
+            compare_column.bench_type = str(bench_dtype)
+            compare_column.npu_type = str(npu_dtype)
             compare_column.shape = tuple(device_output.shape)
             status, compare_result, message = self._compare_paddle_tensor(
                 api_name, copy_bench_out, copy_device_output, compare_column
@@ -391,20 +391,24 @@ class Comparator:
                 "Bench output is None, skip this test.",
             )
         else:
-            return (
-                CompareConst.PASS,
-                compare_column,
-            )
+            return (CompareConst.PASS, compare_column, "")
         "Unexpected output type in compare_core: {}".format(type(bench_output))
 
         return status, compare_result, message
 
     def _compare_paddle_tensor(
-        self, api_name, bench_output, device_output, compare_column, npu_dtype=None
+        self, api_name, bench_output, device_output, compare_column
     ):
         cpu_shape = bench_output.shape
         npu_shape = device_output.shape
-        if not npu_dtype:
+        bench_dtype = bench_output.dtype
+        npu_dtype = device_output.dtype
+        if npu_dtype == paddle.bfloat16 or bench_dtype == paddle.bfloat16:
+            bench_output = bench_output.to(paddle.float32)
+            device_output = device_output.to(paddle.float32)
+        if self.device_BF16:
+            npu_dtype = paddle.bfloat16
+        else:
             npu_dtype = device_output.dtype
         bench_output = bench_output.cpu().numpy()
         device_output = device_output.cpu().numpy()

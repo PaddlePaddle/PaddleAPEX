@@ -53,18 +53,20 @@ def recursive_delete_arg(arg_in):
         return
 
 
-def recursive_arg_to_add_info(arg_in):
+def convert_out2fp32(arg_in):
+    flag = False
     if isinstance(arg_in, (list, tuple)):
         res = []
         for item in arg_in:
-            res.append(recursive_arg_to_add_info(item))
-        return res
+            ret_flag, ret_value = convert_out2fp32(item)
+            res.append(ret_value)
+            flag = flag or ret_flag
+        return flag, res
     elif isinstance(arg_in, paddle.Tensor):
         if arg_in.dtype.name == "BF16":
             arg_in = arg_in.cast("float32")
-            return {"BF16Tensor": arg_in}
-        else:
-            return arg_in
+            flag = True
+        return flag, arg_in
 
 
 def recursive_arg_to_cpu(arg_in):
@@ -105,8 +107,6 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    forward_res = recursive_arg_to_add_info(forward_res)
-    backward_res = recursive_arg_to_add_info(backward_res)
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -120,9 +120,11 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
     if not isinstance(forward_res, type(None)):
-        paddle.save(forward_res, fwd_output_path)
+        fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
+        paddle.save([fwd_BF16_flag, forward_res], fwd_output_path)
     if not isinstance(backward_res, type(None)):
-        paddle.save(backward_res, bwd_output_path)
+        bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
+        paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
 
 
 def evoke_related_test_func(test_mode):

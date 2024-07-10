@@ -107,8 +107,8 @@ def compare_npu_gpu(
             device_pt_path = os.path.join(device_dir, api_file)
             if os.path.exists(bench_pt_path) and os.path.exists(device_pt_path):
                 print(f"Loading {bench_pt_path} & {device_pt_path}")
-                bench_out_tensor = paddle.load(bench_pt_path)
-                device_out_tensor = paddle.load(device_pt_path)
+                bench_BF16_flag, bench_out_tensor = paddle.load(bench_pt_path)
+                device_BF16_flag, device_out_tensor = paddle.load(device_pt_path)
             elif os.path.exists(bench_pt_path) or os.path.exists(device_pt_path):
                 msg = f"{api_file} One framework has No output!"
                 Warning_list.append(msg)
@@ -125,8 +125,8 @@ def compare_npu_gpu(
                 bench_grad_path = os.path.join(gpu_grad_dir, api_file)
                 device_grad_path = os.path.join(npu_grad_dir, api_file)
                 if os.path.exists(bench_grad_path) and os.path.exists(device_grad_path):
-                    bench_grad_tensor_list = paddle.load(bench_grad_path)
-                    device_grad_tensor_list = paddle.load(device_grad_path)
+                    _, bench_grad_tensor_list = paddle.load(bench_grad_path)
+                    _, device_grad_tensor_list = paddle.load(device_grad_path)
                     print(f"Loading {bench_grad_path} & {device_grad_path}")
                 elif os.path.exists(bench_grad_path) or os.path.exists(
                     device_grad_path
@@ -145,6 +145,8 @@ def compare_npu_gpu(
                 device_out_tensor,
                 bench_grad_tensor_list,
                 device_grad_tensor_list,
+                bench_BF16_flag,
+                device_BF16_flag,  # BF16 convert flag
             )
         except Exception as err:
             print(err)
