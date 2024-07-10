@@ -119,9 +119,6 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
     bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
-    print(forward_res)
-    print(backward_res)
-    input()
     if not isinstance(forward_res, type(None)):
         paddle.save(forward_res, fwd_output_path)
     if not isinstance(backward_res, type(None)):

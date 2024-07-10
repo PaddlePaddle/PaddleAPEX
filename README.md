@@ -74,14 +74,12 @@ If you use default config file, you can modify specific variable in this file, s
                 |-- Paddle*add*1.0.pt
                 |-- Paddle*add*1.1.pt
 
-4. **Advanced Usage:** If you have specific api which you want to trace, you can add its api call stack in **paddleapex/api_tracer/configs/op_target.yaml** like:
+4. **Advanced Usage:** If you have specific api which you want to trace(e.g. layer_norm), you can add its api call stack in **paddleapex/api_tracer/configs/op_target.yaml** like:
 ```yaml
   target op:
   -  paddle.add
   -  paddle.mul
-  -  xxxxx
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  -  paddle.xxxx.xxx
+  -  paddle._C_ops.layer_norm
   -  paddlenlp.transformers.fusion_ops.xxx
 ```
     Please note that paddleapex only support paddle apis which contain regular types, not suppport custom object instance.
@@ -110,24 +108,21 @@ If you use default config file, you can modify specific variable in this file, s
     This script will generate two csv files, which contains accuracy result and details.
 
 2.  Multi-end precision comparision.
-    ```Shell
-    # We use run_paddle.py to run the same operator on different devices and generate corresponding outputs.
-    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
-    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
-    # This script will generate a repository, which contains api fwd/bwd outputs results.
-    # Then we need to execute two times directly comparision tool.
-    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
-    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
-    python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
+    ```
+        # We use run_paddle.py to run the same operator on different devices and generate corresponding outputs.
+        python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+        python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+        # This script will generate a repository, which contains api fwd/bwd outputs results.
+        # Then we need to execute two times directly comparision tool.
+        python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
+        python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
+        python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
+    ```
+    We provide a flow chart for Multi-end precision comparision.
 
-3. Directly comparision standard:
-    We provide a logic flow chart for Directly comparision between devices.
-    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
-    <!-- <center>
-        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
-    </center> -->
 
-4.
+    ![Multi-end precision comparision](./doc/multi-end-flow.png)
+3.
     For cross framework comparision is in WIP, it will coming soon!
 
 #### Step6: Performance/Memory comparision.
@@ -142,3 +137,11 @@ If you use default config file, you can modify specific variable in this file, s
         cd paddleapex/apex
         python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
     ```
+
+
+4. Directly comparision standard:
+    We provide a logic flow chart for Directly comparision between devices.
+    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
+    <!-- <center>
+        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
+    </center> -->

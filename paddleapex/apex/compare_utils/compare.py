@@ -348,8 +348,9 @@ class Comparator:
                 "BF16Tensor" in bench_output.keys()
             ):  # run_ut will cast BF16 tensor to FP32, but give a field name "BF16Tensor"
                 bench_output = bench_output["BF16Tensor"]
+                device_output = device_output["BF16Tensor"]
                 copy_bench_out = bench_output.detach().clone()
-                copy_device_output = device_output["BF16Tensor"].detach().clone()
+                copy_device_output = device_output.detach().clone()
                 compare_column.bench_type = "paddle.bfloat16"
                 compare_column.npu_type = "paddle.bfloat16"
                 compare_column.shape = tuple(device_output.shape)

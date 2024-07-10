@@ -75,15 +75,13 @@
                 |-- Paddle*add*1.0.pt
                 |-- Paddle*add*1.1.pt
 
-4. **进阶使用:** 如果你有一些特定的api需要抓取，你可以在**PaddleAPEX/paddleapex/api_tracer/configs/op_target.yaml**中添加这些api的调用栈。下方是使用示例：
+4. **进阶使用:** 如果你有一些特定的api需要抓取（例如LayerNorm，你可以在**PaddleAPEX/paddleapex/api_tracer/configs/op_target.yaml**中添加这些api的调用栈。下方是使用示例：
 
 ```yaml
   target op:
   -  paddle.add
   -  paddle.mul
-  -  xxxxx
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  -  paddle.xxxx.xxx
+  -  paddle._C_ops.layer_norm
   -  paddlenlp.transformers.fusion_ops.xxx
 ```
     请注意，paddleapex只支持包含常规类型的paddle api，不支持自定义对象实例。
@@ -112,23 +110,18 @@
     这个脚本生成两个csv文件，他们分别包含精度结果和细节。
 
 2. 多端精度比较
-    ```Shell
-    # 我们使用run_paddle.py 在不同设备商运行相同的算子，并生成相应的输出。
-    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
-    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
-    # 接下来使用两次直接比较方法，获得比对csv结果。
-    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
-    python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
-    python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
-
-3. 直接比对的标准：
-    我们提供了一个逻辑流程图，用于直接比较不同设备之间的精度。
-    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
-    <!-- <center>
-        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
-    </center> -->
-
-4.
+    ```
+        # 我们使用run_paddle.py 在不同设备商运行相同的算子，并生成相应的输出。
+        python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+        python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+        # 接下来使用两次直接比较方法，获得比对csv结果。
+        python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [gpubf16_dump_repo] -o [result_path]
+        python acc_direct_cmp.py --benchmark [gpufp32_dump_repo] --device [npubf16_dump_repo] -o [result_path]
+        python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
+    ```
+    我们提供了多端比对的推荐流程图，您可以参考：
+    ![Multi-end precision comparision](./doc/multi-end-flow.png)
+3.
     对于跨框架比对，我们正在开发中，它会很快到来！
 #### Step6: 性能、显存分析工具
      1. 用例运行
@@ -142,3 +135,10 @@
         cd paddleapex/apex
         python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
     ```
+
+#### 直接比对的标准：
+    我们提供了一个逻辑流程图，用于直接比较不同设备之间的精度。
+    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
+    <!-- <center>
+        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
+    </center> -->
