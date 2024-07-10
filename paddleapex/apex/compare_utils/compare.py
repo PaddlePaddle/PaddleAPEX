@@ -260,7 +260,11 @@ class Comparator:
         device_output,
         bench_grad=None,
         device_grad=None,
+        bench_BF16_flag=False,
+        device_BF16_flag=False,
     ):
+        self.device_BF16 = device_BF16_flag
+        self.bench_BF16 = bench_BF16_flag
         api_name = full_api_name.split("*")[0]
         compare_func = (
             self._compare_dropout
@@ -353,34 +357,41 @@ class Comparator:
                 )
             else:
                 status, compare_result, message = self._compare_core(
-                    api_name, list(bench_output.values()), list(device_output.values())
+                    api_name,
+                    list(bench_output.values()),
+                    list(device_output.values()),
                 )
-        elif isinstance(bench_output, paddle.Tensor):
+        elif isinstance(device_output, paddle.Tensor):
             copy_bench_out = bench_output.detach().clone()
             copy_device_output = device_output.detach().clone()
-            compare_column.bench_type = str(copy_bench_out.dtype)
-            compare_column.npu_type = str(copy_device_output.dtype)
+            if self.device_BF16:
+                npu_dtype = paddle.bfloat16
+            else:
+                npu_dtype = device_output.dtype
+            if self.bench_BF16:
+                bench_dtype = paddle.bfloat16
+            else:
+                bench_dtype = bench_output.dtype
+            compare_column.bench_type = str(bench_dtype)
+            compare_column.npu_type = str(npu_dtype)
             compare_column.shape = tuple(device_output.shape)
             status, compare_result, message = self._compare_paddle_tensor(
                 api_name, copy_bench_out, copy_device_output, compare_column
             )
-        elif isinstance(bench_output, (bool, int, float, str)):
+        elif isinstance(device_output, (bool, int, float, str)):
             compare_column.bench_type = str(type(bench_output))
             compare_column.npu_type = str(type(device_output))
             status, compare_result, message = self._compare_builtin_type(
                 bench_output, device_output, compare_column
             )
-        elif bench_output is None:
+        elif device_output is None:
             return (
                 CompareConst.SKIP,
                 compare_column,
                 "Bench output is None, skip this test.",
             )
         else:
-            return (
-                CompareConst.PASS,
-                compare_column,
-            )
+            return (CompareConst.PASS, compare_column, "")
         "Unexpected output type in compare_core: {}".format(type(bench_output))
 
         return status, compare_result, message
@@ -389,12 +400,16 @@ class Comparator:
         self, api_name, bench_output, device_output, compare_column
     ):
         cpu_shape = bench_output.shape
-        cpu_dtype = bench_output.dtype
         npu_shape = device_output.shape
+        bench_dtype = bench_output.dtype
         npu_dtype = device_output.dtype
-        if npu_dtype == paddle.bfloat16 or cpu_dtype == paddle.bfloat16:
+        if npu_dtype == paddle.bfloat16 or bench_dtype == paddle.bfloat16:
             bench_output = bench_output.to(paddle.float32)
             device_output = device_output.to(paddle.float32)
+        if self.device_BF16:
+            npu_dtype = paddle.bfloat16
+        else:
+            npu_dtype = device_output.dtype
         bench_output = bench_output.cpu().numpy()
         device_output = device_output.cpu().numpy()
         if cpu_shape != npu_shape:

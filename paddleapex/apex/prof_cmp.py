@@ -88,13 +88,13 @@ def analyze_log(raw_data):
 
 
 def get_cmp_result_mem(value1, value2):
-    return str(int(value1) - int(value2))
+    return str(int(value2) - int(value1))
 
 
 def get_cmp_result_prof(value1, value2):
     value1 = float(value1)
     value2 = float(value2)
-    return str(value1 / value2)
+    return str(value2 / value1)
 
 
 def compare_npu_gpu(
@@ -125,17 +125,17 @@ def compare_npu_gpu(
     for key in mem_dict1.keys():
         temp_dict = {}
         temp_dict["API Name"] = key
-        temp_dict["GPU Memory Used(B)"] = mem_dict1[key]
+        temp_dict["Bench Memory Used(B)"] = mem_dict1[key]
         if key in prof_dict1.keys():
-            temp_dict["GPU Time(μs)"] = prof_dict1[key]
+            temp_dict["Bench Time(μs)"] = prof_dict1[key]
         if key in mem_dict2.keys():
             temp_dict["Device Memory Used(B)"] = mem_dict2[key]
             if key in prof_dict2.keys():
                 temp_dict["Device Time(μs)"] = prof_dict2[key]
-                temp_dict["GPU/Device Time Ratio"] = get_cmp_result_prof(
+                temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(
                     prof_dict1[key], prof_dict2[key]
                 )
-            temp_dict["memory_usage_diff"] = get_cmp_result_mem(
+            temp_dict["Device-Bench Memory"] = get_cmp_result_mem(
                 mem_dict1[key], mem_dict2[key]
             )
         ensemble_data.append(temp_dict)

@@ -495,7 +495,7 @@ def _api_precision_compare_command(args):
 def _api_precision_compare_parser(parser):
     parser.add_argument(
         "-npu",
-        "--detail1",
+        "--device",
         dest="npu_csv_path",
         default="",
         type=str,
@@ -505,7 +505,7 @@ def _api_precision_compare_parser(parser):
     )
     parser.add_argument(
         "-gpu",
-        "--detail2",
+        "--benchmark",
         dest="gpu_csv_path",
         default="",
         type=str,
