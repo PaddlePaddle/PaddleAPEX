@@ -337,21 +337,15 @@ class Comparator:
 
     def _compare_core(self, api_name, bench_output, device_output):
         compare_column = CompareColumn()
-        if not isinstance(bench_output, type(device_output)):
-            return (
-                CompareConst.ERROR,
-                compare_column,
-                "bench and npu output type is different.",
-            )
-        elif isinstance(bench_output, dict):
+        if isinstance(device_output, dict):
+            print(device_output)
             if (
-                "BF16Tensor" in bench_output.keys()
+                "BF16Tensor" in device_output.keys()
             ):  # run_ut will cast BF16 tensor to FP32, but give a field name "BF16Tensor"
-                bench_output = bench_output["BF16Tensor"]
                 device_output = device_output["BF16Tensor"]
                 copy_bench_out = bench_output.detach().clone()
                 copy_device_output = device_output.detach().clone()
-                compare_column.bench_type = "paddle.bfloat16"
+                compare_column.bench_type = str(copy_bench_out.dtype)
                 compare_column.npu_type = "paddle.bfloat16"
                 compare_column.shape = tuple(device_output.shape)
                 status, compare_result, message = self._compare_paddle_tensor(
@@ -375,7 +369,7 @@ class Comparator:
                         list(bench_output.values()),
                         list(device_output.values()),
                     )
-        elif isinstance(bench_output, paddle.Tensor):
+        elif isinstance(device_output, paddle.Tensor):
             copy_bench_out = bench_output.detach().clone()
             copy_device_output = device_output.detach().clone()
             compare_column.bench_type = str(copy_bench_out.dtype)
@@ -384,13 +378,13 @@ class Comparator:
             status, compare_result, message = self._compare_paddle_tensor(
                 api_name, copy_bench_out, copy_device_output, compare_column
             )
-        elif isinstance(bench_output, (bool, int, float, str)):
+        elif isinstance(device_output, (bool, int, float, str)):
             compare_column.bench_type = str(type(bench_output))
             compare_column.npu_type = str(type(device_output))
             status, compare_result, message = self._compare_builtin_type(
                 bench_output, device_output, compare_column
             )
-        elif bench_output is None:
+        elif device_output is None:
             return (
                 CompareConst.SKIP,
                 compare_column,
