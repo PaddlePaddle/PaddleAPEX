@@ -90,7 +90,7 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
     elif isinstance(arg_in, paddle.Tensor):
         grad_status = arg_in.stop_gradient
         with paddle.no_grad():
-            if "gpu" in backend:
+            if "bench" in backend:
                 arg_in = arg_in.cuda()
             if "cpu" in backend:
                 arg_in = arg_in.cpu()
@@ -431,9 +431,9 @@ def arg_parser(parser):
         "-backend",
         "--backend",
         dest="backend",
-        default="gpu",
+        default="bench",
         type=str,
-        help="<optional> The running device NPU or GPU.",
+        help="<optional> The running device DEVICE or BENCH.",
         required=False,
     )
     parser.add_argument(

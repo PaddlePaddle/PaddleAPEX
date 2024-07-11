@@ -8,7 +8,7 @@ import sys
 from compare_utils.compare_dependency import print_info_log
 
 RESULT_FILE_NAME = "prof_checking_result" + ".csv"
-TIME_RATIO = 0.95  # GPU_TIME / NPU_TIME >= 0.95 as standard.
+TIME_RATIO = 0.95  # BENCH_TIME / DEVICE_TIME >= 0.95 as standard.
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
     "desc": "Processing",  # 进度条前的描述文字
@@ -27,19 +27,19 @@ tqdm_params = {
 
 def _compare_parser(parser):
     parser.add_argument(
-        "-gpu",
+        "-bench",
         "--benchmark",
         dest="bench_dir",
         type=str,
-        help="The executed output api tensor path directory on GPU",
+        help="The executed output api tensor path directory on BENCH",
         required=True,
     )
     parser.add_argument(
-        "-npu",
+        "-device",
         "--device",
         dest="device_dir",
         type=str,
-        help="The executed output api tensor path directory on NPU",
+        help="The executed output api tensor path directory on DEVICE",
         required=True,
     )
     parser.add_argument(
@@ -64,7 +64,7 @@ def compare_command(args):
         device_profile_log = os.path.join(args.device_dir, "./profile_analyze.log")
     except FileNotFoundError:
         print_info_log("The log file is not found.")
-    compare_npu_gpu(
+    compare_device_bench(
         result_csv_path,
         bench_mem_log,
         bench_profile_log,
@@ -97,7 +97,7 @@ def get_cmp_result_prof(value1, value2):
     return str(value2 / value1)
 
 
-def compare_npu_gpu(
+def compare_device_bench(
     result_csv_path,
     bench_mem_log,
     bench_profile_log,
@@ -127,11 +127,11 @@ def compare_npu_gpu(
         temp_dict["API Name"] = key
         temp_dict["Bench Memory Used(B)"] = mem_dict1[key]
         if key in prof_dict1.keys():
-            temp_dict["Bench Time(μs)"] = prof_dict1[key]
+            temp_dict["Bench Time(us)"] = prof_dict1[key]
         if key in mem_dict2.keys():
             temp_dict["Device Memory Used(B)"] = mem_dict2[key]
             if key in prof_dict2.keys():
-                temp_dict["Device Time(μs)"] = prof_dict2[key]
+                temp_dict["Device Time(us)"] = prof_dict2[key]
                 temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(
                     prof_dict1[key], prof_dict2[key]
                 )
