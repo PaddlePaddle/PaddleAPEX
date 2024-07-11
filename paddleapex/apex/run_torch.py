@@ -111,6 +111,22 @@ def recursive_arg_to_device(arg_in, mode="to_torch"):
         return arg_in
 
 
+def convert_out2fp32(arg_in):
+    flag = False
+    if isinstance(arg_in, (list, tuple)):
+        res = []
+        for item in arg_in:
+            ret_flag, ret_value = convert_out2fp32(item)
+            res.append(ret_value)
+            flag = flag or ret_flag
+        return flag, res
+    elif isinstance(arg_in, paddle.Tensor):
+        if arg_in.dtype.name == "BF16":
+            arg_in = arg_in.cast("float32")
+            flag = True
+        return flag, arg_in
+
+
 def ut_case_parsing(forward_content, cfg):
     print_info_log("start UT save")
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
@@ -159,34 +175,32 @@ def ut_case_parsing(forward_content, cfg):
                 bwd_output_path = os.path.join(
                     out_path, enforce_dtype, "output_backward", paddle_api_name
                 )
-                fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
-                bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
-                if not isinstance(fwd_res, type(None)):
-                    fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
-                    paddle.save(fwd_res, fwd_output_path)
-                if not isinstance(bp_res, type(None)):
-                    bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
-                    paddle.save(bp_res, bwd_output_path)
+                forward_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
+                backward_res = recursive_arg_to_device(bp_res, mode="to_paddle")
+                if not isinstance(forward_res, type(None)):
+                    fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
+                    paddle.save([fwd_BF16_flag, forward_res], fwd_output_path)
+                if not isinstance(backward_res, type(None)):
+                    bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
+                    paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
                 print("*" * 100)
         else:
             print(api_call_name)
             fwd_res, bp_res = run_api_case(api_call_name, api_info_dict)
-            fwd_output_path = os.path.join(
-                out_path, enforce_dtype, "output", paddle_api_name
-            )
-            bwd_output_path = os.path.join(
-                out_path, enforce_dtype, "output_backward", paddle_api_name
-            )
+            fwd_output_path = os.path.join(out_path, "output", paddle_api_name)
+            bwd_output_path = os.path.join(out_path, "output_backward", paddle_api_name)
+            fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
+            bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
             if not isinstance(fwd_res, type(None)):
-                fwd_res = recursive_arg_to_device(fwd_res, mode="to_paddle")
-                paddle.save(fwd_res, fwd_output_path)
+                fwd_BF16_flag, fwd_res = convert_out2fp32(fwd_res)
+                paddle.save([fwd_BF16_flag, fwd_res], fwd_output_path)
             if not isinstance(bp_res, type(None)):
-                bp_res = recursive_arg_to_device(bp_res, mode="to_paddle")
-                paddle.save(bp_res, bwd_output_path)
-            print("*" * 100)
+                bwd_BF16_flag, bp_res = convert_out2fp32(bp_res)
+                paddle.save([bwd_BF16_flag, bp_res], bwd_output_path)
+        print("*" * 100)
 
 
-def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=None):
+def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=[]):
     api_call_stack = api_call_name.rsplit("*")[0]
     # generate paddle tensor
     args, kwargs, need_backward = gen_api_params(api_info_dict)
@@ -226,7 +240,7 @@ def run_api_case(api_call_name, api_info_dict, enforce_dtype=None, debug_case=No
     if need_backward:
         try:
             device_grad_out = []
-            if api_info_dict["dout_list"] != "Failed":
+            if api_info_dict["dout_list"][0] != "Failed":
                 dout, _ = gen_args(api_info_dict["dout_list"])
             else:
                 print("dout dump json is None!")
@@ -300,7 +314,7 @@ def arg_parser(parser):
         "-enforce-dtype",
         "--dtype",
         dest="multi_dtype_ut",
-        default="FP32,FP16,BF16",
+        default="",
         type=str,
         help="",
         required=False,

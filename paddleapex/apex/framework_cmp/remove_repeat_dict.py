@@ -1,6 +1,7 @@
 # 原地删除dump json中相同dtype、相同shape的api信息。
 import json
 import copy
+import argparse
 
 
 # 传入api信息，删除特定字段，用于去重。 传入前必须先deepcopy
@@ -39,9 +40,19 @@ def save_json(data, file_path):
         json.dump(data, file, indent=4)
 
 
-input_file_path = "llama_inference_dump.json"  # 替换为您的输入JSON文件路径
-output_file_path = "llama_inference_unique.json"  # 替换为您的输出JSON文件路径
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-json",
+    dest="input_file_path",
+    type=str,
+    help="Dump json file path",
+    required=True,
+)
 
+cfg = parser.parse_args()
+
+input_file_path = cfg.input_file_path
+output_file_path = input_file_path[:-5] + "_unique.json"
 data = read_json(input_file_path)
 
 OP_LIST = []

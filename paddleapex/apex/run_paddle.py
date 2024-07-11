@@ -169,7 +169,7 @@ def ut_case_parsing(forward_content, cfg):
         else:
             print(api_call_name)
             args = api_call_name, api_info_dict, backend, out_path
-            kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case}
+            kwargs = {"enforce_dtype": None, "debug_case": debug_case}
             if isinstance(run_case_funcs, list):
                 for run_case in run_case_funcs:
                     run_case(*args, **kwargs)
@@ -287,9 +287,12 @@ def run_acc_case(
             device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
         )
         return
-    save_tensor(
-        device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
-    )
+    if enforce_dtype:
+        save_tensor(
+            device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
+        )
+    else:
+        save_tensor(device_out, device_grad_out, out_path, api_call_name)
     return
 
 
@@ -440,7 +443,7 @@ def arg_parser(parser):
         "-enforce-dtype",
         "--dtype",
         dest="multi_dtype_ut",
-        default="FP32,FP16,BF16",
+        default="",
         type=str,
         help="",
         required=False,

@@ -14,7 +14,7 @@ parser.add_argument(
     default="./api_mapping.json",
     type=str,
     help="Dump json file path",
-    required=True,
+    required=False,
 )
 parser.add_argument(
     "-json_path",
