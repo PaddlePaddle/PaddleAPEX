@@ -97,26 +97,46 @@ def recursive_arg_to_device(arg_in, enforce_dtype=None, enforce_grad=False):
         return type(arg_in)(
             recursive_arg_to_device(arg, enforce_dtype) for arg in arg_in
         )
-    elif isinstance(arg_in, paddle.Tensor):
+    elif isinstance(arg_in, paddle.Tensor) and arg_in.dtype.name in [
+        "FP32",
+        "FP16",
+        "BF16",
+    ]:
         grad_status = arg_in.stop_gradient
-        with torch.no_grad():
-            if enforce_dtype and arg_in.dtype.name in ["FP16", "FP32"]:
-                arg_in = arg_in.cast(enforce_dtype).numpy()
-                arg_in_torch = torch.from_numpy(arg_in).cuda()
-                arg_in_torch.requires_grad = not grad_status
-            elif arg_in.dtype.name in ["BF16"]:
-                arg_in = arg_in.cast(enforce_dtype).numpy()
-                arg_in_torch = torch.from_numpy(arg_in).cuda()
-                arg_in_torch = arg_in_torch.to(torch.bfloat16)
-                arg_in_torch.requires_grad = not grad_status
+        if enforce_dtype and enforce_dtype.name == "BF16":
+            arg_in = arg_in.cast(paddle.float32).numpy()
+            arg_in_torch = torch.from_numpy(arg_in).cuda()
+            arg_in_torch = arg_in_torch.to(torch.bfloat16)
+        elif enforce_dtype:
+            arg_in = arg_in.cast(enforce_dtype).numpy()
+            arg_in_torch = torch.from_numpy(arg_in).cuda()
+        elif not enforce_dtype and arg_in.dtype.name == "BF16":
+            arg_in = arg_in.cast(paddle.float32).numpy()
+            arg_in_torch = torch.from_numpy(arg_in).cuda()
+            arg_in_torch = arg_in_torch.to(torch.bfloat16)
+        else:
+            arg_in = arg_in.numpy()
+            arg_in_torch = torch.from_numpy(arg_in).cuda()
+        try:
+            if enforce_grad:
+                arg_in_torch.requires_grad = True
             else:
-                arg_in = arg_in.numpy()
-                arg_in_torch = torch.from_numpy(arg_in).cuda()
-            try:
-                if enforce_grad:
-                    arg_in_torch.requires_grad = True
-            except AttributeError as err:
-                print("In enforce_grad mode: ", str(err))
+                arg_in_torch.requires_grad = not grad_status
+        except AttributeError as err:
+            print("In enforce_grad mode: ", str(err))
+        return arg_in_torch
+    elif isinstance(arg_in, paddle.Tensor) and arg_in.dtype.name not in [
+        "FP32",
+        "FP16",
+        "BF16",
+    ]:
+        arg_in = arg_in.numpy()
+        arg_in_torch = torch.from_numpy(arg_in).cuda()
+        try:
+            if enforce_grad:
+                arg_in_torch.requires_grad = True
+        except AttributeError as err:
+            print("In enforce_grad mode: ", str(err))
         return arg_in_torch
     else:
         return arg_in
