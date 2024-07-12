@@ -247,9 +247,6 @@ def gen_list_kwargs(kwargs_item_value):
 
 
 def gen_api_params(api_info, seed=1234):
-    # random.seed(seed)
-    # os.environ['PYTHONHASHSEED'] = str(seed)
-    # np.random.seed(seed)
     check_object_type(api_info, dict)
     kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
     if api_info.get("args"):
@@ -257,8 +254,6 @@ def gen_api_params(api_info, seed=1234):
     else:
         args_need_grad = False
         args_params = []
-    # print(args_params, kwargs_params)
-    # input()
     need_grad = kwargs_need_grad or args_need_grad
     return args_params, kwargs_params, need_grad
 
@@ -280,6 +275,8 @@ def rand_like(data, seed=1234):
             rand_data = numpy.random.randint(-10, 10, size=data.shape).astype("int")
             rand_data = paddle.to_tensor(rand_data, dtype=data.dtype)
             return rand_data
+        else:
+            raise ValueError(f"Unsupported dtype:{data.dtype.name} in func: rand_like")
     elif isinstance(data, (list, tuple)):
         lst = [rand_like(item) for item in data]
         return lst

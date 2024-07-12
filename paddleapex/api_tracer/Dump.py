@@ -96,6 +96,11 @@ class Dump:
             )
         else:
             directory = self.data_route
+        if self.dump_api_dict is None:
+            print(
+                "Dump api dict is empty, check if you have correctly inserted marks into scripts"
+            )
+            print("Especially in pipeline parallel mode!")
         create_directory(directory)
         if self.rank is not None:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
