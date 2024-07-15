@@ -63,15 +63,18 @@ NUMPY_TYPE = [
 ]
 
 
-def gen_data(info):
+def gen_data(info, real_data_path=None):
     check_object_type(info, dict)
     data_type = info.get("type")
-    data_path = info.get("real_data_path")
+    rel_data_path = info.get("real_data_path")
     need_grad = False
     if data_type in TENSOR_DATA_LIST_PADDLE:
         stop_gradient = info.get("stop_gradient")
-        if data_path and os.path.exists(data_path):
-            data = gen_real_tensor(data_path, stop_gradient)
+        if real_data_path:
+            data_pth = os.path.join(real_data_path, rel_data_path)
+            real_data_path = os.path.abspath(data_pth)
+            if os.path.exists(real_data_path):
+                data = gen_real_tensor(real_data_path, stop_gradient)
         else:
             data = gen_random_tensor(info, stop_gradient)
         data.stop_gradient = stop_gradient
@@ -180,7 +183,7 @@ def gen_bool_tensor(shape):
     return data
 
 
-def gen_args(args_info, need_grad=False):
+def gen_args(args_info, real_data_path = None, need_grad=False):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
@@ -188,10 +191,10 @@ def gen_args(args_info, need_grad=False):
     args_result = []
     for arg in args_info:
         if isinstance(arg, (list, tuple)):
-            data, has_grad = gen_args(arg, need_grad)
+            data, has_grad = gen_args(arg, real_data_path, need_grad)
             need_grad = need_grad or has_grad
         elif isinstance(arg, dict):
-            data, has_grad = gen_data(arg)
+            data, has_grad = gen_data(arg, real_data_path)
             need_grad = need_grad or has_grad
         elif isinstance(arg, str):
             data = eval(arg)
@@ -246,11 +249,11 @@ def gen_list_kwargs(kwargs_item_value):
     return kwargs_item_result, has_grad_tensor
 
 
-def gen_api_params(api_info, seed=1234):
+def gen_api_params(api_info, real_data_path = None):
     check_object_type(api_info, dict)
     kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
     if api_info.get("args"):
-        args_params, args_need_grad = gen_args(api_info.get("args"))
+        args_params, args_need_grad = gen_args(api_info.get("args"), real_data_path)
     else:
         args_need_grad = False
         args_params = []
