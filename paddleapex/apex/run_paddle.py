@@ -90,7 +90,7 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
     elif isinstance(arg_in, paddle.Tensor):
         grad_status = arg_in.stop_gradient
         with paddle.no_grad():
-            if "bench" in backend:
+            if "gpu" in backend:
                 arg_in = arg_in.cuda()
             if "cpu" in backend:
                 arg_in = arg_in.cpu()
@@ -283,9 +283,12 @@ def run_acc_case(
     except Exception as err:
         msg = "Run_backward Error: %s" % str(err)
         print_warn_log(msg)
-        save_tensor(
-            device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
-        )
+        if enforce_dtype:
+            save_tensor(
+                device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
+            )
+        else:
+            save_tensor(device_out, device_grad_out, out_path, api_call_name)
         return
     if enforce_dtype:
         save_tensor(
@@ -440,8 +443,8 @@ def arg_parser(parser):
         required=False,
     )
     parser.add_argument(
-        "-enforce-dtype",
-        "--dtype",
+        "-dtype",
+        "--enforce-dtype",
         dest="multi_dtype_ut",
         default="",
         type=str,

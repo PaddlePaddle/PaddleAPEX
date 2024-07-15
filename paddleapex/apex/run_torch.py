@@ -351,10 +351,10 @@ def run_acc_case(
         msg = "Run_backward Error: %s" % str(err)
         print_warn_log(msg)
         type_name = enforce_dtype.name if enforce_dtype else ""
-        save_tensor(device_out, device_grad_out, out_path, api_call_name, type_name)
+        save_tensor(device_out, device_grad_out, out_path, paddle_name, type_name)
         return
     type_name = enforce_dtype.name if enforce_dtype else ""
-    save_tensor(device_out, device_grad_out, out_path, api_call_name, type_name)
+    save_tensor(device_out, device_grad_out, out_path, paddle_name, type_name)
     return
 
 
@@ -363,14 +363,14 @@ def run_profile_case(
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-
+    paddle_name = api_info_dict["origin_paddle_op"]
     args, kwargs, _ = gen_api_params(api_info_dict_copy)
     debug_mode = len(debug_case) > 0
     if debug_mode:
         if api_info_dict["origin_paddle_op"] in debug_case:
             x = [args, kwargs]
             out_path = os.path.realpath(out_path) if out_path else "./"
-            save_pth = os.path.join(out_path, "input_data", api_call_name)
+            save_pth = os.path.join(out_path, "input_data", paddle_name)
             paddle.save(x, save_pth)
     device_args = recursive_arg_to_device(args, enforce_dtype)
     device_kwargs = {
@@ -446,11 +446,11 @@ def run_profile_case(
 
     F = open(log_path, "a")
     if enforce_dtype:
-        op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
-        op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
+        op_fwd = paddle_name + "*" + enforce_dtype.name + ".forward"
+        op_bwd = paddle_name + "*" + enforce_dtype.name + ".backward"
     else:
-        op_fwd = api_call_name + ".forward"
-        op_bwd = api_call_name + ".backward"
+        op_fwd = paddle_name + ".forward"
+        op_bwd = paddle_name + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
     print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
     F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\n")
@@ -467,7 +467,7 @@ def run_mem_case(
     debug_case=[],  # noqa
 ):
     print(f"Running {api_call_name} mem test!")
-
+    paddle_name = api_info_dict["origin_paddle_op"]
     activation_cost = None
     before_run_mem = torch.cuda.memory_allocated()
     api_info_dict_copy = copy.deepcopy(api_info_dict)
@@ -489,9 +489,9 @@ def run_mem_case(
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
     if enforce_dtype:
-        op_name = api_call_name + "*" + enforce_dtype.name + ".forward"
+        op_name = paddle_name + "*" + enforce_dtype.name + ".forward"
     else:
-        op_name = api_call_name + ".forward"
+        op_name = paddle_name + ".forward"
 
     F.write(f"{op_name}:\t{str(activation_cost)}\n")
     F.close()
