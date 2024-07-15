@@ -22,7 +22,6 @@ target_op:
   -  paddle.nn.functional.channel_shuffle
   -  paddle.nn.functional.class_center_sample
   -  paddle.nn.functional.common
-  -  paddle.nn.functional.conv
   -  paddle.nn.functional.conv1d
   -  paddle.nn.functional.conv1d_transpose
   -  paddle.nn.functional.conv2d
