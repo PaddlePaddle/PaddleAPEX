@@ -1,5 +1,9 @@
 **简体中文🀄** | [English🌎](./README.md)
-# PaddleAPEX
+
+<p align="center">
+  <img src="./doc/APEX.PNG" align="middle"  width="500" />
+</p>
+
 <p align="center">
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
     <a href=""><img src="https://img.shields.io/badge/python-3.7+-aff.svg"></a>

@@ -1,5 +1,9 @@
 [简体中文🀄](./README_CN.md) | **English🌎**
-# PaddleAPEX
+
+<p align="center">
+  <img src="./doc/APEX.PNG" align="middle"  width="500" />
+</p>
+
 <p align="center">
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
     <a href=""><img src="https://img.shields.io/badge/python-3.7+-aff.svg"></a>
@@ -8,7 +12,7 @@
     <a href="https://github.com/PaddlePaddle/PaddleAPEX/commits"><img src="https://img.shields.io/github/commit-activity/m/PaddlePaddle/PaddleAPEX?color=3af"></a>
 </p>
 
-**PaddleAPEX** is a accuracy and performance expansion pack for PaddlePaddle, supporting operator accuracy checking & operator performance profiling and run-time device memory cost analysis. PaddleAPEX is designed to help developers achieve auto accuracy checking and performance profiling for various devices on paddlepaddle.
+**PaddleAPEX** is an accuracy and performance expansion pack for PaddlePaddle, supporting operator accuracy checking & operator performance profiling and run-time device memory cost analysis. PaddleAPEX is designed to help developers achieve auto accuracy checking and performance profiling for various devices on paddlepaddle.
 
 ## Api_tracer
 Accuracy auto-checker, which can grasp target operators in training models.
@@ -142,6 +146,4 @@ If you use default config file, you can modify specific variable in this file, s
 4. Directly comparision standard:
     We provide a logic flow chart for Directly comparision between devices.
     ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
-    <!-- <center>
-        <img src="./Acc/doc/Compare_Logic_img.jpg" alt="example">
-    </center> -->
+
