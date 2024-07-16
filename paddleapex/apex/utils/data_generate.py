@@ -239,6 +239,7 @@ def gen_paddle_kwargs(kwargs_params, key, value):
 
 def gen_list_kwargs(kwargs_item_value):
     kwargs_item_result = []
+    has_grad_tensor = False
     for item in kwargs_item_value:
         if item.get("type") in TENSOR_DATA_LIST_PADDLE:
             item_value, has_grad_tensor = gen_data(item)

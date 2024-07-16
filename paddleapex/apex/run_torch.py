@@ -57,6 +57,16 @@ def recursive_delete_arg(arg_in):
         del arg_in
         return
 
+string_map = {
+    "bfloat16": torch.bfloat16,
+    "float16": torch.float16,
+    "float32": torch.float32,
+}
+dtype_map = {
+    paddle.bfloat16: torch.bfloat16,
+    paddle.float16: torch.float16,
+    paddle.float32: torch.float32,
+}
 
 # convert torch.Tensor to paddle.Tensor & BF16 to FP32
 def convert_type(arg_in):
@@ -94,7 +104,7 @@ def recursive_arg_to_cpu(arg_in):
 # paddle to torch
 def recursive_arg_to_device(arg_in, enforce_dtype=None, enforce_grad=False):
     if isinstance(arg_in, (list, tuple)):
-        return type(arg_in)(
+        return tuple(
             recursive_arg_to_device(arg, enforce_dtype) for arg in arg_in
         )
     elif isinstance(arg_in, paddle.Tensor) and arg_in.dtype.name in [
@@ -163,6 +173,26 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
         paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
 
 
+def convert_args2torch_style(arg):
+    if isinstance(arg, (list, tuple)):
+        return type(arg)(convert_args2torch_style(item) for item in arg)
+    elif isinstance(arg, str):
+        if arg in string_map:
+            return string_map[arg]
+        else:
+            return arg
+    elif isinstance(arg, dict):
+        for k,v in arg.items():
+            arg[k] = convert_args2torch_style(v)
+        return arg
+    elif isinstance(arg, paddle.dtype):
+        if arg in dtype_map:
+            arg = dtype_map[arg]
+        return arg
+    else:
+        return arg
+
+
 def evoke_related_test_func(test_mode):
     func_method = []
     if "acc" in test_mode:
@@ -207,7 +237,7 @@ def ut_case_parsing(forward_content, cfg):
                 )
                 print(process)
                 args = api_call_name, api_info_dict, out_path
-                kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case}
+                kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case, "real_data_path": cfg.real_data}
                 for run_case in run_case_funcs:
                     run_case(*args, **kwargs)
                 print("*" * 100)
@@ -225,8 +255,8 @@ def ut_case_parsing(forward_content, cfg):
 
 
 # CPU generates paddle tensor， convert to torch tensor
-def create_input_args(api_info, enforce_dtype=None, debug_mode=False):
-    args, kwargs, need_backward = gen_api_params(api_info)
+def create_input_args(api_info, enforce_dtype=None, debug_mode=False, real_data_path=None):
+    args, kwargs, need_backward = gen_api_params(api_info, real_data_path)
     if debug_mode:
         return args, kwargs, need_backward
     device_args = recursive_arg_to_device(args, enforce_dtype)
@@ -237,9 +267,9 @@ def create_input_args(api_info, enforce_dtype=None, debug_mode=False):
     return device_args, device_kwargs, need_backward
 
 
-def create_dout(dout_info_dict, device_out, enforce_dtype=None):
+def create_dout(dout_info_dict, device_out, enforce_dtype=None, real_data_path=None):
     if dout_info_dict[0] != "Failed":
-        dout, _ = gen_args(dout_info_dict)
+        dout, _ = gen_args(dout_info_dict, real_data_path)
     else:
         print("dout dump json is None!")
         device_out = convert_type(device_out)[1]
@@ -304,12 +334,13 @@ def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=No
 
 
 def run_acc_case(
-    api_call_name, api_info_dict, out_path, enforce_dtype=None, debug_case=[]
+    api_call_name, api_info_dict, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     debug_mode = len(debug_case) > 0
-    args, kwargs, need_backward = gen_api_params(api_info_dict_copy)
-
+    args, kwargs, need_backward = gen_api_params(api_info_dict_copy, real_data_path)
+    args = convert_args2torch_style(args)
+    kwargs = convert_args2torch_style(kwargs)
     if debug_mode:
         if api_info_dict["origin_paddle_op"] in debug_case:
             x = [args, kwargs]
@@ -359,12 +390,12 @@ def run_acc_case(
 
 
 def run_profile_case(
-    api_call_name, api_info_dict, out_path, enforce_dtype=None, debug_case=[]
+    api_call_name, api_info_dict, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     paddle_name = api_info_dict["origin_paddle_op"]
-    args, kwargs, _ = gen_api_params(api_info_dict_copy)
+    args, kwargs, _ = gen_api_params(api_info_dict_copy, real_data_path)
     debug_mode = len(debug_case) > 0
     if debug_mode:
         if api_info_dict["origin_paddle_op"] in debug_case:
@@ -377,7 +408,8 @@ def run_profile_case(
         key: recursive_arg_to_device(value, enforce_dtype)
         for key, value in kwargs.items()
     }
-
+    device_args = convert_args2torch_style(device_args)
+    device_kwargs = convert_args2torch_style(device_kwargs)
     # device warmming up
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
@@ -465,13 +497,16 @@ def run_mem_case(
     out_path,
     enforce_dtype=None,
     debug_case=[],  # noqa
+    real_data_path=None
 ):
     print(f"Running {api_call_name} mem test!")
     paddle_name = api_info_dict["origin_paddle_op"]
     activation_cost = None
     before_run_mem = torch.cuda.memory_allocated()
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    device_args, device_kwargs, _ = create_input_args(api_info_dict_copy, enforce_dtype)
+    device_args, device_kwargs, _ = create_input_args(api_info_dict_copy, enforce_dtype, real_data_path)
+    device_args = convert_args2torch_style(device_args)
+    device_kwargs = convert_args2torch_style(device_kwargs)
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
         recursive_delete_arg(device_args)
@@ -544,7 +579,15 @@ def arg_parser(parser):
         help="debug_op name",
         required=False,
     )
-
+    parser.add_argument(
+        "-real",
+        "--real_data",
+        dest="real_data",
+        default="",
+        type=str,
+        help="",
+        required=False,
+    )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
