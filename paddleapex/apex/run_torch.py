@@ -253,20 +253,6 @@ def ut_case_parsing(forward_content, cfg):
                 run_case_funcs(*args, **kwargs)
             print("*" * 100)
 
-
-# CPU generates paddle tensor， convert to torch tensor
-def create_input_args(api_info, enforce_dtype=None, debug_mode=False, real_data_path=None):
-    args, kwargs, need_backward = gen_api_params(api_info, real_data_path)
-    if debug_mode:
-        return args, kwargs, need_backward
-    device_args = recursive_arg_to_device(args, enforce_dtype)
-    device_kwargs = {
-        key: recursive_arg_to_device(value, enforce_dtype)
-        for key, value in kwargs.items()
-    }
-    return device_args, device_kwargs, need_backward
-
-
 def create_dout(dout_info_dict, device_out, enforce_dtype=None, real_data_path=None):
     if dout_info_dict[0] != "Failed":
         dout, _ = gen_args(dout_info_dict, real_data_path)
@@ -365,7 +351,7 @@ def run_acc_case(
     try:
         device_grad_out = []
         if need_backward:
-            dout = create_dout(api_info_dict["dout_list"], device_out, enforce_dtype)
+            dout = create_dout(api_info_dict["dout_list"], device_out, enforce_dtype, real_data_path)
             device_grad_out = run_backward(
                 api_call_name,
                 device_out,
@@ -418,10 +404,10 @@ def run_profile_case(
             msg = "Device warming up failed, it may caused by unsupported operator"
             print_warn_log(msg)
             return
-        dout = create_dout(api_info_dict["dout_list"], device_out, enforce_dtype)
+        dout = create_dout(api_info_dict["dout_list"], device_out, enforce_dtype, real_data_path)
         # recognize size([]) and size([1])
         if isinstance(device_out, torch.Tensor):
-            if isinstance(dout, list):
+            if isinstance(dout, (list,tuple)):
                 dout = dout[0].reshape(device_out.shape)
             else:
                 dout = dout.reshape(device_out.shape)
@@ -504,9 +490,14 @@ def run_mem_case(
     activation_cost = None
     before_run_mem = torch.cuda.memory_allocated()
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    device_args, device_kwargs, _ = create_input_args(api_info_dict_copy, enforce_dtype, real_data_path)
-    device_args = convert_args2torch_style(device_args)
-    device_kwargs = convert_args2torch_style(device_kwargs)
+    args, kwargs, _ = gen_api_params(api_info_dict_copy, real_data_path)
+    args = convert_args2torch_style(args)
+    kwargs = convert_args2torch_style(kwargs)
+    device_args = recursive_arg_to_device(args, enforce_dtype)
+    device_kwargs = {
+        key: recursive_arg_to_device(value, enforce_dtype)
+        for key, value in kwargs.items()
+    }
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
         recursive_delete_arg(device_args)

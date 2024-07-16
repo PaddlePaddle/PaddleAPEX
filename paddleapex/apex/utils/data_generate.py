@@ -205,7 +205,7 @@ def gen_args(args_info, real_data_path = None, need_grad=False):
     return args_result, need_grad
 
 
-def gen_kwargs(api_info):
+def gen_kwargs(api_info, real_data_path=None):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
@@ -216,14 +216,14 @@ def gen_kwargs(api_info):
         if value is None:
             continue
         if isinstance(value, (list, tuple)):
-            kwargs_params[key], has_grad_tensor = gen_list_kwargs(value)
+            kwargs_params[key], has_grad_tensor = gen_list_kwargs(value, real_data_path)
             need_grad = need_grad or has_grad_tensor
         elif isinstance(value, str):
             kwargs_params[key] = eval(value)
         elif value.get("type") in TENSOR_DATA_LIST_PADDLE or value.get(
             "type"
         ).startswith("numpy"):
-            kwargs_params[key], has_grad_tensor = gen_data(value)
+            kwargs_params[key], has_grad_tensor = gen_data(value, real_data_path)
             need_grad = need_grad or has_grad_tensor
         elif value.get("type") in PADDLE_TYPE:
             gen_paddle_kwargs(kwargs_params, key, value)
@@ -237,12 +237,12 @@ def gen_paddle_kwargs(kwargs_params, key, value):
         kwargs_params[key] = eval(value.get("value"))
 
 
-def gen_list_kwargs(kwargs_item_value):
+def gen_list_kwargs(kwargs_item_value, real_data_path = None):
     kwargs_item_result = []
     has_grad_tensor = False
     for item in kwargs_item_value:
         if item.get("type") in TENSOR_DATA_LIST_PADDLE:
-            item_value, has_grad_tensor = gen_data(item)
+            item_value, has_grad_tensor = gen_data(item, real_data_path)
         else:
             has_grad_tensor = False
             item_value = item.get("value")
@@ -252,7 +252,7 @@ def gen_list_kwargs(kwargs_item_value):
 
 def gen_api_params(api_info, real_data_path = None):
     check_object_type(api_info, dict)
-    kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
+    kwargs_params, kwargs_need_grad = gen_kwargs(api_info, real_data_path)
     if api_info.get("args"):
         args_params, args_need_grad = gen_args(api_info.get("args"), real_data_path)
     else:

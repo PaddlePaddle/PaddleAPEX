@@ -305,7 +305,7 @@ def run_profile_case(
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, _ = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype, real_data_path=None
+        api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     if api_call_name in debug_case:
         x = [device_args, device_kwargs]
@@ -391,7 +391,7 @@ def run_mem_case(
     before_run_mem = core.device_memory_stat_current_value("Allocated", device_id)
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, _ = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype, real_data_path=None
+        api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
