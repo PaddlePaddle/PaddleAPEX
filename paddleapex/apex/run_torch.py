@@ -89,6 +89,23 @@ def convert_type(arg_in):
     else:
         raise ValueError("convert_type error")
 
+def get_shape(arg_in):
+    if isinstance(arg_in, (list, tuple)):
+        res = []
+        for item in arg_in:
+            ret_value = get_shape(item)
+            res.append(ret_value)
+        return res
+    elif isinstance(arg_in, paddle.Tensor):
+        shape = arg_in.shape
+        return shape
+
+def merge_two_lists(lst1, lst2):
+    merged_list = []
+    for i in range(len(lst1)):
+        merged_list.append((lst1[i], lst2[i]))
+    return merged_list
+
 
 def recursive_arg_to_cpu(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -382,6 +399,10 @@ def run_profile_case(
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     paddle_name = api_info_dict["origin_paddle_op"]
     args, kwargs, _ = gen_api_params(api_info_dict_copy, real_data_path)
+    input_shape1 = get_shape(device_args)
+    input_shape2 = get_shape(device_kwargs)
+    input_shape_lst = merge_two_lists(input_shape1, input_shape2)
+    output_shape_lst = get_shape(device_out)
     debug_mode = len(debug_case) > 0
     if debug_mode:
         if api_info_dict["origin_paddle_op"] in debug_case:
@@ -471,8 +492,11 @@ def run_profile_case(
         op_bwd = paddle_name + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
     print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\n")
-    F.write(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}\n")
+    msg_fwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'forward'\t{fwd_time/float(PROFILE_RUN_TIMES)}"
+    msg_bwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'backward'\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+
+    F.write(msg_fwd + "\n")
+    F.write(msg_bwd + "\n")
     F.close()
     return
 

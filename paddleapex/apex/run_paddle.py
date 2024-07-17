@@ -51,7 +51,22 @@ def recursive_delete_arg(arg_in):
     elif isinstance(arg_in, paddle.Tensor):
         del arg_in
         return
+def get_shape(arg_in):
+    if isinstance(arg_in, (list, tuple)):
+        res = []
+        for item in arg_in:
+            ret_value = get_shape(item)
+            res.append(ret_value)
+        return res
+    elif isinstance(arg_in, paddle.Tensor):
+        shape = arg_in.shape
+        return shape
 
+def merge_two_lists(lst1, lst2):
+    merged_list = []
+    for i in range(len(lst1)):
+        merged_list.append((lst1[i], lst2[i]))
+    return merged_list
 
 def convert_out2fp32(arg_in):
     flag = False
@@ -324,7 +339,10 @@ def run_profile_case(
         msg = "Failed in device warming up: %s" % str(err)
         print_warn_log(msg)
         return
-
+    input_shape1 = get_shape(device_args)
+    input_shape2 = get_shape(device_kwargs)
+    input_shape_lst = merge_two_lists(input_shape1, input_shape2)
+    output_shape_lst = get_shape(device_out)
     def profile_inner_loop_():
         try:
             paddle.device.synchronize()
@@ -364,12 +382,17 @@ def run_profile_case(
     log_path = os.path.join(out_path, "profile_analyze.log")
 
     F = open(log_path, "a")
-    op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
-    op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
-    print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
-    print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\n")
-    F.write(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}\n")
+    # op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
+    # op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
+    msg_fwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'forward'\t{fwd_time/float(PROFILE_RUN_TIMES)}"
+    msg_bwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'backward'\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+
+    # print_info_log(f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'forward'\t{fwd_time/float(PROFILE_RUN_TIMES)}")
+    # print_info_log(f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'backward'\t{bwd_time/float(PROFILE_RUN_TIMES)}")
+    # F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\tshape:{input_shape_lst}\n")
+    # F.write(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}\n")
+    F.write(msg_fwd + "\n")
+    F.write(msg_bwd + "\n")
     F.close()
     return
 

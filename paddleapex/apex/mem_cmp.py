@@ -4,10 +4,11 @@ import csv
 import re
 import argparse
 import sys
+import math
 
 from compare_utils.compare_dependency import print_info_log
 
-RESULT_FILE_NAME = "prof_checking_result" + ".csv"
+RESULT_FILE_NAME = "memory_checking_result" + ".csv"
 TIME_RATIO = 0.95  # BENCH_TIME / DEVICE_TIME >= 0.95 as standard.
 tqdm_params = {
     "smoothing": 0,  # 平滑进度条的预计剩余时间，取值范围0到1
@@ -58,14 +59,14 @@ def compare_command(args):
     result_csv_path = os.path.join(out_path, RESULT_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     try:
-        bench_profile_log = os.path.join(args.bench_dir, "./profile_analyze.log")
-        device_profile_log = os.path.join(args.device_dir, "./profile_analyze.log")
+        bench_mem_log = os.path.join(args.bench_dir, "./memory_analyze.log")
+        device_mem_log = os.path.join(args.device_dir, "./memory_analyze.log")
     except FileNotFoundError:
         print_info_log("The log file is not found.")
     compare_device_bench(
         result_csv_path,
-        bench_profile_log,
-        device_profile_log,
+        bench_mem_log,
+        device_mem_log,
     )
 
 
@@ -82,38 +83,37 @@ def analyze_log(raw_data):
             print("The format of log is not correct.")
     return res_dict
 
-def get_cmp_result_prof(value1, value2):
-    value1 = float(value1)
-    value2 = float(value2)
-    return str(value2 / value1)
+
+def get_cmp_result_mem(value1, value2):
+    return str(int(value2) - int(value1))
 
 
 def compare_device_bench(
     result_csv_path,
-    bench_profile_log,
-    device_profile_log,
+    bench_mem_log,
+    device_mem_log,
 ):
     ensemble_data = []
-    with open(bench_profile_log, "r") as prof_f1:
-        prof_lines = prof_f1.readlines()
-        prof_f1.close()
-    prof_dict1 = analyze_log(prof_lines)
-    with open(device_profile_log, "r") as prof_f2:
-        prof_lines = prof_f2.readlines()
-        prof_f2.close()
-    prof_dict2 = analyze_log(prof_lines)
+    with open(bench_mem_log, "r") as mem_f1:
+        mem_lines = mem_f1.readlines()
+        mem_f1.close()
+    mem_dict1 = analyze_log(mem_lines)
+    with open(device_mem_log, "r") as mem_f2:
+        mem_lines = mem_f2.readlines()
+        mem_f2.close()
+    mem_dict2 = analyze_log(mem_lines)
 
-    union_keys = set(set(prof_dict1[key]) + set(prof_dict2[key]))
+    union_keys = set(set(mem_dict1[key]) + set(mem_dict2[key]))
 
     for key in union_keys:
         temp_dict = {}
-        if key in prof_dict1.keys():
+        if key in mem_dict1.keys():
             temp_dict["API Name"] = key
-            temp_dict["Bench Time(us)"] = prof_dict1[key]
-        if key in prof_dict2.keys():
-            temp_dict["Device Time(us)"] = prof_dict2[key]
-            if key in prof_dict1.keys():
-                temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(prof_dict1[key], prof_dict2[key])
+            temp_dict["Activation Memory Usage (B)"] = mem_dict1[key]
+        if key in mem_dict2.keys():
+            temp_dict["Activation Memory Usage (B)"] = mem_dict2[key]
+            if key in mem_dict1.keys():
+                temp_dict["Device/Bench Time Ratio"] = math.abs(mem_dict1[key]-mem_dict2[key])
 
     with open(result_csv_path, "w", newline="") as file:
         fieldnames = ensemble_data[0].keys()
