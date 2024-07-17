@@ -63,15 +63,18 @@ NUMPY_TYPE = [
 ]
 
 
-def gen_data(info):
+def gen_data(info, real_data_path=None):
     check_object_type(info, dict)
     data_type = info.get("type")
-    data_path = info.get("real_data_path")
+    rel_data_path = info.get("real_data_path")
     need_grad = False
     if data_type in TENSOR_DATA_LIST_PADDLE:
         stop_gradient = info.get("stop_gradient")
-        if data_path and os.path.exists(data_path):
-            data = gen_real_tensor(data_path, stop_gradient)
+        if real_data_path:
+            data_pth = os.path.join(real_data_path, rel_data_path)
+            real_data_path = os.path.abspath(data_pth)
+            if os.path.exists(real_data_path):
+                data = gen_real_tensor(real_data_path, stop_gradient)
         else:
             data = gen_random_tensor(info, stop_gradient)
         data.stop_gradient = stop_gradient
@@ -180,7 +183,7 @@ def gen_bool_tensor(shape):
     return data
 
 
-def gen_args(args_info, need_grad=False):
+def gen_args(args_info, real_data_path = None, need_grad=False):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
@@ -188,10 +191,10 @@ def gen_args(args_info, need_grad=False):
     args_result = []
     for arg in args_info:
         if isinstance(arg, (list, tuple)):
-            data, has_grad = gen_args(arg, need_grad)
+            data, has_grad = gen_args(arg, real_data_path, need_grad)
             need_grad = need_grad or has_grad
         elif isinstance(arg, dict):
-            data, has_grad = gen_data(arg)
+            data, has_grad = gen_data(arg, real_data_path)
             need_grad = need_grad or has_grad
         elif isinstance(arg, str):
             data = eval(arg)
@@ -202,7 +205,7 @@ def gen_args(args_info, need_grad=False):
     return args_result, need_grad
 
 
-def gen_kwargs(api_info):
+def gen_kwargs(api_info, real_data_path=None):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
@@ -213,14 +216,14 @@ def gen_kwargs(api_info):
         if value is None:
             continue
         if isinstance(value, (list, tuple)):
-            kwargs_params[key], has_grad_tensor = gen_list_kwargs(value)
+            kwargs_params[key], has_grad_tensor = gen_list_kwargs(value, real_data_path)
             need_grad = need_grad or has_grad_tensor
         elif isinstance(value, str):
             kwargs_params[key] = eval(value)
         elif value.get("type") in TENSOR_DATA_LIST_PADDLE or value.get(
             "type"
         ).startswith("numpy"):
-            kwargs_params[key], has_grad_tensor = gen_data(value)
+            kwargs_params[key], has_grad_tensor = gen_data(value, real_data_path)
             need_grad = need_grad or has_grad_tensor
         elif value.get("type") in PADDLE_TYPE:
             gen_paddle_kwargs(kwargs_params, key, value)
@@ -234,11 +237,12 @@ def gen_paddle_kwargs(kwargs_params, key, value):
         kwargs_params[key] = eval(value.get("value"))
 
 
-def gen_list_kwargs(kwargs_item_value):
+def gen_list_kwargs(kwargs_item_value, real_data_path = None):
     kwargs_item_result = []
+    has_grad_tensor = False
     for item in kwargs_item_value:
         if item.get("type") in TENSOR_DATA_LIST_PADDLE:
-            item_value, has_grad_tensor = gen_data(item)
+            item_value, has_grad_tensor = gen_data(item, real_data_path)
         else:
             has_grad_tensor = False
             item_value = item.get("value")
@@ -246,19 +250,14 @@ def gen_list_kwargs(kwargs_item_value):
     return kwargs_item_result, has_grad_tensor
 
 
-def gen_api_params(api_info, seed=1234):
-    # random.seed(seed)
-    # os.environ['PYTHONHASHSEED'] = str(seed)
-    # np.random.seed(seed)
+def gen_api_params(api_info, real_data_path = None):
     check_object_type(api_info, dict)
-    kwargs_params, kwargs_need_grad = gen_kwargs(api_info)
+    kwargs_params, kwargs_need_grad = gen_kwargs(api_info, real_data_path)
     if api_info.get("args"):
-        args_params, args_need_grad = gen_args(api_info.get("args"))
+        args_params, args_need_grad = gen_args(api_info.get("args"), real_data_path)
     else:
         args_need_grad = False
         args_params = []
-    # print(args_params, kwargs_params)
-    # input()
     need_grad = kwargs_need_grad or args_need_grad
     return args_params, kwargs_params, need_grad
 
@@ -280,6 +279,8 @@ def rand_like(data, seed=1234):
             rand_data = numpy.random.randint(-10, 10, size=data.shape).astype("int")
             rand_data = paddle.to_tensor(rand_data, dtype=data.dtype)
             return rand_data
+        else:
+            raise ValueError(f"Unsupported dtype:{data.dtype.name} in func: rand_like")
     elif isinstance(data, (list, tuple)):
         lst = [rand_like(item) for item in data]
         return lst

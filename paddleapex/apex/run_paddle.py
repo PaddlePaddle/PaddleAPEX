@@ -51,7 +51,37 @@ def recursive_delete_arg(arg_in):
     elif isinstance(arg_in, paddle.Tensor):
         del arg_in
         return
+def get_shape(arg_in):
+    if isinstance(arg_in, (list, tuple)):
+        res = []
+        for item in arg_in:
+            ret_value = get_shape(item)
+            res.append(ret_value)
+        return res
+    elif isinstance(arg_in, paddle.Tensor):
+        shape = arg_in.shape
+        return shape
 
+def merge_two_lists(lst1, lst2):
+    merged_list = []
+    if lst1 is None and lst2 is not None:
+        merged_list = lst2
+    elif lst1 is not None and lst2 is None:
+        merged_list = lst1
+    elif lst1 is None and lst2 is None:
+        merged_list = []
+    else:
+        for item in lst1:
+            if item is None:
+                continue
+            else:
+                merged_list.append(item)
+        for item in lst2:
+            if item is None:
+                continue
+            else:
+                merged_list.append(item)
+    return merged_list
 
 def convert_out2fp32(arg_in):
     flag = False
@@ -90,7 +120,7 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
     elif isinstance(arg_in, paddle.Tensor):
         grad_status = arg_in.stop_gradient
         with paddle.no_grad():
-            if "bench" in backend:
+            if "gpu" in backend:
                 arg_in = arg_in.cuda()
             if "cpu" in backend:
                 arg_in = arg_in.cpu()
@@ -162,14 +192,14 @@ def ut_case_parsing(forward_content, cfg):
             for enforce_dtype in enforce_types:
                 print(api_call_name + "*" + enforce_dtype.name)
                 args = api_call_name, api_info_dict, backend, out_path
-                kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case}
+                kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case, "real_data_path": cfg.real_data}
                 for run_case in run_case_funcs:
                     run_case(*args, **kwargs)
                 print("*" * 100)
         else:
             print(api_call_name)
             args = api_call_name, api_info_dict, backend, out_path
-            kwargs = {"enforce_dtype": enforce_dtype, "debug_case": debug_case}
+            kwargs = {"enforce_dtype": None, "debug_case": debug_case}
             if isinstance(run_case_funcs, list):
                 for run_case in run_case_funcs:
                     run_case(*args, **kwargs)
@@ -178,8 +208,8 @@ def ut_case_parsing(forward_content, cfg):
             print("*" * 100)
 
 
-def create_input_args(api_info, backend, enforce_dtype=None):
-    args, kwargs, need_backward = gen_api_params(api_info)
+def create_input_args(api_info, backend, enforce_dtype=None, real_data_path=None):
+    args, kwargs, need_backward = gen_api_params(api_info, real_data_path)
     device_args = recursive_arg_to_device(args, backend, enforce_dtype)
     device_kwargs = {
         key: recursive_arg_to_device(value, backend, enforce_dtype)
@@ -188,9 +218,9 @@ def create_input_args(api_info, backend, enforce_dtype=None):
     return device_args, device_kwargs, need_backward
 
 
-def create_dout(dout_info_dict, device_out, backend, enforce_dtype=None):
+def create_dout(dout_info_dict, device_out, backend, enforce_dtype=None, real_data_path=None):
     if dout_info_dict[0] != "Failed":
-        dout, _ = gen_args(dout_info_dict)
+        dout, _ = gen_args(dout_info_dict, real_data_path)
     else:
         print("dout dump json is None!")
         dout = rand_like(device_out)
@@ -253,11 +283,11 @@ def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=No
 
 
 def run_acc_case(
-    api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[]
+    api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, need_backward = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype
+        api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     print(f"Running {api_call_name} acc test!")
     if api_call_name in debug_case:
@@ -275,7 +305,7 @@ def run_acc_case(
     try:
         device_grad_out = []
         dout = create_dout(
-            api_info_dict["dout_list"], device_out, backend, enforce_dtype
+            api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
         )
         device_grad_out = run_backward(
             api_call_name, device_out, dout, device_args, device_kwargs, need_backward
@@ -283,23 +313,29 @@ def run_acc_case(
     except Exception as err:
         msg = "Run_backward Error: %s" % str(err)
         print_warn_log(msg)
+        if enforce_dtype:
+            save_tensor(
+                device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
+            )
+        else:
+            save_tensor(device_out, device_grad_out, out_path, api_call_name)
+        return
+    if enforce_dtype:
         save_tensor(
             device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
         )
-        return
-    save_tensor(
-        device_out, device_grad_out, out_path, api_call_name, enforce_dtype.name
-    )
+    else:
+        save_tensor(device_out, device_grad_out, out_path, api_call_name)
     return
 
 
 def run_profile_case(
-    api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[]
+    api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, _ = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype
+        api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     if api_call_name in debug_case:
         x = [device_args, device_kwargs]
@@ -311,14 +347,17 @@ def run_profile_case(
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
         dout = create_dout(
-            api_info_dict["dout_list"], device_out, backend, enforce_dtype
+            api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
         )
         paddle.autograd.backward([device_out], dout)
     except Exception as err:
         msg = "Failed in device warming up: %s" % str(err)
         print_warn_log(msg)
         return
-
+    input_shape1 = get_shape(device_args)
+    input_shape2 = get_shape(device_kwargs)
+    input_shape_lst = merge_two_lists(input_shape1, input_shape2)
+    output_shape_lst = get_shape(device_out)
     def profile_inner_loop_():
         try:
             paddle.device.synchronize()
@@ -358,12 +397,19 @@ def run_profile_case(
     log_path = os.path.join(out_path, "profile_analyze.log")
 
     F = open(log_path, "a")
-    op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
-    op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
+    if enforce_dtype:
+        op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
+        op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
+    else:
+        op_fwd = api_call_name + ".forward"
+        op_bwd = api_call_name + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
     print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    F.write(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}\n")
-    F.write(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}\n")
+    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time/float(PROFILE_RUN_TIMES)}"
+    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+
+    F.write(msg_fwd + "\n")
+    F.write(msg_bwd + "\n")
     F.close()
     return
 
@@ -375,6 +421,7 @@ def run_mem_case(
     out_path,
     enforce_dtype=None,
     debug_case=[],  # noqa
+    real_data_path=None
 ):
     print(f"Running {api_call_name} mem test!")
 
@@ -384,7 +431,7 @@ def run_mem_case(
     before_run_mem = core.device_memory_stat_current_value("Allocated", device_id)
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, _ = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype
+        api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
@@ -431,16 +478,25 @@ def arg_parser(parser):
         "-backend",
         "--backend",
         dest="backend",
-        default="bench",
+        default="gpu",
         type=str,
         help="<optional> The running device DEVICE or BENCH.",
         required=False,
     )
     parser.add_argument(
-        "-enforce-dtype",
-        "--dtype",
+        "-dtype",
+        "--enforce-dtype",
         dest="multi_dtype_ut",
-        default="FP32,FP16,BF16",
+        default="",
+        type=str,
+        help="",
+        required=False,
+    )
+    parser.add_argument(
+        "-real",
+        "--real_data",
+        dest="real_data",
+        default="",
         type=str,
         help="",
         required=False,

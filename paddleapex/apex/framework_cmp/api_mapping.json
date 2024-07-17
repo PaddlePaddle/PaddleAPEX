@@ -875,6 +875,7 @@
   "paddle.Tensor.__truediv__","paddle.Tensor.__rtruediv__","paddle.Tensor.__sub__","paddle.Tensor.__rsub__",
   "paddle.Tensor.__lt__","paddle.Tensor.__ne__","paddle.Tensor.__neg__","paddle.Tensor.__eq__","paddle.Tensor.expand_as",
   "paddle.Tensor.expand","paddle.arange","paddle.Tensor.square","paddle.Tensor.multiply_","paddle.Tensor.repeat_interleave",
-  "paddle.Tensor.zero_","paddle.Tensor.all","paddle.Tensor.__neg__","paddle.Tensor.add_","paddle.Tensor.all"
+  "paddle.Tensor.zero_","paddle.Tensor.all","paddle.Tensor.__neg__","paddle.Tensor.add_","paddle.Tensor.all",
+  "paddle.Tensor.sum"
 ]
 }

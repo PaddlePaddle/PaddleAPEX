@@ -65,18 +65,15 @@ class Dump:
             print(
                 f"File {file_path} already exists, tool has overwritten it automatically."
             )
-        full_path = os.path.realpath(file_path)
         if self.Async_save:
             remote_repo = os.path.join(
                 cfg.remote_path, f"rank{rank}_step{cfg.global_step}"
             )
             create_directory(remote_repo)
-            file_path = self.pool.safe_parellel_save(tensor, file_path, remote_repo)
-            full_path = os.path.realpath(file_path)
+            self.pool.safe_parellel_save(tensor, file_path, remote_repo)
         else:
             save_tensor(tensor, file_path)
-
-        return full_path
+        return f"{api_args}.pt"
 
     """
         Get Api_info dict, update self.dump_api_dict
@@ -96,6 +93,11 @@ class Dump:
             )
         else:
             directory = self.data_route
+        if self.dump_api_dict is None:
+            print(
+                "Dump api dict is empty, check if you have correctly inserted marks into scripts"
+            )
+            print("Especially in pipeline parallel mode!")
         create_directory(directory)
         if self.rank is not None:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
