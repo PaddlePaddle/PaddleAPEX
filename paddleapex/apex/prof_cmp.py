@@ -80,7 +80,8 @@ def analyze_log(raw_data):
         single_op_dict["output shape"] = data_list[6]
         single_op_dict["direction"] = data_list[7]
         single_op_dict["Time us"] = data_list[8]
-        res_dict[data_list[0]] = single_op_dict
+        op_name = data_list[0] + "*" + data_list[2]
+        res_dict[op_name] = single_op_dict
     return res_dict
 
 def get_cmp_result_prof(value1, value2):
@@ -103,7 +104,6 @@ def compare_device_bench(
         prof_lines = prof_f2.readlines()
         prof_f2.close()
     prof_dict2 = analyze_log(prof_lines)
-
     union_keys = set(prof_dict1.keys()) | set(prof_dict2.keys())
 
     for key in union_keys:
@@ -116,9 +116,7 @@ def compare_device_bench(
         temp_dict["Bench Time(us)"] = "None"
         temp_dict["Device Time(us)"] = "None"
         temp_dict["Device/Bench Time Ratio"] = "None"
-        print(prof_dict2[key])
-        print(prof_dict1[key])
-        input()
+
         if key in prof_dict1.keys():
             temp_dict["API Name"] = key
             temp_dict["dtype"] = prof_dict1[key]["dtype"]
@@ -130,8 +128,6 @@ def compare_device_bench(
             temp_dict["Device Time(us)"] = prof_dict2[key]["Time us"]
             if key in prof_dict1.keys():
                 temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(prof_dict1[key]["Time us"], prof_dict2[key]["Time us"])
-        print(temp_dict)
-        input()
         ensemble_data.append(temp_dict)
     with open(result_csv_path, "w", newline="") as file:
         fieldnames = ensemble_data[0].keys()
