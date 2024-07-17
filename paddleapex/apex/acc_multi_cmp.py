@@ -198,11 +198,8 @@ class BenchmarkStandard:
                 return "equal, delta<1e-6"
             x = 1 - x
             y = 1 - y
-            abs_error = math.fabs(x - y)
-            if x > y:
-                return f">,delta={abs_error}"
-            else:
-                return f"<,delta={abs_error}"
+            ratio = x/y
+            return f"{ratio}"
         except Exception:
             print(
                 "Error when calculate precision ratio, may be caused by nan/inf in data or empty string"
