@@ -102,18 +102,22 @@ def compare_device_bench(
         mem_lines = mem_f2.readlines()
         mem_f2.close()
     mem_dict2 = analyze_log(mem_lines)
-
-    union_keys = set(set(mem_dict1[key]) + set(mem_dict2[key]))
+    print(mem_dict1)
+    union_keys = set(mem_dict1.keys()) | set(mem_dict2.keys())
 
     for key in union_keys:
         temp_dict = {}
         if key in mem_dict1.keys():
             temp_dict["API Name"] = key
-            temp_dict["Activation Memory Usage (B)"] = mem_dict1[key]
+            temp_dict["Bench Memory Usage (B)"] = mem_dict1[key]
         if key in mem_dict2.keys():
-            temp_dict["Activation Memory Usage (B)"] = mem_dict2[key]
+            temp_dict["Device Memory Usage (B)"] = mem_dict2[key]
             if key in mem_dict1.keys():
-                temp_dict["Device/Bench Time Ratio"] = math.abs(mem_dict1[key]-mem_dict2[key])
+                temp_dict["Memory Difference"] = abs(float(mem_dict1[key])-float(mem_dict2[key]))
+        else:
+            temp_dict["Device Memory Usage (B)"] = ""
+            temp_dict["Memory Difference"] = ""
+        ensemble_data.append(temp_dict)
 
     with open(result_csv_path, "w", newline="") as file:
         fieldnames = ensemble_data[0].keys()

@@ -71,15 +71,16 @@ def compare_command(args):
 
 def analyze_log(raw_data):
     res_dict = {}
-    pattern = r"^(.*?)\s*:\t(.*?)\n$"
     for item in raw_data:
-        match = re.match(pattern, item)
-        if match:
-            api_name = match.group(1)
-            data = match.group(2)
-            res_dict[api_name] = data
-        else:
-            print("The format of log is not correct.")
+        single_op_dict = {}
+        item = item.replace('\n', '')
+        data_list = item.split("\t")
+        single_op_dict["dtype"] = data_list[2]
+        single_op_dict["input shape"] = data_list[4]
+        single_op_dict["output shape"] = data_list[6]
+        single_op_dict["direction"] = data_list[7]
+        single_op_dict["Time us"] = data_list[8]
+        res_dict[data_list[0]] = single_op_dict
     return res_dict
 
 def get_cmp_result_prof(value1, value2):
@@ -103,18 +104,35 @@ def compare_device_bench(
         prof_f2.close()
     prof_dict2 = analyze_log(prof_lines)
 
-    union_keys = set(set(prof_dict1[key]) + set(prof_dict2[key]))
+    union_keys = set(prof_dict1.keys()) | set(prof_dict2.keys())
 
     for key in union_keys:
         temp_dict = {}
+        temp_dict["API Name"] = key
+        temp_dict["dtype"] = "None"
+        temp_dict["input shape"] = "None"
+        temp_dict["output shape"] = "None"
+        temp_dict["direction"] = "None"
+        temp_dict["Bench Time(us)"] = "None"
+        temp_dict["Device Time(us)"] = "None"
+        temp_dict["Device/Bench Time Ratio"] = "None"
+        print(prof_dict2[key])
+        print(prof_dict1[key])
+        input()
         if key in prof_dict1.keys():
             temp_dict["API Name"] = key
-            temp_dict["Bench Time(us)"] = prof_dict1[key]
+            temp_dict["dtype"] = prof_dict1[key]["dtype"]
+            temp_dict["input shape"] = prof_dict1[key]["input shape"]
+            temp_dict["output shape"] = prof_dict1[key]["output shape"]
+            temp_dict["direction"] = prof_dict1[key]["direction"]
+            temp_dict["Bench Time(us)"] = prof_dict1[key]["Time us"]
         if key in prof_dict2.keys():
-            temp_dict["Device Time(us)"] = prof_dict2[key]
+            temp_dict["Device Time(us)"] = prof_dict2[key]["Time us"]
             if key in prof_dict1.keys():
-                temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(prof_dict1[key], prof_dict2[key])
-
+                temp_dict["Device/Bench Time Ratio"] = get_cmp_result_prof(prof_dict1[key]["Time us"], prof_dict2[key]["Time us"])
+        print(temp_dict)
+        input()
+        ensemble_data.append(temp_dict)
     with open(result_csv_path, "w", newline="") as file:
         fieldnames = ensemble_data[0].keys()
         writer = csv.DictWriter(file, fieldnames=fieldnames)

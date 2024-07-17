@@ -36,14 +36,8 @@
 #### Step3: 将PaddleAPEX安装到你的python环境中。
 
 ``` Shell
-    # 如果你使用了Conda环境，请使用以下命令：
-    cd PaddleAPEX
-    pip install -e .
-
-    # 如果你的环境是virtualenv，请使用以下命令：
+    # 为了能在全局访问paddleapex
     export PYTHONPATH=[abs_path to PaddleAPEX]:$PYTHONPATH
-    e.g.:
-    export PYTHONPATH=/root/paddlejob/workspace/xjm/0708/PaddleAPEX:$PYTHONPATH
 
 ```
 
@@ -95,9 +89,11 @@
 1.  直接比较:
     ```Shell
     cd paddleapex/apex
-    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+    python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] -dtype FP32,FP16,BF16 -mode all -op <op_name>
     # mode参数可以由mem acc pro三者任意组合，以逗号分隔，例如 -mode mem,acc 也可以直接使用-mode all 来唤醒所有测试。
     # -op 是可选参数, 这会进入debug模式，仅运行目标算子。
+    E.g.:
+    python run_paddle.py -json ./dump_info/rank0_step2/forward_rank0.json -backend gpu -out ./ -dtype FP32 -mode acc
     ```
     这个脚本运行后会产生一个目录，其中包含api fwd/bwd的输出结果。结构如下：
 
@@ -124,9 +120,11 @@
         python acc_multi_cmp.py --benchmark [gpufp32_gpubf16] --device [gpufp32_npubf16] -o [third_party_cmp_path]
     ```
     我们提供了多端比对的推荐流程图，您可以参考：
-    ![Multi-end precision comparision](./doc/multi-end-flow.png)
+    <p align="center">
+    <img src="./doc/multi-end-flow.png" align="middle"  width="500" />
+    </p>
 3.
-    对于跨框架比对，我们正在开发中，它会很快到来！
+    对于跨框架比对，我们正在开发中，它会很快上线！
 #### Step6: 性能、显存分析工具
      1. 用例运行
      ```
@@ -138,8 +136,12 @@
     ```
         cd paddleapex/apex
         python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
+        python mem_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
     ```
 
 #### 直接比对的标准：
 我们提供了一个逻辑流程图，用于直接比较不同设备之间的精度。
-![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
+<p align="center">
+<img src="./doc/Compare_Logic_img.jpg" align="middle"  width="800" />
+</p>
+

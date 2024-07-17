@@ -35,14 +35,8 @@ If you use default config file, you can modify specific variable in this file, s
 #### Step3: Install into your python environment.
 
 ``` Shell
-    # If you are using conda, you can install it by:
-    cd PaddleAPEX
-    pip install -e .
-
-    # If you are using virtualenv, you can add it to your virtualenv by:
+    # If you want to use paddleapex out of this repository please add the following environment variable.
     export PYTHONPATH=[abs_path to PaddleAPEX]:$PYTHONPATH
-    e.g.:
-    export PYTHONPATH=/root/paddlejob/workspace/xjm/0708/PaddleAPEX:$PYTHONPATH
 
 ```
 
@@ -96,6 +90,8 @@ If you use default config file, you can modify specific variable in this file, s
     python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
     # mode can combine mem, acc, pro arbitary. E.g.:-mode mem,acc or -mode all
     # -op is optional args, if you want to run specific op.
+    E.g.:
+    python run_paddle.py -json ./dump_info/rank0_step2/forward_rank0.json -backend gpu -out ./ -dtype FP32 -mode acc
     ```
     This script will generate a repository, which contains api fwd/bwd outputs results. The sturcture is as follows:
 
@@ -124,8 +120,10 @@ If you use default config file, you can modify specific variable in this file, s
     ```
     We provide a flow chart for Multi-end precision comparision.
 
+<p align="center">
+<img src="./doc/multi-end-flow.png" align="middle"  width="500" />
+</p>
 
-    ![Multi-end precision comparision](./doc/multi-end-flow.png)
 3.
     For cross framework comparision is in WIP, it will coming soon!
 
@@ -136,14 +134,17 @@ If you use default config file, you can modify specific variable in this file, s
         python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype [dtype] -mode mem,pro
         # exec code above on different devices, and generate corresponding outputs.
     ```
+
     2. Test cases comparision:
     ```
         cd paddleapex/apex
         python prof_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
-    ```
+        python mem_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]    ```
 
 
 4. Directly comparision standard:
     We provide a logic flow chart for Directly comparision between devices.
-    ![Acc Tool Architecture](./doc/Compare_Logic_img.jpg)
+<p align="center">
+<img src="./doc/Compare_Logic_img.jpg" align="middle"  width="500" />
+</p>
 

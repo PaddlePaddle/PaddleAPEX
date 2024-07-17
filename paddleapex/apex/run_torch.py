@@ -102,11 +102,24 @@ def get_shape(arg_in):
 
 def merge_two_lists(lst1, lst2):
     merged_list = []
-    for i in range(len(lst1)):
-        merged_list.append((lst1[i], lst2[i]))
+    if lst1 is None and lst2 is not None:
+        merged_list = lst2
+    elif lst1 is not None and lst2 is None:
+        merged_list = lst1
+    elif lst1 is None and lst2 is None:
+        merged_list = []
+    else:
+        for item in lst1:
+            if item is None:
+                continue
+            else:
+                merged_list.append(item)
+        for item in lst2:
+            if item is None:
+                continue
+            else:
+                merged_list.append(item)
     return merged_list
-
-
 def recursive_arg_to_cpu(arg_in):
     if isinstance(arg_in, (list, tuple)):
         res = []
@@ -492,8 +505,8 @@ def run_profile_case(
         op_bwd = paddle_name + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
     print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    msg_fwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'forward'\t{fwd_time/float(PROFILE_RUN_TIMES)}"
-    msg_bwd = f"{api_call_name}:\t'dtype'\t{enforce_dtype.name}\t'input shape'\t{input_shape_lst}\t'output shape'\t{output_shape_lst}\t'backward'\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time/float(PROFILE_RUN_TIMES)}"
+    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time/float(PROFILE_RUN_TIMES)}"
 
     F.write(msg_fwd + "\n")
     F.write(msg_bwd + "\n")
