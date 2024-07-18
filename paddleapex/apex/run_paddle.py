@@ -42,7 +42,6 @@ tqdm_params = {
 }
 PROFILE_RUN_TIMES = 100
 
-
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
         for item in arg_in:
@@ -334,7 +333,7 @@ def run_profile_case(
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    device_args, device_kwargs, _ = create_input_args(
+    device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     if api_call_name in debug_case:
@@ -342,7 +341,6 @@ def run_profile_case(
         out_path = os.path.realpath(out_path) if out_path else "./"
         save_pth = os.path.join(out_path, "input_data", api_call_name)
         paddle.save(x, save_pth)
-
     # device warmming up
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
@@ -367,20 +365,24 @@ def run_profile_case(
             paddle.device.synchronize()
             fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
-            fwd_time = fwd_time * 1000000  # fwd_time is in us
+            fwd_time = fwd_time * 1000000 / float(PROFILE_RUN_TIMES) # fwd_time is in us
         except Exception as err:
             msg = "Run_forward Error: %s" % str(err)
             print_warn_log(msg)
             return -1, -1
         try:
+            if not need_backward:
+                return fwd_time, -1
             paddle.device.synchronize()
             bwd_start_time = time.time()
             for _ in range(PROFILE_RUN_TIMES):
-                paddle.autograd.backward([device_out], dout, retain_graph=True)
+                device_out = run_forward(api_call_name, device_args, device_kwargs)
+                paddle.autograd.backward([device_out], dout)
             paddle.device.synchronize()
             bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
-            bwd_time = bwd_time * 1000000  # bwd_time is in us
+            bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
+            bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
@@ -403,10 +405,10 @@ def run_profile_case(
     else:
         op_fwd = api_call_name + ".forward"
         op_bwd = api_call_name + ".backward"
-    print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
-    print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time/float(PROFILE_RUN_TIMES)}"
-    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+    print_info_log(f"{op_fwd}:\t{fwd_time}")
+    print_info_log(f"{op_bwd}:\t{bwd_time}")
+    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time}"
+    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time}"
 
     F.write(msg_fwd + "\n")
     F.write(msg_bwd + "\n")

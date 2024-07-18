@@ -411,7 +411,7 @@ def run_profile_case(
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     paddle_name = api_info_dict["origin_paddle_op"]
-    args, kwargs, _ = gen_api_params(api_info_dict_copy, real_data_path)
+    args, kwargs, need_backward = gen_api_params(api_info_dict_copy, real_data_path)
     input_shape1 = get_shape(device_args)
     input_shape2 = get_shape(device_kwargs)
     input_shape_lst = merge_two_lists(input_shape1, input_shape2)
@@ -467,6 +467,8 @@ def run_profile_case(
             print_warn_log(msg)
             return -1, -1
         try:
+            if not need_backward:
+                return fwd_time, -1
             # recognize size([]) and size([1])
             if isinstance(device_out, torch.Tensor):
                 if isinstance(dout, list):
