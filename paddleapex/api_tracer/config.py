@@ -14,13 +14,12 @@
 
 import os
 import yaml
-
+import time
 
 class Config:
     def __init__(self) -> None:
         # Load environment variable, if user did not set, tool load from predefined default setting.
         current_dir = os.path.dirname(__file__)
-        print("current dir : ", current_dir)
         default_path = os.path.join(current_dir, "configs/tool_config.yaml")
         config_path = os.environ.get("APEX_CONFIG_PATH", default_path)
         with open(config_path, "r", encoding="utf-8") as f:
@@ -33,8 +32,11 @@ class Config:
             self.target_step = configs["target_step"]
             self.remote_path = configs["remote_path"]
             self.Async_dump = configs["Async_dump"]
+            self.profile_mode = configs["profile_mode"]
             f.close()
 
+        print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")
+        time.sleep(0.1)
         self.global_step = -1
         self.dump_state = False
         self.Op_count = {}
