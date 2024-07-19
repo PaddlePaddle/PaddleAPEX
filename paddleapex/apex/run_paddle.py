@@ -1,3 +1,17 @@
+# Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import os
 import shutil
@@ -179,6 +193,7 @@ def ut_case_parsing(forward_content, cfg):
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
     debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
     debug_mode = False
+    paddle.set_device(cfg.backend)
     if len(debug_case) > 0:
         debug_mode = True
     enforce_types = [type_map[item] for item in multi_dtype_ut]
@@ -399,16 +414,14 @@ def run_profile_case(
     log_path = os.path.join(out_path, "profile_analyze.log")
 
     F = open(log_path, "a")
-    if enforce_dtype:
-        op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
-        op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
-    else:
-        op_fwd = api_call_name + ".forward"
-        op_bwd = api_call_name + ".backward"
+    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
+    op_fwd = api_call_name + dtype + ".forward"
+    op_bwd = api_call_name + dtype + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time}")
     print_info_log(f"{op_bwd}:\t{bwd_time}")
-    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time}"
-    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time}"
+    dtype = "\t" if not enforce_dtype else f"\t{enforce_dtype.name}"
+    msg_fwd = f"{api_call_name}.forward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time}"
+    msg_bwd = f"{api_call_name}.backward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time}"
 
     F.write(msg_fwd + "\n")
     F.write(msg_bwd + "\n")
@@ -451,7 +464,8 @@ def run_mem_case(
     log_path = os.path.join(out_path, "memory_analyze.log")
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
-    op_name = api_call_name + "*" + enforce_dtype.name + ".forward"
+    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
+    op_name = api_call_name + dtype + ".forward"
     F.write(f"{op_name}:\t{str(activation_cost)}\n")
     F.close()
     return
