@@ -1,3 +1,17 @@
+# Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import os
 import shutil
@@ -41,7 +55,6 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 PROFILE_RUN_TIMES = 100
-
 
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -180,6 +193,7 @@ def ut_case_parsing(forward_content, cfg):
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
     debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
     debug_mode = False
+    paddle.set_device(cfg.backend)
     if len(debug_case) > 0:
         debug_mode = True
     enforce_types = [type_map[item] for item in multi_dtype_ut]
@@ -334,7 +348,7 @@ def run_profile_case(
 ):
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    device_args, device_kwargs, _ = create_input_args(
+    device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     if api_call_name in debug_case:
@@ -342,7 +356,6 @@ def run_profile_case(
         out_path = os.path.realpath(out_path) if out_path else "./"
         save_pth = os.path.join(out_path, "input_data", api_call_name)
         paddle.save(x, save_pth)
-
     # device warmming up
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
@@ -367,20 +380,24 @@ def run_profile_case(
             paddle.device.synchronize()
             fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
-            fwd_time = fwd_time * 1000000  # fwd_time is in us
+            fwd_time = fwd_time * 1000000 / float(PROFILE_RUN_TIMES) # fwd_time is in us
         except Exception as err:
             msg = "Run_forward Error: %s" % str(err)
             print_warn_log(msg)
             return -1, -1
         try:
+            if not need_backward:
+                return fwd_time, -1
             paddle.device.synchronize()
             bwd_start_time = time.time()
             for _ in range(PROFILE_RUN_TIMES):
-                paddle.autograd.backward([device_out], dout, retain_graph=True)
+                device_out = run_forward(api_call_name, device_args, device_kwargs)
+                paddle.autograd.backward([device_out], dout)
             paddle.device.synchronize()
             bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
-            bwd_time = bwd_time * 1000000  # bwd_time is in us
+            bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
+            bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
@@ -397,16 +414,14 @@ def run_profile_case(
     log_path = os.path.join(out_path, "profile_analyze.log")
 
     F = open(log_path, "a")
-    if enforce_dtype:
-        op_fwd = api_call_name + "*" + enforce_dtype.name + ".forward"
-        op_bwd = api_call_name + "*" + enforce_dtype.name + ".backward"
-    else:
-        op_fwd = api_call_name + ".forward"
-        op_bwd = api_call_name + ".backward"
-    print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
-    print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time/float(PROFILE_RUN_TIMES)}"
-    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
+    op_fwd = api_call_name + dtype + ".forward"
+    op_bwd = api_call_name + dtype + ".backward"
+    print_info_log(f"{op_fwd}:\t{fwd_time}")
+    print_info_log(f"{op_bwd}:\t{bwd_time}")
+    dtype = "\t" if not enforce_dtype else f"\t{enforce_dtype.name}"
+    msg_fwd = f"{api_call_name}.forward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time}"
+    msg_bwd = f"{api_call_name}.backward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time}"
 
     F.write(msg_fwd + "\n")
     F.write(msg_bwd + "\n")
@@ -449,7 +464,8 @@ def run_mem_case(
     log_path = os.path.join(out_path, "memory_analyze.log")
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
-    op_name = api_call_name + "*" + enforce_dtype.name + ".forward"
+    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
+    op_name = api_call_name + dtype + ".forward"
     F.write(f"{op_name}:\t{str(activation_cost)}\n")
     F.close()
     return

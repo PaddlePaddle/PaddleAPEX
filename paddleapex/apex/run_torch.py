@@ -1,3 +1,17 @@
+# Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import os
 import shutil
@@ -411,7 +425,7 @@ def run_profile_case(
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     paddle_name = api_info_dict["origin_paddle_op"]
-    args, kwargs, _ = gen_api_params(api_info_dict_copy, real_data_path)
+    args, kwargs, need_backward = gen_api_params(api_info_dict_copy, real_data_path)
     input_shape1 = get_shape(device_args)
     input_shape2 = get_shape(device_kwargs)
     input_shape_lst = merge_two_lists(input_shape1, input_shape2)
@@ -467,6 +481,8 @@ def run_profile_case(
             print_warn_log(msg)
             return -1, -1
         try:
+            if not need_backward:
+                return fwd_time, -1
             # recognize size([]) and size([1])
             if isinstance(device_out, torch.Tensor):
                 if isinstance(dout, list):
