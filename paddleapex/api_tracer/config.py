@@ -34,9 +34,10 @@ class Config:
             self.Async_dump = configs["Async_dump"]
             self.profile_mode = configs["profile_mode"]
             f.close()
-
+        print("*" * 100)
         print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")
-        time.sleep(0.1)
+        print("*" * 100)
+        time.sleep(1)
         self.global_step = -1
         self.dump_state = False
         self.Op_count = {}

@@ -92,8 +92,7 @@ def analyze_log(raw_data):
         single_op_dict["output shape"] = data_list[6]
         single_op_dict["direction"] = data_list[7]
         single_op_dict["Time us"] = data_list[8]
-        op_name = data_list[0] + "*" + data_list[2]
-        res_dict[op_name] = single_op_dict
+        res_dict[data_list[0]] = single_op_dict
     return res_dict
 
 def get_cmp_result_prof(value1, value2):

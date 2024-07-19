@@ -510,7 +510,10 @@ def run_profile_case(
         print_warn_log(msg)
         Warning_list.append(msg)
         return
-    log_path = os.path.join(out_path, "profile_analyze.log")
+    if not enforce_dtype:
+        log_path = os.path.join(out_path, "profile_analyze.log")
+    else:
+        log_path = os.path.join(out_path, enforce_dtype.name, "profile_analyze.log")
 
     F = open(log_path, "a")
     if enforce_dtype:
@@ -521,8 +524,9 @@ def run_profile_case(
         op_bwd = paddle_name + ".backward"
     print_info_log(f"{op_fwd}:\t{fwd_time/float(PROFILE_RUN_TIMES)}")
     print_info_log(f"{op_bwd}:\t{bwd_time/float(PROFILE_RUN_TIMES)}")
-    msg_fwd = f"{api_call_name}.forward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time/float(PROFILE_RUN_TIMES)}"
-    msg_bwd = f"{api_call_name}.backward\tdtype\t{enforce_dtype.name}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time/float(PROFILE_RUN_TIMES)}"
+    dtype = "\t" if not enforce_dtype else f"\t{enforce_dtype.name}"
+    msg_fwd = f"{api_call_name}.forward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tforward\t{fwd_time}"
+    msg_bwd = f"{api_call_name}.backward\tdtype{dtype}\tinput shape\t{input_shape_lst}\toutput shape\t{output_shape_lst}\tbackward\t{bwd_time}"
 
     F.write(msg_fwd + "\n")
     F.write(msg_bwd + "\n")
@@ -571,7 +575,8 @@ def run_mem_case(
         op_name = paddle_name + "*" + enforce_dtype.name + ".forward"
     else:
         op_name = paddle_name + ".forward"
-
+    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
+    op_name = api_call_name + dtype + ".forward"
     F.write(f"{op_name}:\t{str(activation_cost)}\n")
     F.close()
     return
