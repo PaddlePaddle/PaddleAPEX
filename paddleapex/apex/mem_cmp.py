@@ -84,15 +84,14 @@ def compare_command(args):
 
 def analyze_log(raw_data):
     res_dict = {}
-    pattern = r"^(.*?)\s*:\t(.*?)\n$"
+  
     for item in raw_data:
-        match = re.match(pattern, item)
-        if match:
-            api_name = match.group(1)
-            data = match.group(2)
-            res_dict[api_name] = data
-        else:
-            print("The format of log is not correct.")
+        single_op_dict = {}
+        item = item.replace('\n', '')
+        data_list = item.split("\t")  
+        single_op_dict['dtype'] = data_list[1]
+        single_op_dict['memory'] = data_list[2]
+        res_dict[data_list[0]] = single_op_dict
     return res_dict
 
 
@@ -120,11 +119,12 @@ def compare_device_bench(
         temp_dict = {}
         if key in mem_dict1.keys():
             temp_dict["API Name"] = key
-            temp_dict["Bench Memory Usage (B)"] = mem_dict1[key]
+            temp_dict['dtype'] = mem_dict1[key]['dtype']
+            temp_dict["Bench Memory Usage (B)"] = mem_dict1[key]['memory']
         if key in mem_dict2.keys():
-            temp_dict["Device Memory Usage (B)"] = mem_dict2[key]
+            temp_dict["Device Memory Usage (B)"] = mem_dict2[key]['memory']
             if key in mem_dict1.keys():
-                temp_dict["Memory Difference"] = abs(float(mem_dict1[key])-float(mem_dict2[key]))
+                temp_dict["Memory Difference"] = abs(float(mem_dict1[key]['memory'])-float(mem_dict2[key]['memory']))
         else:
             temp_dict["Device Memory Usage (B)"] = ""
             temp_dict["Memory Difference"] = ""

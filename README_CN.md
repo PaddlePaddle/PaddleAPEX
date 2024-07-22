@@ -139,7 +139,7 @@ python mem_cmp.py --benchmark [gpu_repo] --device [npu_repo] -o [result_path]
 3. 生成性能\精度总结报告:
 ```shell
     cd paddleapex/apex
-    python summary_generator.py -acc [acc_result] -prof [prof_detail] 
+    python summary_generator.py -acc [acc_result] -prof [prof_detail] -mem [mem_detail]
 ```
 
 #### 直接比对的标准：
