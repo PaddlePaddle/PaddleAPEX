@@ -13,13 +13,9 @@
 # limitations under the License.
 import paddle.distributed as dist
 import paddle
-from .. import config
-from ..api_info import API
-
-
-class HookOp:
-    pass
-
+from paddleapex.api_tracer import config
+from paddleapex.api_tracer.api_info import API
+from paddleapex.api_tracer.hook_op import HookOp
 
 cfg = config.cfg
 

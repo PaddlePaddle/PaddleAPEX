@@ -16,7 +16,7 @@ import paddle
 import numpy as np
 from paddleapex.api_tracer.Dump import dump_util
 from paddleapex.api_tracer.config import cfg
-
+from paddleapex.api_tracer.hook_op import HookOp
 Paddle_Type_Map = {
     "FP64": "paddle.float64",
     "FP32": "paddle.float32",
@@ -134,8 +134,10 @@ class API:
         single_arg.update({"shape": arg.shape})
         try:
             with paddle.no_grad():
-                max_ = paddle.max(arg).item()
-                min_ = paddle.min(arg).item()
+                fun_max = getattr(HookOp, "wrap_paddle.max")
+                fun_min = getattr(HookOp, "wrap_paddle.min")
+                max_ = fun_max(arg).item()
+                min_ = fun_min(arg).item()
         except:
             max_ = 1
             min_ = 0
