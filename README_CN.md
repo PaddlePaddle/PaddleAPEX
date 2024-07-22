@@ -24,7 +24,7 @@
 
 **进阶用法：**
     你可以设置Async_data=True来异步地传输数据。当使用远端路径时，Apex会加快抓取速度。    
-    性能模式可以通过设置Profile_mode=True来开启。在性能模式中，Apex会使用**paddle.max**, **paddle.min**来分析张量。这肯呢个会导致精度损失，但能够获得更高的训练性能。
+    性能模式可以通过设置Profile_mode=True来开启。在性能模式中，Apex会使用**paddle.max**, **paddle.min**来分析张量。这可能会导致精度损失，但能够获得更高的训练性能。
 更多细节问题请参考文件**PaddleAPEX/paddleapex/api_tracer/configs/tool_config.yaml**。
 
 #### Step2: 设置配置文件位置。

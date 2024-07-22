@@ -64,8 +64,6 @@ class API:
     def __init__(self, mode):
         self.op_name = ""
         self.rank = ""
-        self.args = ""
-        self.kwargs = ""
         self.mode = mode
         self.args_num = 0
         self.embedding_num = 0
@@ -76,22 +74,17 @@ class API:
         else:
             self.tensor_analyzer_ = self._analyze_tensor
 
-    def reformat(self):
-        args_info_list = self.analyze_element(self.args)
-        kwargs_info_dict = self.analyze_element(self.kwargs)
-        self.api_info_struct = {
-            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
-        }
-
     def update_APIInfo(self, op_name, rank):
         print("dump api: ", op_name)
         self.op_name = op_name
         self.rank = rank
 
     def update_real_data(self, inputs, kwargs):
-        self.args = inputs
-        self.kwargs = kwargs
-        self.reformat()
+        args_info_list = self.analyze_element(inputs)
+        kwargs_info_dict = self.analyze_element(kwargs)
+        self.api_info_struct = {
+            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
+        }
 
     def record_dout(self, grad_value):
         if grad_value is None:
