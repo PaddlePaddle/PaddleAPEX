@@ -411,7 +411,11 @@ def run_profile_case(
         print_warn_log(msg)
         Warning_list.append(msg)
         return
-    log_path = os.path.join(out_path, "profile_analyze.log")
+
+    if not enforce_dtype:
+        log_path = os.path.join(out_path, "profile_analyze.log")
+    else:
+        log_path = os.path.join(out_path, enforce_dtype.name, "profile_analyze.log")
 
     F = open(log_path, "a")
     dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
@@ -461,7 +465,11 @@ def run_mem_case(
         msg = "Run_forward Error: %s" % str(err)
         print_warn_log(msg)
         return
-    log_path = os.path.join(out_path, "memory_analyze.log")
+    if not enforce_dtype:
+        log_path = os.path.join(out_path, "memory_analyze.log")
+    else:
+        log_path = os.path.join(out_path, enforce_dtype.name, "memory_analyze.log")
+
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
     dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"

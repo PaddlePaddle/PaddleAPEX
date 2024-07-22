@@ -32,7 +32,7 @@ def write_json(file_path, data, rank=None, mode="forward"):
     if os.path.exists(json_pth):
         os.remove(json_pth)
         print(f"File {json_pth} already exists, tool has overwritten it automatically.")
-    with open(json_pth, mode="a+") as f:
+    with open(json_pth, mode="w") as f:
         json.dump(data, f, indent=2)
 
 

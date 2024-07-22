@@ -114,7 +114,6 @@ def compare_device_bench(
         mem_lines = mem_f2.readlines()
         mem_f2.close()
     mem_dict2 = analyze_log(mem_lines)
-    print(mem_dict1)
     union_keys = set(mem_dict1.keys()) | set(mem_dict2.keys())
 
     for key in union_keys:

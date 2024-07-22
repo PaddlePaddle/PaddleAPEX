@@ -15,6 +15,7 @@
 import paddle
 import numpy as np
 from paddleapex.api_tracer.Dump import dump_util
+from paddleapex.api_tracer.config import cfg
 
 Paddle_Type_Map = {
     "FP64": "paddle.float64",
@@ -63,25 +64,15 @@ class API:
     def __init__(self, mode):
         self.op_name = ""
         self.rank = ""
-        self.args = ""
-        self.kwargs = ""
         self.mode = mode
         self.args_num = 0
         self.embedding_num = 0
         self.output_num = 0
         self.dout_list = []
-
-    """
-        Adjust data format.
-        Transfer opinfo_dict to dump utils
-    """
-
-    def reformat(self):
-        args_info_list = self.analyze_element(self.args)
-        kwargs_info_dict = self.analyze_element(self.kwargs)
-        self.api_info_struct = {
-            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
-        }
+        if cfg.profile_mode:
+            self.tensor_analyzer_ = self.effi_analyze_tensor
+        else:
+            self.tensor_analyzer_ = self._analyze_tensor
 
     def update_APIInfo(self, op_name, rank):
         print("dump api: ", op_name)
@@ -89,9 +80,11 @@ class API:
         self.rank = rank
 
     def update_real_data(self, inputs, kwargs):
-        self.args = inputs
-        self.kwargs = kwargs
-        self.reformat()
+        args_info_list = self.analyze_element(inputs)
+        kwargs_info_dict = self.analyze_element(kwargs)
+        self.api_info_struct = {
+            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
+        }
 
     def record_dout(self, grad_value):
         if grad_value is None:
@@ -126,13 +119,36 @@ class API:
             return Paddle_Type_Map[element.name]
 
         if isinstance(element, paddle.Tensor):
-            return self._analyze_tensor(element)
+            return self.tensor_analyzer_(element)
 
         if element is None or isinstance(element, (bool, int, float, str, slice)):
             return self._analyze_builtin(element)
 
         msg = f"In op:{self.op_name}, its args type {type(element)} is unsupported at analyze_element"
         print(msg)
+
+    def effi_analyze_tensor(self, arg):
+        single_arg = {}
+        single_arg.update({"type": "paddle.Tensor"})
+        single_arg.update({"dtype": str(arg.dtype.name)})
+        single_arg.update({"shape": arg.shape})
+        try:
+            with paddle.no_grad():
+                max_ = paddle.max(arg).item()
+                min_ = paddle.min(arg).item()
+        except:
+            max_ = 1
+            min_ = 0
+        single_arg.update({"Max": max_})
+        single_arg.update({"Max_origin": max_})
+        single_arg.update({"Min": min_})
+        single_arg.update({"Min_origin": min_})
+        if self.mode == "real_data":
+            api_args = self.op_name + "." + str(self.args_num)
+            pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
+            self.args_num += 1
+            single_arg.update({"real_data_path": pt_path})
+        return single_arg
 
     def _analyze_tensor(self, arg):
         single_arg = {}

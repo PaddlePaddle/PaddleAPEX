@@ -44,5 +44,7 @@ class GetTargetOP:
 
     def get_target_ops(self):
         self.api_to_catch = set(self.target_op) - set(self.ignored_op)
+        if cfg.profile_mode:
+            self.api_to_catch -= set(["paddle.max", "paddle.min"])
         self.check_api_stack()
         return self.api_to_catch
