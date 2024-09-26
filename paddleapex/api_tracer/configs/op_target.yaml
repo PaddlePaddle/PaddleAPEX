@@ -1,4 +1,8 @@
 ignored_op:
+  -  paddle.empty
+  -  paddle.empty_like
+  -  paddle.zeros
+  -  paddle.zeros_like
 
 target_op:
   # Special op, paddle has wrapped op in framework. #noqa
@@ -865,6 +869,12 @@ target_op:
   -  paddle.tensor.fill_constant
   -  paddle.nn.clip._squared_l2_norm
   -  paddle.uniform
+  -  paddle._C_ops.c_embedding
+  -  paddle.distributed.reduce
+  -  paddle.nn.functional.flash_attention.scaled_dot_product_attention
+  -  paddle.nn.functional.flash_attention.flash_attention
+  -  paddle._C_ops.flash_attn_v1
+  -  paddle._C_ops.flash_attn
   # -  paddle._C_ops.gaussian
   # -  paddle._legacy_C_ops.c_identity
   # -  paddle.distributed.fleet.layers.mpu.mp_ops.

@@ -20,6 +20,7 @@ from paddleapex.api_tracer.config import cfg
 Paddle_Type_Map = {
     "FP64": "paddle.float64",
     "FP32": "paddle.float32",
+    "FLOAT32": "paddle.float32",
     "BF16": "paddle.bfloat16",
     "FP16": "paddle.float16",
     "BOOL": "paddle.bool",
