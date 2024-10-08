@@ -550,6 +550,9 @@ if __name__ == "__main__":
     arg_parser(parser)
     cfg = parser.parse_args()
     forward_content = api_json_read(cfg.json_path)
+    if os.path.realpath(cfg.out_path) == os.path.realpath("./"):
+        cfg.out_path = "./paddle/"
+        print_warn_log("The output path is replaced with \"./paddle\" . Please do not use the current directory as the output directory.")
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
         shutil.rmtree(out_path)
