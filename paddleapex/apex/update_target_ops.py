@@ -21,9 +21,7 @@ def update_yaml(ops, prefix_list):
         new_ops.extend(tmp)
 
     target_ops = ops["target_op"]
-    target_ops = [op for op in target_ops if not op.startswith(prefix)]
-
-    merged_ops = target_ops + new_ops
+    merged_ops = list(set(target_ops + new_ops))
     ops["target_op"] = merged_ops
 
 def arg_parser(parser):

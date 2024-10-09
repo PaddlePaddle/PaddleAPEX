@@ -1,4 +1,6 @@
 ignored_op:
+  -  paddle._C_ops.max
+  -  paddle._C_ops.min
 
 target_op:
   # Special op, paddle has wrapped op in framework. #noqa
