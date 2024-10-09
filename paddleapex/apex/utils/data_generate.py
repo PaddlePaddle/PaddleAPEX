@@ -43,6 +43,10 @@ FLOAT_TYPE_PADDLE = [
     "paddle.float16",
     "paddle.half",
     "paddle.bfloat16",
+    "FLOAT64",
+    "FLOAT32",
+    "FLOAT16",
+    "BFLOAT16",
 ]
 REAL_TYPE_PADDLE = {
     "FP64": "paddle.float64",
@@ -54,6 +58,10 @@ REAL_TYPE_PADDLE = {
     "INT16": "paddle.int16",
     "INT32": "paddle.int32",
     "INT64": "paddle.int64",
+    "FLOAT64": "paddle.float64",
+    "FLOAT32": "paddle.float32",
+    "FLOAT16": "paddle.float16",
+    "BFLOAT16": "paddle.bfloat16",
 }
 NUMPY_TYPE = [
     "numpy.int8",
