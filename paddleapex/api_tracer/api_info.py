@@ -34,6 +34,13 @@ Paddle_Type_Map = {
     "BFLOAT16": "paddle.bfloat16",
 }
 
+Half_Precision_List = [
+    "BF16",
+    "FP16",
+    "BFLOAT16",
+    "FLOAT16",
+]
+
 def get_rounded_num(x, round_up=True):
     if abs(x) <= 1e-10:
         return 0
@@ -89,6 +96,7 @@ class API:
         self.embedding_num = 0
         self.output_num = 0
         self.dout_list = []
+        self.is_half_precision = False
         if cfg.profile_mode:
             self.tensor_analyzer_ = self.effi_analyze_tensor
         else:
@@ -100,6 +108,7 @@ class API:
         self.rank = rank
 
     def update_real_data(self, inputs, kwargs):
+        self.is_half_precision = False
         args_info_list = self.analyze_element(inputs)
         kwargs_info_dict = self.analyze_element(kwargs)
         self.api_info_struct = {
@@ -109,14 +118,14 @@ class API:
     def record_dout(self, grad_value):
         if grad_value is None:
             self.api_info_struct[self.op_name].update({"dout_list": ["Failed"]})
-            dump_util.update_api_dict(self.api_info_struct, self.rank)
+            dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
         else:
             dout = self.analyze_element(grad_value)
             self.dout_list.append(dout)
             self.output_num -= 1
             if self.output_num == 0:
                 self.api_info_struct[self.op_name].update({"dout_list": self.dout_list})
-                dump_util.update_api_dict(self.api_info_struct, self.rank)
+                dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
 
     def analyze_element(self, element):
         if isinstance(element, (list, tuple)):
@@ -136,9 +145,13 @@ class API:
             return self._analyze_numpy(converted_numpy, numpy_type)
 
         if isinstance(element, paddle.dtype):
+            if element.name in Half_Precision_List:
+                self.is_half_precision = True
             return Paddle_Type_Map[element.name]
 
         if isinstance(element, paddle.Tensor):
+            if element.dtype.name in Half_Precision_List:
+                self.is_half_precision = True
             return self.tensor_analyzer_(element)
 
         if element is None or isinstance(element, (bool, int, float, str, slice)):
