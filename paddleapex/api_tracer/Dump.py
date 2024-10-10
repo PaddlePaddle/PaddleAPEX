@@ -122,7 +122,7 @@ class Dump:
                 "Dump api dict is empty, check if you have correctly inserted marks into scripts"
             )
             print("Especially in pipeline parallel mode!")
-        if cfg.unique:
+        if cfg.dump_unique:
             self.dump_api_dict = get_unique_api_dict(self.dump_api_dict)
         create_directory(directory)
         if self.rank is not None:

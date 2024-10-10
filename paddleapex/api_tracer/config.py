@@ -33,6 +33,7 @@ class Config:
             self.remote_path = configs["remote_path"]
             self.Async_dump = configs["Async_dump"]
             self.profile_mode = configs["profile_mode"]
+            self.dump_unique = configs["dump_unique"]
             f.close()
         print("*" * 100)
         print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")
@@ -42,7 +43,6 @@ class Config:
         self.dump_state = False
         self.Op_count = {}
         self.prefix_op_name_ = None
-        self.unique = True
 
     def new_step(self):
         self.global_step += 1
