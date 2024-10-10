@@ -35,6 +35,30 @@ def write_json(file_path, data, rank=None, mode="forward"):
     with open(json_pth, mode="w") as f:
         json.dump(data, f, indent=2)
 
+def get_unique_api_dict(dump_api_dict):
+    SORT_KEY_SEPARATOR = "*"
+    sorted_info = dict(sorted(dump_api_dict.items(), key=lambda item: item[0]))
+
+    result_dict = {}
+    current_operation = ""
+    unique_values = set()
+    unique_count = 0
+
+    for key, value in sorted_info.items():
+        operation = key.split(SORT_KEY_SEPARATOR)[0]
+        value_str = str(value)
+
+        if operation != current_operation:
+            current_operation = operation
+            unique_values.clear()
+            unique_count = 0
+
+        if value_str not in unique_values:
+            unique_values.add(value_str)
+            result_dict[f"{current_operation}{SORT_KEY_SEPARATOR}{unique_count}"] = value
+            unique_count += 1
+
+    return result_dict
 
 class Dump:
     def __init__(self, mode="real_data", Async_save=cfg.Async_dump):
@@ -98,6 +122,8 @@ class Dump:
                 "Dump api dict is empty, check if you have correctly inserted marks into scripts"
             )
             print("Especially in pipeline parallel mode!")
+        if cfg.unique:
+            self.dump_api_dict = get_unique_api_dict(self.dump_api_dict)
         create_directory(directory)
         if self.rank is not None:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")

@@ -42,6 +42,7 @@ class Config:
         self.dump_state = False
         self.Op_count = {}
         self.prefix_op_name_ = None
+        self.unique = True
 
     def new_step(self):
         self.global_step += 1
