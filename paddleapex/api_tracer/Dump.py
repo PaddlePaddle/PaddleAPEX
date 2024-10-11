@@ -137,6 +137,9 @@ class Dump:
             print("Especially in pipeline parallel mode!")
         if cfg.dump_unique:
             self.dump_api_dict = get_unique_api_dict(self.dump_api_dict)
+            if cfg.split_dump:
+                self.dump_api_dict_half = get_unique_api_dict(self.dump_api_dict_half)
+                self.dump_api_dict_other = get_unique_api_dict(self.dump_api_dict_other)
         create_directory(directory)
         if self.rank is not None:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward", split_type="all")
