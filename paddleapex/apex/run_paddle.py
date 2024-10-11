@@ -552,7 +552,7 @@ if __name__ == "__main__":
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
-        shutil.rmtree(out_path)
+        print_warn_log("The output path already exists and the file with the same name will be overwritten.")
     ut_case_parsing(forward_content, cfg)
     print_info_log("UT save completed")
     warning_log_pth = os.path.join(out_path, "./warning_log.txt")
