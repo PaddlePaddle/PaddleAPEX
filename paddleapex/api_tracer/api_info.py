@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import paddle
+import math
 import numpy as np
 from paddleapex.api_tracer.Dump import dump_util
 from paddleapex.api_tracer.config import cfg
@@ -33,6 +34,16 @@ Paddle_Type_Map = {
     "BFLOAT16": "paddle.bfloat16",
 }
 
+def get_rounded_num(x, round_up=True):
+    if abs(x) <= 1e-10:
+        return 0
+    
+    abs_x = abs(x)
+    log_x = math.log10(abs_x)
+    round_log_x = math.floor(log_x) if round_up ^ (x > 0) else math.ceil(log_x)
+    
+    result = 10**round_log_x
+    return result if x >= 0 else -result
 
 def get_type_name(name):
     left = name.index("'")
@@ -47,21 +58,26 @@ def transfer_types(data, dtype):
         return float(data)
 
 
-def get_tensor_extremum(data, operator):
+def get_tensor_extremum(data):
     if data.dtype is paddle.bool:
         if data.numel() == 0:
-            return False, False
+            return False, False, False, False
         if operator == "max":
-            return True in data, True in data
+            result = True in data
+            return result, result, result, result
         elif operator == "min":
-            return False not in data, False not in data
+            result = False not in data
+            return result, result, result, result
     data_clone = data.clone().detach().numpy()
-    if operator == "max":
-        max_result = np.max(data_clone).item()
-        return max_result, max_result
-    else:
-        min_result = np.min(data_clone).item()
-        return min_result, min_result
+
+    max_result = np.max(data_clone).item()
+    min_result = np.min(data_clone).item()
+    if cfg.dump_unique:
+        ori_max_ = max_result
+        ori_min_ = min_result
+        max_result = get_rounded_num(ori_max_, True)
+        min_result = get_rounded_num(ori_min_, False) if ori_min_ != ori_max_ else max_result
+    return max_result, max_result, min_result, min_result
 
 
 class API:
@@ -143,6 +159,11 @@ class API:
         except:
             max_ = 1
             min_ = 0
+        if cfg.dump_unique and arg.dtype.name != "BOOL":
+            ori_max_ = max_
+            ori_min_ = min_
+            max_ = get_rounded_num(ori_max_, True)
+            min_ = get_rounded_num(ori_min_, False) if ori_min_ != ori_max_ else max_
         single_arg.update({"Max": max_})
         single_arg.update({"Max_origin": max_})
         single_arg.update({"Min": min_})
@@ -161,12 +182,11 @@ class API:
         single_arg.update({"shape": arg.shape})
         if arg.dtype.name == "BF16":
             arg = paddle.cast(arg, "float32")
-        max_handle, max_origin = get_tensor_extremum(arg, "max")
+        max_handle, max_origin, min_handle, min_origin = get_tensor_extremum(arg)
         single_arg.update({"Max": transfer_types(max_handle, str(arg.dtype.name))})
         single_arg.update(
             {"Max_origin": transfer_types(max_origin, str(arg.dtype.name))}
         )
-        min_handle, min_origin = get_tensor_extremum(arg, "min")
         single_arg.update({"Min": transfer_types(min_handle, str(arg.dtype.name))})
         single_arg.update(
             {"Min_origin": transfer_types(min_origin, str(arg.dtype.name))}
