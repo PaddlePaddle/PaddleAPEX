@@ -23,12 +23,11 @@ def create_directory(data_route):
     except OSError as ex:
         print("In create_directory: for dump_path:{}, {}".format(data_route, str(ex)))
 
-
-def write_json(file_path, data, rank=None, mode="forward"):
+def write_json(file_path, data, rank=None, mode="forward", split_type="all"):
     if rank is not None:
-        json_pth = os.path.join(file_path, mode + "_rank" + str(rank) + ".json")
+        json_pth = os.path.join(file_path, mode + "_rank" + str(rank) + "_" + split_type + ".json")
     else:
-        json_pth = os.path.join(file_path, mode + ".json")
+        json_pth = os.path.join(file_path, mode + "_" + split_type + ".json")
     if os.path.exists(json_pth):
         os.remove(json_pth)
         print(f"File {json_pth} already exists, tool has overwritten it automatically.")
@@ -67,6 +66,8 @@ class Dump:
         self.mode = mode
         self.rank = None
         self.dump_api_dict = None
+        self.dump_api_dict_half = None
+        self.dump_api_dict_other = None
         self.Async_save = Async_save
 
         if self.Async_save:
@@ -103,12 +104,24 @@ class Dump:
         Get Api_info dict, update self.dump_api_dict
     """
 
-    def update_api_dict(self, api_info_dict, rank):
+    def update_api_dict(self, api_info_dict, rank, is_half_precision = False):
         self.rank = rank
         if self.dump_api_dict is None:
-            self.dump_api_dict = api_info_dict
+            self.dump_api_dict = api_info_dict.copy()
         else:
             self.dump_api_dict.update(api_info_dict)
+        
+        if cfg.split_dump:
+            if is_half_precision:
+                if self.dump_api_dict_half is None:
+                    self.dump_api_dict_half = api_info_dict.copy()
+                else:
+                    self.dump_api_dict_half.update(api_info_dict)
+            else:
+                if self.dump_api_dict_other is None:
+                    self.dump_api_dict_other = api_info_dict.copy()
+                else:
+                    self.dump_api_dict_other.update(api_info_dict)
 
     def dump(self):
         if self.rank is not None:
@@ -124,11 +137,20 @@ class Dump:
             print("Especially in pipeline parallel mode!")
         if cfg.dump_unique:
             self.dump_api_dict = get_unique_api_dict(self.dump_api_dict)
+            if cfg.split_dump:
+                self.dump_api_dict_half = get_unique_api_dict(self.dump_api_dict_half)
+                self.dump_api_dict_other = get_unique_api_dict(self.dump_api_dict_other)
         create_directory(directory)
         if self.rank is not None:
-            write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward")
+            write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward", split_type="all")
+            if cfg.split_dump:
+                write_json(directory, self.dump_api_dict_half, rank=self.rank, mode="forward", split_type="half")
+                write_json(directory, self.dump_api_dict_other, rank=self.rank, mode="forward", split_type="other")
         else:
-            write_json(directory, self.dump_api_dict, rank=None, mode="forward")
+            write_json(directory, self.dump_api_dict, rank=None, mode="forward", split_type="all")
+            if cfg.split_dump:
+                write_json(directory, self.dump_api_dict_half, rank=None, mode="forward", split_type="half")
+                write_json(directory, self.dump_api_dict_other, rank=None, mode="forward", split_type="other")
 
 
 dump_util = Dump()

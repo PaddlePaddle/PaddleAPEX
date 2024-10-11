@@ -106,7 +106,7 @@ def convert_out2fp32(arg_in):
             flag = flag or ret_flag
         return flag, res
     elif isinstance(arg_in, paddle.Tensor):
-        if arg_in.dtype.name == "BF16":
+        if arg_in.dtype.name == "BF16" or arg_in.dtype.name == "BFLOAT16":
             arg_in = arg_in.cast("float32")
             flag = True
         return flag, arg_in

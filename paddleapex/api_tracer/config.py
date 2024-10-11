@@ -34,6 +34,7 @@ class Config:
             self.Async_dump = configs["Async_dump"]
             self.profile_mode = configs["profile_mode"]
             self.dump_unique = configs["dump_unique"]
+            self.split_dump = configs["split_dump"]
             f.close()
         print("*" * 100)
         print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")

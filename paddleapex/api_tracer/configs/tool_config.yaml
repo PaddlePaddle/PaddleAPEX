@@ -21,3 +21,6 @@ target_step: [0]
 
 # Remove duplicate apis from dump_info and keep only one api in the same value range.
 dump_unique: True
+
+# Split dump_info into half-precision operators and other operators when saving json files
+split_dump: True
