@@ -35,6 +35,9 @@ def write_json(file_path, data, rank=None, mode="forward", split_type="all"):
         json.dump(data, f, indent=2)
 
 def get_unique_api_dict(dump_api_dict):
+    if dump_api_dict == None:
+        return {}
+
     SORT_KEY_SEPARATOR = "*"
     sorted_info = dict(sorted(dump_api_dict.items(), key=lambda item: item[0]))
 
