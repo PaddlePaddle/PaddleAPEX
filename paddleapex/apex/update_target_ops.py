@@ -17,7 +17,7 @@ def update_yaml(ops, prefix_list):
     for prefix in prefix_list:
         tmp = dir(eval(prefix))
         # filter out "__xxx__" and inplace elements
-        tmp = [prefix + "." + op for op in tmp if not op.startswith("__") and not op.endswith("_")]
+        tmp = [prefix + "." + op for op in tmp if not op.startswith("__")]
         new_ops.extend(tmp)
 
     target_ops = ops["target_op"]

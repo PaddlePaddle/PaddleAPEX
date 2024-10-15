@@ -181,6 +181,7 @@ class API:
         single_arg.update({"Max_origin": max_})
         single_arg.update({"Min": min_})
         single_arg.update({"Min_origin": min_})
+        single_arg.update({"stop_gradient": arg.stop_gradient})
         if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)

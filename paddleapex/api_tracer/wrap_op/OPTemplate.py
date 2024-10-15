@@ -40,8 +40,8 @@ class OPTemplate:
             api_recorder = API(cfg.dump_mode)
             rank = dist.get_rank()
             api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
-            output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
             api_recorder.update_real_data(args, kwargs)
+            output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
             try:
                 if isinstance(output, paddle.Tensor):
                     if not output.stop_gradient:
