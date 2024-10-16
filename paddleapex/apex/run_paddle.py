@@ -472,9 +472,8 @@ def run_mem_case(
 
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     F = open(log_path, "a")
-    dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"
-    op_name = api_call_name + dtype + ".forward"
-    F.write(f"{op_name}:\t{str(activation_cost)}\n")
+    dtype = "" if not enforce_dtype else f"{enforce_dtype.name}"
+    F.write(f"{api_call_name}\t{dtype}\t{str(activation_cost)}\n")
     F.close()
     return
 

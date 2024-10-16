@@ -142,7 +142,7 @@ We provide a flow chart for Multi-end precision comparision.
 3. Generate performance/accuracy summary:
 ```shell
     cd paddleapex/apex
-    python summary_generator.py -acc [acc_result] -prof [prof_detail] 
+    python summary_generator.py -acc [acc_result] -prof [prof_detail] -mem [mem_detail]
 ```
 
 

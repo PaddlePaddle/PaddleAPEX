@@ -13,11 +13,11 @@
 # limitations under the License.
 
 
-from .. import config
-from ...utils import try_import
-from .get_target_op import GetTargetOP
-from .OPTemplate import OPTemplate, HookOp
-
+from paddleapex.api_tracer import config
+from paddleapex.utils import try_import
+from paddleapex.api_tracer.wrap_op.get_target_op import GetTargetOP
+from paddleapex.api_tracer.wrap_op.OPTemplate import OPTemplate
+from paddleapex.api_tracer.hook_op import HookOp
 cfg = config.cfg
 
 
