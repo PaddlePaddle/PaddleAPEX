@@ -169,7 +169,7 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype):
         if math.isnan(high) or math.isnan(low) or math.isinf(high) or math.isinf(low):
             tensor = generate_random_tensor(shape, 0, 1)
             tensor = paddle.to_tensor(
-                tensor, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
+                tensor, dtype=eval(REAL_TYPE_PADDLE.get("FP32"))
             )
             return tensor
         else:
@@ -177,7 +177,7 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype):
                 shape = [1]
             tensor = generate_random_tensor(shape, low, high).astype(numpy.float32)
             tensor = paddle.to_tensor(
-                tensor, dtype=eval(REAL_TYPE_PADDLE.get(data_dtype))
+                tensor, dtype=eval(REAL_TYPE_PADDLE.get("FP32"))
             )
             return tensor
     elif (
@@ -292,7 +292,7 @@ def rand_like(data, seed=1234):
     if isinstance(data, paddle.Tensor):
         if data.dtype.name in ["BF16", "FP16"]:
             random_normals = numpy.random.randn(*data.shape)
-            x = paddle.to_tensor(random_normals, dtype=data.dtype)
+            x = paddle.to_tensor(random_normals, dtype='float32')
             return x
         elif data.dtype.name in ["FP32", "FP64"]:
             random_normals = numpy.random.randn(*data.shape)
