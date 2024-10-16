@@ -112,20 +112,17 @@ class API:
         args_info_list = self.analyze_element(inputs)
         kwargs_info_dict = self.analyze_element(kwargs)
         self.api_info_struct = {
-            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict}
+            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "dout_list": ["Failed"]}
         }
+        dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
 
     def record_dout(self, grad_value):
-        if grad_value is None:
-            self.api_info_struct[self.op_name].update({"dout_list": ["Failed"]})
-            dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
-        else:
+        if grad_value is not None:
             dout = self.analyze_element(grad_value)
             self.dout_list.append(dout)
             self.output_num -= 1
             if self.output_num == 0:
                 self.api_info_struct[self.op_name].update({"dout_list": self.dout_list})
-                dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
 
     def analyze_element(self, element):
         if isinstance(element, (list, tuple)):
