@@ -290,11 +290,11 @@ def rand_like(data, seed=1234):
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     if isinstance(data, paddle.Tensor):
-        if data.dtype.name in ["BF16", "FP16"]:
+        if data.dtype.name in ["BF16", "FP16", "BFLOAT16", "FLOAT16"]:
             random_normals = numpy.random.randn(*data.shape)
             x = paddle.to_tensor(random_normals, dtype=data.dtype)
             return x
-        elif data.dtype.name in ["FP32", "FP64"]:
+        elif data.dtype.name in ["FP32", "FP64", "FLOAT32", "FLOAT64"]:
             random_normals = numpy.random.randn(*data.shape)
             x = paddle.to_tensor(random_normals, dtype=data.dtype)
             return x
