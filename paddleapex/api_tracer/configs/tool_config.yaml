@@ -2,6 +2,7 @@
 
 # Target APIs.
 op_target_path: "None"
+cls_target_path: "None"
 # If op_target_path is set to None, tool will set the default config in repository configs.
 dump_root_path: "./dump_info"
 
