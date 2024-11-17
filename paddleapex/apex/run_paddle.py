@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# import paddlenlp # if you wanna test nlp fusion operations
 import argparse
 import os
 import shutil
@@ -54,7 +55,7 @@ tqdm_params = {
     "dynamic_ncols": True,  # 动态调整进度条宽度以适应控制台
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
-PROFILE_RUN_TIMES = 100
+PROFILE_RUN_TIMES = 1
 
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -107,9 +108,13 @@ def convert_out2fp32(arg_in):
         return flag, res
     elif isinstance(arg_in, paddle.Tensor):
         if arg_in.dtype.name == "BF16" or arg_in.dtype.name == "BFLOAT16":
-            arg_in = arg_in.cast("float32")
-            flag = True
-        return flag, arg_in
+            try:
+                arg_in = arg_in.cast("float32")
+                flag = True
+            except Exception as err:
+                print(arg_in)
+                return False, arg_in
+    return flag, arg_in
 
 
 def recursive_arg_to_cpu(arg_in):
@@ -137,11 +142,11 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
                 arg_in = arg_in.cuda()
             if "cpu" in backend:
                 arg_in = arg_in.cpu()
-                if arg_in.dtype.name == "BF16":
+                if arg_in.dtype.name == "BF16" or arg_in.dtype.name == "BFLOAT16":
                     arg_in = arg_in.cast("float32")
             else:
                 arg_in = arg_in.to(backend)
-            if enforce_dtype and arg_in.dtype.name in ["BF16", "FP16", "FP32"]:
+            if enforce_dtype and arg_in.dtype.name in ["BF16", "BFLOAT16", "FP16", "FP32"]:
                 arg_in = arg_in.cast(enforce_dtype)
             arg_in.stop_gradient = grad_status
         return arg_in
@@ -162,12 +167,28 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
     bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
-    if not isinstance(forward_res, type(None)):
-        fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
-        paddle.save([fwd_BF16_flag, forward_res], fwd_output_path)
-    if not isinstance(backward_res, type(None)):
-        bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
-        paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
+    if isinstance(forward_res, (type(None), list, tuple, paddle.Tensor)):
+        try:
+            fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
+            paddle.save([fwd_BF16_flag, forward_res], fwd_output_path)
+        except Exception as err:
+            msg = "save_forward Error: %s" % str(err)
+            print_warn_log(msg)
+            return
+    else:
+        print(forward_res)
+        print_warn_log("forward_res not supported!")
+    if isinstance(backward_res, (type(None), list, tuple, paddle.Tensor)):
+        try:
+            bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
+            paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
+        except Exception as err:
+            msg = "save_bacward Error: %s" % str(err)
+            print_warn_log(msg)
+            return
+    else:
+        print(backward_res)
+        print_warn_log("bacward_res not supported!")
 
 
 def evoke_related_test_func(test_mode):
@@ -318,12 +339,15 @@ def run_acc_case(
 
     try:
         device_grad_out = []
-        dout = create_dout(
-            api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
-        )
-        device_grad_out = run_backward(
-            api_call_name, device_out, dout, device_args, device_kwargs, need_backward
-        )
+        if api_info_dict["dout_list"][0] != "Failed":
+            dout = create_dout(
+                api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
+            )
+            device_grad_out = run_backward(
+                api_call_name, device_out, dout, device_args, device_kwargs, need_backward
+            )
+        else:
+            device_grad_out = None
     except Exception as err:
         msg = "Run_backward Error: %s" % str(err)
         print_warn_log(msg)
@@ -359,10 +383,13 @@ def run_profile_case(
     # device warmming up
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
-        dout = create_dout(
-            api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
-        )
-        paddle.autograd.backward([device_out], dout)
+        if api_info_dict["dout_list"][0] != "Failed":
+            dout = create_dout(
+                api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
+            )
+            paddle.autograd.backward([device_out], dout)
+        else:
+            need_backward = False
     except Exception as err:
         msg = "Failed in device warming up: %s" % str(err)
         print_warn_log(msg)

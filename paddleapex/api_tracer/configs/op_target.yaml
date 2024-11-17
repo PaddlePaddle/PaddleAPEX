@@ -42,7 +42,7 @@ target_op:
   -  paddle.nn.functional.dropout3d
   -  paddle.nn.functional.elu
   -  paddle.nn.functional.elu_
-  # -  paddle.nn.functional.embedding
+  -  paddle.nn.functional.embedding
   -  paddle.nn.functional.extension
   -  paddle.nn.functional.flash_attention
   -  paddle.nn.functional.flash_attention_with_sparse_mask
@@ -187,7 +187,7 @@ target_op:
   -  paddle.broadcast_tensors
   -  paddle.broadcast_to
   -  paddle.cauchy_
-  # -  paddle.cast
+  -  paddle.cast
   -  paddle.cdist
   -  paddle.ceil
   -  paddle.cholesky
@@ -772,8 +772,8 @@ target_op:
   -  paddle.Tensor.scale_
   -  paddle.Tensor.scatter
   -  paddle.Tensor.scatter_
-  # -  paddle.Tensor.scatter_nd
-  # -  paddle.Tensor.scatter_nd_add
+  -  paddle.Tensor.scatter_nd
+  -  paddle.Tensor.scatter_nd_add
   -  paddle.Tensor.select_scatter
   -  paddle.Tensor.sgn
   -  paddle.Tensor.shard_index
@@ -847,6 +847,10 @@ target_op:
   # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
   # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
   -  paddle._C_ops.fused_gemm_epilogue
+  -  paddle.optimizer.Adam
+  -  paddle.optimizer.AdamW
+  -  paddle._C_ops.adamw
+  -  paddle._C_ops.adamw_
   -  paddle._legacy_C_ops.fused_gemm_epilogue
   -  paddle.incubate.nn.functional.fused_multi_head_attention
   -  paddle.incubate.nn.functional.fused_feedforward
@@ -867,11 +871,31 @@ target_op:
   -  paddle.tensor.fill_constant
   -  paddle.nn.clip._squared_l2_norm
   -  paddle.uniform
-  # -  paddle._C_ops.gaussian
-  # -  paddle._legacy_C_ops.c_identity
-  # -  paddle.distributed.fleet.layers.mpu.mp_ops.
-  # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
+  -  paddle._C_ops.gaussian
+  -  paddle._legacy_C_ops.c_identity
+  -  paddle.distributed.fleet.layers.mpu.mp_ops.
+  -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
+  -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
+  -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
+  -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu
+# distributed
+  -  paddle.distributed.all_gather
+  -  paddle.distributed.all_gather_object
+  -  paddle.distributed.all_reduce
+  -  paddle.distributed.alltoall
+  -  paddle.distributed.alltoall_single
+  -  paddle.distributed.barrier
+  -  paddle.distributed.broadcast
+  -  paddle.distributed.broadcast_object_list
+  -  paddle.distributed.communication.stream.all_gather
+  -  paddle.distributed.communication.stream.all_reduce
+  -  paddle.distributed.communication.stream.alltoall
+  -  paddle.distributed.communication.stream.alltoall_single
+  -  paddle.distributed.communication.stream.broadcast
+  -  paddle.distributed.communication.stream.gather
+  -  paddle.distributed.communication.stream.recv
+  -  paddle.distributed.communication.stream.reduce
+  -  paddle.distributed.communication.stream.reduce_scatter
+  -  paddle.distributed.communication.stream.scatter
+  -  paddle.distributed.communication.stream.send
