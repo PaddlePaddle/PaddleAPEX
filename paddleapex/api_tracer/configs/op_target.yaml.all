@@ -1,67 +1,8 @@
 ignored_op:
-  -  paddle._C_ops.min
   -  paddle._C_ops.max
-  -  paddle.empty
-  -  paddle.empty_like
-  -  paddle.reshape
-  -  paddle.reshape_
-  -  paddle.unsqueeze
-  -  paddle.unsqueeze_
-  -  paddle.square_
-  -  paddle.Tensor.squeeze
-  -  paddle.Tensor.squeeze_
-  -  paddle.Tensor.unsqueeze
-  -  paddle.Tensor.unsqueeze_
-  -  paddle.squeeze_
-  -  paddle.ones
-  -  paddle.ones_like
-  -  paddle.split
-  -  paddle.Tensor.zero_
-  -  paddle.stack
- # distributed
-#  -  paddle.distributed.barrier
-#  -  paddle.distributed.broadcast_object_list
-#  -  paddle.distributed.communication.stream.alltoall_single
-#  -  paddle.distributed.communication.stream.broadcast
-#  -  paddle.distributed.communication.stream.gather
-#  -  paddle.distributed.communication.stream.recv
-#  -  paddle.distributed.communication.stream.reduce
-#  -  paddle.distributed.communication.stream.reduce_scatter
-#  -  paddle.distributed.communication.stream.scatter
-#  -  paddle.distributed.communication.stream.send
-#  -  paddle.distributed.all_gather
-#  -  paddle.distributed.all_gather_object
-#  -  paddle.distributed.all_reduce
-#  -  paddle.distributed.alltoall
-#  -  paddle.distributed.alltoall_single
-#  -  paddle.distributed.broadcast
-#  -  paddle.distributed.communication.stream.all_gather
-#  -  paddle.distributed.communication.stream.all_reduce
-#  -  paddle.distributed.communication.stream.alltoall
+  -  paddle._C_ops.min
 
 target_op:
- # distributed
-  -  paddle.distributed.barrier
-  -  paddle.distributed.broadcast_object_list
-  -  paddle.distributed.communication.stream.alltoall_single
-  -  paddle.distributed.communication.stream.broadcast
-  -  paddle.distributed.communication.stream.gather
-  -  paddle.distributed.communication.stream.recv
-  -  paddle.distributed.communication.stream.reduce
-  -  paddle.distributed.communication.stream.reduce_scatter
-  -  paddle.distributed.communication.stream.scatter
-  -  paddle.distributed.communication.stream.send
-  -  paddle.distributed.all_gather
-  -  paddle.distributed.all_gather_object
-  -  paddle.distributed.all_reduce
-  -  paddle.distributed.alltoall
-  -  paddle.distributed.alltoall_single
-  -  paddle.distributed.broadcast
-  -  paddle.distributed.communication.stream.all_gather
-  -  paddle.distributed.communication.stream.all_reduce
-  -  paddle.distributed.communication.stream.alltoall
- # #
-  -  paddle.nn.functional.scaled_dot_product_attention
   # Special op, paddle has wrapped op in framework. #noqa
   -  paddle._C_ops.layer_norm #noqa
   -  paddle.nn.functional.adaptive_avg_pool1d
@@ -165,6 +106,7 @@ target_op:
   -  paddle.nn.functional.relu_
   -  paddle.nn.functional.rnnt_loss
   -  paddle.nn.functional.rrelu
+  -  paddle.nn.functional.scaled_dot_product_attention
   -  paddle.nn.functional.sdp_kernel
   -  paddle.nn.functional.selu
   -  paddle.nn.functional.sequence_mask
@@ -288,6 +230,8 @@ target_op:
   -  paddle.dstack
   -  paddle.eigvalsh
   -  paddle.einsum
+  -  paddle.empty
+  -  paddle.empty_like
   -  paddle.equal
   -  paddle.equal_all
   -  paddle.erf
@@ -423,6 +367,8 @@ target_op:
   -  paddle.not_equal
   -  paddle.not_equal_
   -  paddle.numel
+  -  paddle.ones
+  -  paddle.ones_like
   -  paddle.outer
   -  paddle.pdist
   -  paddle.poisson
@@ -449,6 +395,8 @@ target_op:
   -  paddle.renorm
   -  paddle.renorm_
   -  paddle.repeat_interleave
+  -  paddle.reshape
+  -  paddle.reshape_
   -  paddle.roll
   -  paddle.rot90
   -  paddle.round
@@ -473,8 +421,13 @@ target_op:
   -  paddle.slice
   # -  paddle.slice_scatter
   -  paddle.sort
+  -  paddle.split
   -  paddle.sqrt
   -  paddle.square
+  -  paddle.square_
+  -  paddle.squeeze
+  -  paddle.squeeze_
+  -  paddle.stack
   -  paddle.standard_gamma
   -  paddle.standard_normal
   -  paddle.stanh
@@ -510,6 +463,8 @@ target_op:
   -  paddle.uniform
   -  paddle.unique
   -  paddle.unique_consecutive
+  -  paddle.unsqueeze
+  -  paddle.unsqueeze_
   -  paddle.unstack
   -  paddle.vander
   -  paddle.var
@@ -837,6 +792,8 @@ target_op:
   -  paddle.Tensor.sqrt
   -  paddle.Tensor.sqrt_
   -  paddle.Tensor.square
+  -  paddle.Tensor.squeeze
+  -  paddle.Tensor.squeeze_
   -  paddle.Tensor.stack
   -  paddle.Tensor.stanh
   -  paddle.Tensor.std
@@ -874,6 +831,8 @@ target_op:
   -  paddle.Tensor.uniform_
   -  paddle.Tensor.unique
   -  paddle.Tensor.unique_consecutive
+  -  paddle.Tensor.unsqueeze
+  -  paddle.Tensor.unsqueeze_
   -  paddle.Tensor.unstack
   -  paddle.Tensor.vander
   -  paddle.Tensor.var
@@ -882,10 +841,11 @@ target_op:
   -  paddle.Tensor.vsplit
   -  paddle.Tensor.where
   -  paddle.Tensor.where_
+  -  paddle.Tensor.zero_
   #### experiment op:
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
   -  paddle._C_ops.fused_gemm_epilogue
   -  paddle.optimizer.Adam
   -  paddle.optimizer.AdamW
@@ -919,4 +879,23 @@ target_op:
   -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
   -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu
-
+# distributed
+  -  paddle.distributed.all_gather
+  -  paddle.distributed.all_gather_object
+  -  paddle.distributed.all_reduce
+  -  paddle.distributed.alltoall
+  -  paddle.distributed.alltoall_single
+  -  paddle.distributed.barrier
+  -  paddle.distributed.broadcast
+  -  paddle.distributed.broadcast_object_list
+  -  paddle.distributed.communication.stream.all_gather
+  -  paddle.distributed.communication.stream.all_reduce
+  -  paddle.distributed.communication.stream.alltoall
+  -  paddle.distributed.communication.stream.alltoall_single
+  -  paddle.distributed.communication.stream.broadcast
+  -  paddle.distributed.communication.stream.gather
+  -  paddle.distributed.communication.stream.recv
+  -  paddle.distributed.communication.stream.reduce
+  -  paddle.distributed.communication.stream.reduce_scatter
+  -  paddle.distributed.communication.stream.scatter
+  -  paddle.distributed.communication.stream.send

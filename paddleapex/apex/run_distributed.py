@@ -40,6 +40,26 @@ type_map = {
 }
 Warning_list = []
 
+distributed_op = ["paddle.distributed.broadcast_object_list",
+                  "paddle.distributed.barrier",
+                  "paddle.distributed.communication.stream.alltoall_single",
+                  "paddle.distributed.communication.stream.broadcast",
+                  "paddle.distributed.communication.stream.gather",
+                  "paddle.distributed.communication.stream.recv",
+                  "paddle.distributed.communication.stream.reduce",
+                  "paddle.distributed.communication.stream.reduce_scatter",
+                  "paddle.distributed.communication.stream.scatter",
+                  "paddle.distributed.communication.stream.send",
+                  "paddle.distributed.all_gather",
+                  "paddle.distributed.all_gather_object",
+                  "paddle.distributed.all_reduce",
+                  "paddle.distributed.alltoall",
+                  "paddle.distributed.alltoall_single",
+                  "paddle.distributed.broadcast",
+                  "paddle.distributed.communication.stream.all_gather",
+                  "paddle.distributed.communication.stream.all_reduce",
+                  "paddle.distributed.communication.stream.alltoall"]
+
 current_time = time.strftime("%Y%m%d%H%M%S")
 
 tqdm_params = {
@@ -156,7 +176,7 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    if not dist.get_rank() == 0:
+    if not dist.get_rank() == 0 and "distributed" not in api_call_name:
         return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
@@ -355,6 +375,9 @@ def run_acc_case(
                 api_call_name, device_out, dout, device_args, device_kwargs, need_backward
             )
         else:
+            if api_call_name.rsplit("*")[0] in distributed_op:
+                print('this is distributed op: ', api_call_name)
+                device_out = device_args
             device_grad_out = None
     except Exception as err:
         msg = "Run_backward Error: %s" % str(err)
@@ -587,14 +610,15 @@ if __name__ == "__main__":
     print(cfg)
     dist.init_parallel_env()
     local_rank = dist.get_rank()
-    json_path = "/zhouxiangquan/llama10b/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
+    json_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
 
     cfg.backend = cfg.backend + ":" + str(local_rank)
     cfg.json_path = json_path
 
-    data_path = "/zhouxiangquan/llama10b/dump_info/rank" + str(local_rank) + "_step0/"
+    data_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step0/"
     cfg.real_data = data_path
-    
+    cfg.real_data = None
+
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
