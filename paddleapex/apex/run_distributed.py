@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#import paddlenlp # if you wanna test nlp fusion operations
+import paddlenlp # if you wanna test nlp fusion operations
 import argparse
 import os
 import shutil
@@ -20,6 +20,7 @@ import time
 import copy
 from tqdm import tqdm
 import paddle
+import paddle.distributed as dist
 from paddle import framework
 from paddle.base import core
 from utils import (
@@ -155,6 +156,8 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
+    if not dist.get_rank() == 0:
+        return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -213,6 +216,7 @@ def ut_case_parsing(forward_content, cfg):
     os.mkdir(out_path) if not os.path.exists(out_path) else None
     multi_dtype_ut = cfg.multi_dtype_ut.split(",") if cfg.multi_dtype_ut else []
     debug_case = cfg.test_case_name.split(",") if cfg.test_case_name else []
+    print("debug_case", debug_case)
     debug_mode = False
     paddle.set_device(cfg.backend)
     if len(debug_case) > 0:
@@ -221,6 +225,7 @@ def ut_case_parsing(forward_content, cfg):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        print(api_call_name)
         if debug_mode and api_call_name not in debug_case:
             continue
         if len(multi_dtype_ut) > 0:
@@ -267,6 +272,7 @@ def run_forward(api_call_name, device_args, device_kwargs):
     api_call_stack = api_call_name.rsplit("*")[0]
     try:
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
+        paddle.device.synchronize()
         return device_out
 
     except Exception as err:
@@ -321,15 +327,17 @@ def run_acc_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     api_info_dict_copy = copy.deepcopy(api_info_dict)
+    if not dist.get_rank() == 0 or "distributed" not in api_call_name:
+        real_data_path = None
     device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
     print(f"Running {api_call_name} acc test!")
-    if api_call_name in debug_case:
-        x = [device_args, device_kwargs]
-        out_path = os.path.realpath(out_path) if out_path else "./"
-        save_pth = os.path.join(out_path, "input_data", api_call_name)
-        paddle.save(x, save_pth)
+    # if api_call_name in debug_case:
+    #     x = [device_args, device_kwargs]
+    #     out_path = os.path.realpath(out_path) if out_path else "./"
+    #     save_pth = os.path.join(out_path, "input_data", api_call_name)
+    #     paddle.save(x, save_pth)
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
     except Exception as err:
@@ -375,11 +383,11 @@ def run_profile_case(
     device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
-    if api_call_name in debug_case:
-        x = [device_args, device_kwargs]
-        out_path = os.path.realpath(out_path) if out_path else "./"
-        save_pth = os.path.join(out_path, "input_data", api_call_name)
-        paddle.save(x, save_pth)
+    # if api_call_name in debug_case:
+    #     x = [device_args, device_kwargs]
+    #     out_path = os.path.realpath(out_path) if out_path else "./"
+    #     save_pth = os.path.join(out_path, "input_data", api_call_name)
+    #     paddle.save(x, save_pth)
     # device warmming up
     try:
         device_out = run_forward(api_call_name, device_args, device_kwargs)
@@ -508,8 +516,8 @@ def run_mem_case(
 
 def arg_parser(parser):
     parser.add_argument(
-        "-json",
-        "--json",
+        "-json_file",
+        "--json_file",
         dest="json_path",
         default="",
         type=str,
@@ -577,10 +585,24 @@ if __name__ == "__main__":
     arg_parser(parser)
     cfg = parser.parse_args()
     print(cfg)
+    dist.init_parallel_env()
+    local_rank = dist.get_rank()
+    json_path = "/zhouxiangquan/llama10b/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
+
+    cfg.backend = cfg.backend + ":" + str(local_rank)
+    cfg.json_path = json_path
+
+    data_path = "/zhouxiangquan/llama10b/dump_info/rank" + str(local_rank) + "_step0/"
+    cfg.real_data = data_path
+    
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
+    out_path = out_path + "/rank_" + str(local_rank) + "/"
+    if not os.path.exists(out_path):
+        os.makedirs(out_path, exist_ok=True)
+    cfg.out_path = out_path
     ut_case_parsing(forward_content, cfg)
     print_info_log("UT save completed")
     warning_log_pth = os.path.join(out_path, "./warning_log.txt")

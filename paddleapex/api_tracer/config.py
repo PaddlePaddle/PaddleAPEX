@@ -40,7 +40,7 @@ class Config:
         print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")
         print("*" * 100)
         time.sleep(1)
-        self.global_step = 2
+        self.global_step = 0
         self.dump_state = False
         self.Op_count = {}
         self.prefix_op_name_ = None

@@ -17,6 +17,7 @@ import math
 import numpy as np
 from paddleapex.api_tracer.Dump import dump_util
 from paddleapex.api_tracer.config import cfg
+import paddle.distributed as dist
 
 Paddle_Type_Map = {
     "FP64": "paddle.float64",
@@ -41,7 +42,12 @@ Half_Precision_List = [
     "FLOAT16",
 ]
 
+# inf, nan
 def get_rounded_num(x, round_up=True):
+    if math.isinf(x) or math.isnan(x):
+        msg = f"warning, x is inf or nan"
+        print(msg, x)
+        return x
     if abs(x) <= 1e-10:
         return 0
     
@@ -79,6 +85,12 @@ def get_tensor_extremum(data):
 
     max_result = np.max(data_clone).item()
     min_result = np.min(data_clone).item()
+    if math.isinf(max_result) or math.isnan(max_result):
+        msg = f"warning, for max_result, where is a inf or nan, need to notice"
+        print(msg)
+    if math.isinf(min_result) or math.isnan(min_result):
+        msg = f"warning, for min_result, where is a inf or nan, need to notice"
+        print(msg)
     if cfg.dump_unique:
         ori_max_ = max_result
         ori_min_ = min_result
@@ -153,7 +165,9 @@ class API:
 
         if element is None or isinstance(element, (bool, int, float, str, slice)):
             return self._analyze_builtin(element)
-
+        
+        print(type(element))
+        print(element)
         msg = f"In op:{self.op_name}, its args type {type(element)} is unsupported at analyze_element"
         print(msg)
 
@@ -172,6 +186,12 @@ class API:
         if cfg.dump_unique and arg.dtype.name != "BOOL":
             ori_max_ = max_
             ori_min_ = min_
+            if math.isinf(ori_max_) or math.isnan(ori_max_):
+                msg = f"warning, for max_result, where is a inf or nan, need to notice"
+                print(msg)
+            if math.isinf(ori_min_) or math.isnan(ori_min_):
+                msg = f"warning, for min_result, where is a inf or nan, need to notice"
+                print(msg)
             max_ = get_rounded_num(ori_max_, True)
             min_ = get_rounded_num(ori_min_, False) if ori_min_ != ori_max_ else max_
         single_arg.update({"Max": max_})
@@ -179,7 +199,7 @@ class API:
         single_arg.update({"Min": min_})
         single_arg.update({"Min_origin": min_})
         single_arg.update({"stop_gradient": arg.stop_gradient})
-        if self.mode == "real_data":
+        if self.mode == "real_data" and (dist.get_rank() == 0 or "distributed" in self.op_name):
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
@@ -204,7 +224,8 @@ class API:
         )
         single_arg.update({"stop_gradient": arg.stop_gradient})
 
-        if self.mode == "real_data":
+        # if self.mode == "real_data":
+        if self.mode == "real_data" and (dist.get_rank() == 0 or "distributed" in self.op_name):
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
