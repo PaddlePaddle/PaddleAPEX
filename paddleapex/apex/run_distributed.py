@@ -347,7 +347,7 @@ def run_acc_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    if not dist.get_rank() == 0 or "distributed" not in api_call_name:
+    if not dist.get_rank() == 0 and "distributed" not in api_call_name:
         real_data_path = None
     device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
@@ -610,14 +610,20 @@ if __name__ == "__main__":
     print(cfg)
     dist.init_parallel_env()
     local_rank = dist.get_rank()
-    json_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
+    # json_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
+    json_path_list = cfg.json_path.split(' ')
+    data_path_list = cfg.real_data.split(' ')
+    
+    print("json_path_list", json_path_list)
+    print("data_path_list", data_path_list)
 
+    cfg.json_path = json_path_list[local_rank]
+    cfg.real_data = data_path_list[local_rank]
     cfg.backend = cfg.backend + ":" + str(local_rank)
-    cfg.json_path = json_path
 
-    data_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step0/"
-    cfg.real_data = data_path
-    cfg.real_data = None
+    print(cfg)
+    # data_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step0/"
+    # cfg.real_data = None
 
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
