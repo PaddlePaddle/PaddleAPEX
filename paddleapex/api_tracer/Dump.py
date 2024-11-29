@@ -70,6 +70,7 @@ class Dump:
         self.rank = None
         self.dump_api_dict = None
         self.dump_api_dict_half = None
+        self.dump_api_dict_distributed = None
         self.dump_api_dict_other = None
         self.Async_save = Async_save
 
@@ -107,7 +108,7 @@ class Dump:
         Get Api_info dict, update self.dump_api_dict
     """
 
-    def update_api_dict(self, api_info_dict, rank, is_half_precision = False):
+    def update_api_dict(self, api_info_dict, rank, is_half_precision = False, is_distributed = False):
         self.rank = rank
         if self.dump_api_dict is None:
             self.dump_api_dict = api_info_dict.copy()
@@ -115,6 +116,11 @@ class Dump:
             self.dump_api_dict.update(api_info_dict)
         
         if cfg.split_dump:
+            if is_distributed:
+                if self.dump_api_dict_distributed is None:
+                    self.dump_api_dict_distributed = api_info_dict.copy()
+                else:
+                    self.dump_api_dict_distributed.update(api_info_dict)
             if is_half_precision:
                 if self.dump_api_dict_half is None:
                     self.dump_api_dict_half = api_info_dict.copy()
@@ -148,11 +154,13 @@ class Dump:
             write_json(directory, self.dump_api_dict, rank=self.rank, mode="forward", split_type="all")
             if cfg.split_dump:
                 write_json(directory, self.dump_api_dict_half, rank=self.rank, mode="forward", split_type="half")
+                write_json(directory, self.dump_api_dict_distributed, rank=self.rank, mode="forward", split_type="distributed")
                 write_json(directory, self.dump_api_dict_other, rank=self.rank, mode="forward", split_type="other")
         else:
             write_json(directory, self.dump_api_dict, rank=None, mode="forward", split_type="all")
             if cfg.split_dump:
                 write_json(directory, self.dump_api_dict_half, rank=None, mode="forward", split_type="half")
+                write_json(directory, self.dump_api_dict_distributed, rank=None, mode="forward", split_type="distributed")
                 write_json(directory, self.dump_api_dict_other, rank=None, mode="forward", split_type="other")
 
 

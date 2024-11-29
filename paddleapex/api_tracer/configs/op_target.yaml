@@ -18,7 +18,14 @@ ignored_op:
   -  paddle.split
   -  paddle.Tensor.zero_
   -  paddle.stack
- # distributed
+  -  paddle.zeros
+  -  paddle.zeros_like
+# self-confidence, arrogance
+  # -  paddle.Tensor.__add__
+  # -  paddle.Tensor.__mul__
+  # -  paddle.Tensor.__neg__
+  # -  paddle.Tensor.add_
+# distributed
 #  -  paddle.distributed.barrier
 #  -  paddle.distributed.broadcast_object_list
 #  -  paddle.distributed.communication.stream.alltoall_single
@@ -518,8 +525,8 @@ target_op:
   -  paddle.vsplit
   -  paddle.where
   -  paddle.where_
-  -  paddle.zeros
-  -  paddle.zeros_like
+  # -  paddle.zeros
+  # -  paddle.zeros_like
   # -  paddle.Tensor.T
   -  paddle.Tensor.__add__
   -  paddle.Tensor.__and__

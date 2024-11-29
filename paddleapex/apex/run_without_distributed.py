@@ -176,8 +176,6 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    if not dist.get_rank() == 0 and "distributed" not in api_call_name:
-        return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -245,6 +243,8 @@ def ut_case_parsing(forward_content, cfg):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        if not i % dist.get_world_size() == dist.get_rank():
+            continue
         print(api_call_name)
         if debug_mode and api_call_name not in debug_case:
             continue
@@ -349,8 +349,8 @@ def run_acc_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
     api_info_dict_copy = copy.deepcopy(api_info_dict)
-    if not dist.get_rank() == 0 and "distributed" not in api_call_name:
-        real_data_path = None
+    # if not dist.get_rank() == 0 and "distributed" not in api_call_name:
+        # real_data_path = None
     device_args, device_kwargs, need_backward = create_input_args(
         api_info_dict_copy, backend, enforce_dtype, real_data_path
     )
@@ -616,33 +616,18 @@ if __name__ == "__main__":
     print(cfg)
     dist.init_parallel_env()
     local_rank = dist.get_rank()
-    # json_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step5/forward_rank" + str(local_rank) + "_all.json"
-    json_path_list = cfg.json_path.split(' ')
-    data_path_list = cfg.real_data.split(' ')
-    
-    print("json_path_list", json_path_list)
-    print("data_path_list", data_path_list)
-
-    cfg.json_path = json_path_list[local_rank]
-    cfg.real_data = data_path_list[local_rank]
     cfg.backend = cfg.backend + ":" + str(local_rank)
-
-    print(cfg)
-    # data_path = "/workspace/APEX/PaddleNLP/dump_info/rank" + str(local_rank) + "_step0/"
-    # cfg.real_data = None
 
     forward_content = api_json_read(cfg.json_path)
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
-    out_path = out_path + "/rank_" + str(local_rank) + "/"
-    if not os.path.exists(out_path):
-        os.makedirs(out_path, exist_ok=True)
     cfg.out_path = out_path
     ut_case_parsing(forward_content, cfg)
     print_info_log("UT save completed")
-    warning_log_pth = os.path.join(out_path, "./warning_log.txt")
-    File = open(warning_log_pth, "w")
-    for item in Warning_list:
-        File.write(item + "\n")
-    File.close()
+    # warning_log_pth = os.path.join(out_path, "./warning_log.txt")
+    # File = open(warning_log_pth, "w")
+    # for item in Warning_list:
+    #     File.write(item + "\n")
+    # File.close()
+    paddle.device.synchronize()

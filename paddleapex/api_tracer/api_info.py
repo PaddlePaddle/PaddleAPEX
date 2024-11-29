@@ -126,7 +126,7 @@ class API:
         self.api_info_struct = {
             self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "dout_list": ["Failed"]}
         }
-        dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
+        dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision, "distributed" in self.op_name)
 
     def record_dout(self, grad_value):
         if grad_value is not None:
