@@ -109,6 +109,7 @@ class API:
         self.output_num = 0
         self.dout_list = []
         self.is_half_precision = False
+        self.is_distributed = False
         if cfg.profile_mode:
             self.tensor_analyzer_ = self.effi_analyze_tensor
         else:
@@ -118,6 +119,8 @@ class API:
         print("dump api: ", op_name)
         self.op_name = op_name
         self.rank = rank
+        if "distributed" in self.op_name or "modeling" in self.op_name:
+            self.is_distributed = True
 
     def update_real_data(self, inputs, kwargs):
         self.is_half_precision = False
@@ -126,7 +129,7 @@ class API:
         self.api_info_struct = {
             self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "dout_list": ["Failed"]}
         }
-        dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision, "distributed" in self.op_name)
+        dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision, self.is_distributed)
 
     def record_dout(self, grad_value):
         if grad_value is not None:
@@ -199,7 +202,7 @@ class API:
         single_arg.update({"Min": min_})
         single_arg.update({"Min_origin": min_})
         single_arg.update({"stop_gradient": arg.stop_gradient})
-        if self.mode == "real_data" and (dist.get_rank() == 0 or "distributed" in self.op_name):
+        if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
@@ -225,7 +228,7 @@ class API:
         single_arg.update({"stop_gradient": arg.stop_gradient})
 
         # if self.mode == "real_data":
-        if self.mode == "real_data" and (dist.get_rank() == 0 or "distributed" in self.op_name):
+        if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1

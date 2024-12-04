@@ -104,6 +104,18 @@ class Dump:
             save_tensor(tensor, file_path)
         return f"{api_args}.pt"
 
+    # def dump_model(self, model, model_name):
+    #     directory = os.path.join(self.data_route, f"rank{rank}_step{cfg.global_step}")
+    #     file_path = os.path.join(directory, f"{model_name}")
+    #     create_directory(directory)
+    #     if os.path.exists(file_path):
+    #         os.remove(file_path)
+    #         print(
+    #                 f"File {file_path} already exists, tool has overwritten it automatically."
+    #         )
+    #     paddle.jit.save(layer=model, file_path)
+
+
     """
         Get Api_info dict, update self.dump_api_dict
     """

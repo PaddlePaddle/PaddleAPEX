@@ -64,9 +64,9 @@ export XPU_AUTO_BF16_TF32_DEBUG=1   # 开启日志打印
 
 export PYTHONPATH=$PYTHONPATH:/workspace/APEX/PaddleNLP:/workspace/AA/PaddleAPEX
 
-python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_distributed.py \
+python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_class.py \
            -json \
-           "/workspace/APEX/PaddleNLP/dump_info/rank0_step5/forward_rank0_all.json /workspace/APEX/PaddleNLP/dump_info/rank1_step5/forward_rank1_all.json /workspace/APEX/PaddleNLP/dump_info/rank2_step5/forward_rank2_all.json /workspace/APEX/PaddleNLP/dump_info/rank3_step5/forward_rank3_all.json /workspace/APEX/PaddleNLP/dump_info/rank4_step5/forward_rank4_all.json /workspace/APEX/PaddleNLP/dump_info/rank5_step5/forward_rank5_all.json /workspace/APEX/PaddleNLP/dump_info/rank6_step5/forward_rank6_all.json /workspace/APEX/PaddleNLP/dump_info/rank7_step5/forward_rank7_all.json" \
+           "/workspace/APEX/PaddleNLP/dump_info/rank0_step1/forward_rank0_all.json /workspace/APEX/PaddleNLP/dump_info/rank1_step1/forward_rank1_all.json /workspace/APEX/PaddleNLP/dump_info/rank2_step1/forward_rank2_all.json /workspace/APEX/PaddleNLP/dump_info/rank3_step1/forward_rank3_all.json /workspace/APEX/PaddleNLP/dump_info/rank4_step1/forward_rank4_all.json /workspace/APEX/PaddleNLP/dump_info/rank5_step1/forward_rank5_all.json /workspace/APEX/PaddleNLP/dump_info/rank6_step1/forward_rank6_all.json /workspace/APEX/PaddleNLP/dump_info/rank7_step1/forward_rank7_all.json" \
            -backend xpu \
            -real \
            "/workspace/APEX/PaddleNLP/dump_info/rank0_step0/ /workspace/APEX/PaddleNLP/dump_info/rank1_step0/ /workspace/APEX/PaddleNLP/dump_info/rank2_step0/ /workspace/APEX/PaddleNLP/dump_info/rank3_step0/ /workspace/APEX/PaddleNLP/dump_info/rank4_step0/ /workspace/APEX/PaddleNLP/dump_info/rank5_step0/ /workspace/APEX/PaddleNLP/dump_info/rank6_step0/ /workspace/APEX/PaddleNLP/dump_info/rank7_step0/" \

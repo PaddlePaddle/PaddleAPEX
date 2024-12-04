@@ -25,6 +25,7 @@ class GetTargetOP:
             Ops = yaml.safe_load(f)
             self.target_op = Ops.get("target_op")
             self.ignored_op = Ops.get("ignored_op")
+            self.target_class = Ops.get("target_class")
             f.close()
             if self.ignored_op is None:
                 self.ignored_op = []
@@ -48,3 +49,6 @@ class GetTargetOP:
             self.api_to_catch -= set(["paddle.max", "paddle.min"])
         self.check_api_stack()
         return self.api_to_catch
+
+    def get_target_class(self):
+        return self.target_class
