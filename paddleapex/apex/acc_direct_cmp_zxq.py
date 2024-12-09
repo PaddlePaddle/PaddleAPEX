@@ -114,10 +114,13 @@ def compare_device_bench(
     api_pt_files_device = os.listdir(device_dir)
     api_pt_files_all = list(set(api_pt_files_bench + api_pt_files_device))
     api_pt_files_all = sorted(api_pt_files_all)
-
+    
+    f = open(out_path + "compare_result.txt", 'a', encoding='utf-8')
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
         if not i % dist.get_world_size() == dist.get_rank():
             continue
+        bench_out_tensor, device_out_tensor = None, None
+        bench_grad_tensor_list, device_grad_tensor_list = None, None
         try:
             print("=" * 100)
             bench_pt_path = os.path.join(bench_dir, api_file)
@@ -137,7 +140,6 @@ def compare_device_bench(
                 print(msg)
                 continue
 
-            bench_grad_tensor_list, device_grad_tensor_list = None, None
             if bench_grad_dir and device_grad_dir:
                 bench_grad_path = os.path.join(bench_grad_dir, api_file)
                 device_grad_path = os.path.join(device_grad_dir, api_file)
@@ -156,15 +158,19 @@ def compare_device_bench(
                     Warning_list.append(msg)
                     print(msg)
 
-            compare.compare_output(
-                api_file,
-                bench_out_tensor,
-                device_out_tensor,
-                bench_grad_tensor_list,
-                device_grad_tensor_list,
-                bench_BF16_flag,
-                device_BF16_flag,  # BF16 convert flag
-            )
+            print(api_file + " forward -------------")
+            compare_result(bench_out_tensor, device_out_tensor)
+            # print(api_file + " backward -------------")
+            # compare_result(bench_grad_tensor_list, device_grad_tensor_list)
+            #compare.compare_output(
+            #    api_file,
+            #    bench_out_tensor,
+            #    device_out_tensor,
+            #    bench_grad_tensor_list,
+            #    device_grad_tensor_list,
+            #    bench_BF16_flag,
+            #    device_BF16_flag,  # BF16 convert flag
+            #)
         except Exception as err:
             print(err)
     warning_log_pth = os.path.join(out_path, "./compare_warning.txt")
@@ -172,6 +178,60 @@ def compare_device_bench(
     for item in Warning_list:
         File.write(item + "\n")
     File.close()
+
+def normalize_t(tensor0, tensor1):
+    min_val0, min_val1 = paddle.min(tensor0), paddle.min(tensor1)
+    max_val0, max_val1 = paddle.max(tensor0), paddle.max(tensor1)
+    min_val = min(min_val0, min_val1)
+    max_val = max(max_val0, max_val1)
+    if min_val == max_val:
+        return paddle.ones_like(tensor), paddle.ones_like(tensor)
+    return (tensor0 - min_val) / (max_val - min_val), (tensor1 - min_val) / (max_val - min_val)
+    # normalized_tensor_0_1 = (tensor0 - min_val) / (max_val - min_val)
+    # return normalized_tensor_0_1
+    # normalized_tensor_neg1_1 = normalized_tensor_0_1 * 2 - 1
+    # return normalized_tensor_neg1_1
+
+def compare_result(bench_output, device_output):
+    if isinstance(bench_output, (list, tuple)):
+        for b_out_i, n_out_i in zip(bench_output, device_output):
+            compare_result(b_out_i, n_out_i)
+    if isinstance(bench_output, paddle.Tensor):
+        bench_output_o = bench_output.reshape([-1,])
+        device_output_o = device_output.reshape([-1,])
+        bench_output, device_output = normalize_t(bench_output_o, device_output_o)
+        # bench_output = paddle.cast(bench_output, "float")
+        # device_output = paddle.cast(device_output, "float")
+        diff = (bench_output - device_output).abs()
+        # abs_diff = ((bench_output - device_output) / bench_output).abs()
+        num = len(diff)
+        diff005 = (diff < 0.05).sum() / num
+        diff001 = (diff < 0.01).sum() / num
+        diff0005 = (diff < 0.005).sum() / num
+        diff0001 = (diff < 0.001).sum() / num
+        diff00005 = (diff < 0.0005).sum() / num
+        if diff0005 < 1:
+            print("diff is too large---------------------------- erorr Erorr ERORR----------------------------")
+            print("bench_output----------")
+            print(bench_output_o)
+            print("device_output---------")
+            print(device_output_o)
+        print("diff < 0.05: ", diff005.numpy())
+        print("diff < 0.01: ", diff001.numpy())
+        print("diff < 0.005: ", diff0005.numpy())
+        print("diff < 0.001: ", diff0001.numpy())
+        print("diff < 0.0005: ", diff00005.numpy())
+
+        # diff005  = (abs_diff < 0.05).sum() / num
+        # diff001  = (abs_diff < 0.01).sum() / num
+        # diff0005 = (abs_diff < 0.005).sum() / num
+        # diff0001 = (abs_diff < 0.001).sum() / num
+        # print("abs_diff < 0.05: ", diff005.numpy())
+        # print("abs_diff < 0.01: ", diff001.numpy())
+        # print("abs_diff < 0.005: ", diff0005.numpy())
+        # print("abs_diff < 0.001: ", diff0001.numpy())
+
+
 
 
 if __name__ == "__main__":

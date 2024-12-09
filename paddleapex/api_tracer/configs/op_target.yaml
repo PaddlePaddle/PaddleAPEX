@@ -1,27 +1,24 @@
 target_class:
-  # -  paddlenlp.transformers.llama.modeling.LlamaMLP
+  -  paddlenlp.transformers.llama.modeling.LlamaMLP
   -  paddlenlp.transformers.llama.modeling.LlamaLMHead
-  # -  paddlenlp.transformers.llama.modeling.LlamaRMSNorm
-  # -  paddlenlp.transformers.llama.modeling.LlamaRotaryEmbedding
-  # -  paddlenlp.transformers.llama.modeling.LlamaLinearScalingRotaryEmbedding
-  # -  paddlenlp.transformers.llama.modeling.LlamaNTKScalingRotaryEmbedding
-  # -  paddlenlp.transformers.llama.modeling.LlamaDynamicNTKScalingRotaryEmbedding
-  # -  paddlenlp.transformers.llama.modeling.Llama3RotaryEmbedding
-  # -  paddlenlp.transformers.llama.modeling.MoEAllToAll
-  # -  paddlenlp.transformers.llama.modeling.MoEGateCombine
-  # -  paddlenlp.transformers.llama.modeling.MoEAuxLossAutoScaler
-  # -  paddlenlp.transformers.llama.modeling.LlamaMoEGate
-  # -  paddlenlp.transformers.llama.modeling.LlamaMoEMLP
-  # -  paddlenlp.transformers.llama.modeling.LlamaAttention
-  # -  paddlenlp.transformers.llama.modeling.LlamaDecoderLayer
-  # -  paddlenlp.transformers.llama.modeling.LlamaPretrainedModel
-  # -  paddlenlp.transformers.llama.modeling.LlamaModel
-  # -  paddlenlp.transformers.llama.modeling.LlamaPretrainingCriterion
-  # -  paddlenlp.transformers.llama.modeling.ConcatMaskedLoss
-  # -  paddlenlp.transformers.llama.modeling.LlamaForCausalLM
-
-target_op:
-  -  paddle.Tensor.__add__
+  -  paddlenlp.transformers.llama.modeling.LlamaRMSNorm
+  -  paddlenlp.transformers.llama.modeling.LlamaRotaryEmbedding
+  -  paddlenlp.transformers.llama.modeling.LlamaLinearScalingRotaryEmbedding
+  -  paddlenlp.transformers.llama.modeling.LlamaNTKScalingRotaryEmbedding
+  -  paddlenlp.transformers.llama.modeling.LlamaDynamicNTKScalingRotaryEmbedding
+  -  paddlenlp.transformers.llama.modeling.Llama3RotaryEmbedding
+  -  paddlenlp.transformers.llama.modeling.MoEAllToAll
+  -  paddlenlp.transformers.llama.modeling.MoEGateCombine
+  -  paddlenlp.transformers.llama.modeling.MoEAuxLossAutoScaler
+  -  paddlenlp.transformers.llama.modeling.LlamaMoEGate
+  -  paddlenlp.transformers.llama.modeling.LlamaMoEMLP
+  -  paddlenlp.transformers.llama.modeling.LlamaAttention
+  -  paddlenlp.transformers.llama.modeling.LlamaDecoderLayer
+  -  paddlenlp.transformers.llama.modeling.LlamaPretrainedModel
+  -  paddlenlp.transformers.llama.modeling.LlamaModel
+  -  paddlenlp.transformers.llama.modeling.LlamaPretrainingCriterion
+  -  paddlenlp.transformers.llama.modeling.ConcatMaskedLoss
+  -  paddlenlp.transformers.llama.modeling.LlamaForCausalLM
 ignored_op:
   -  paddle._C_ops.min
   -  paddle._C_ops.max
@@ -70,7 +67,7 @@ ignored_op:
 #  -  paddle.distributed.communication.stream.all_reduce
 #  -  paddle.distributed.communication.stream.alltoall
 
-#target_op:
+target_op:
  # distributed
   -  paddle.distributed.barrier
   -  paddle.distributed.broadcast_object_list

@@ -80,6 +80,7 @@ def hijack_call(self, *args, **kwargs):
         save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
         output = self.forward(*args, **kwargs)
         # print("api_info_struct !!!!!!", api_recorder.api_info_struct)
+        # print(output)
         try:
             if isinstance(output, paddle.Tensor):
                 if not output.stop_gradient:

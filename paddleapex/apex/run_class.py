@@ -169,6 +169,8 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
+    if not dist.get_rank() == 0:
+        return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -181,9 +183,10 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
     bwd_output_path = os.path.join(bwd_output_dir, api_call_name)
     os.makedirs(fwd_output_dir, exist_ok=True)
     os.makedirs(bwd_output_dir, exist_ok=True)
+    bwd_BF16_flag, fwd_BF16_flag = True, True
     if isinstance(forward_res, (type(None), list, tuple, paddle.Tensor)):
         try:
-            fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
+            # fwd_BF16_flag, forward_res = convert_out2fp32(forward_res)
             paddle.save([fwd_BF16_flag, forward_res], fwd_output_path)
         except Exception as err:
             msg = "save_forward Error: %s" % str(err)
@@ -194,7 +197,7 @@ def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name="
         print_warn_log("forward_res not supported!")
     if isinstance(backward_res, (type(None), list, tuple, paddle.Tensor)):
         try:
-            bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
+            # bwd_BF16_flag, backward_res = convert_out2fp32(backward_res)
             paddle.save([bwd_BF16_flag, backward_res], bwd_output_path)
         except Exception as err:
             msg = "save_bacward Error: %s" % str(err)
@@ -365,6 +368,7 @@ def run_acc_case(
         model.set_state_dict(paddle.load(state_path))
         device_out = model(*device_args, **device_kwargs)
         paddle.device.synchronize() 
+        # print(device_out)
     except Exception as err:
         msg = "Run_forward Error: %s" % str(err)
         print_warn_log(msg)
@@ -380,9 +384,9 @@ def run_acc_case(
                 api_call_name, device_out, dout, device_args, device_kwargs, need_backward
             )
         else:
-            if api_call_name.rsplit("*")[0] in distributed_op:
-                print('this is distributed op: ', api_call_name)
-                device_out = device_args
+            # if api_call_name.rsplit("*")[0] in distributed_op:
+            #     print('this is distributed op: ', api_call_name)
+            #     device_out = device_args
             device_grad_out = None
     except Exception as err:
         msg = "Run_backward Error: %s" % str(err)
