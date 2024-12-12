@@ -107,13 +107,23 @@ class API:
         self.op_name = op_name
         self.rank = rank
 
-    def update_real_data(self, inputs, kwargs):
+
+    def get_extra_param(self):
+        init_param = cfg.cls_target_obj[self.op_name.split('*')[0]]['extra_param']
+        return init_param
+
+    def update_real_data(self, inputs, kwargs, param={}, api_type="op"):
         self.is_half_precision = False
         args_info_list = self.analyze_element(inputs)
         kwargs_info_dict = self.analyze_element(kwargs)
+        param_info_dict = self.analyze_element(param)
+        # print(param_info_dict)
         self.api_info_struct = {
-            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "dout_list": ["Failed"]}
+            self.op_name: {"api_type": api_type, "args": args_info_list, "kwargs": kwargs_info_dict}
         }
+        self.api_info_struct[self.op_name].update(param_info_dict | {"dout_list": ["Failed"]})
+        # print(self.api_info_struct)
+
         dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision)
 
     def record_dout(self, grad_value):

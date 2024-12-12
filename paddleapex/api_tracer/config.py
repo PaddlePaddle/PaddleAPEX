@@ -26,8 +26,11 @@ class Config:
             configs = yaml.load(f, Loader=yaml.FullLoader)
             self.dump_mode = configs["dump_mode"]
             self.op_target_pth = configs["op_target_path"]
+            self.cls_target_pth = configs["cls_target_path"]
             if self.op_target_pth == "None":
                 self.op_target_pth = os.path.join(current_dir, "configs/op_target.yaml")
+            if self.cls_target_pth == "None":
+                self.cls_target_pth = os.path.join(current_dir, "configs/cls_target.yaml")
             self.dump_root_path = configs["dump_root_path"]
             self.target_step = configs["target_step"]
             self.remote_path = configs["remote_path"]
@@ -42,8 +45,11 @@ class Config:
         time.sleep(1)
         self.global_step = -1
         self.dump_state = False
+        # When dump_class_state is true, dump_func needs to be temporarily disabled to avoid duplication.
+        self.disable_dump_func_state = False
         self.Op_count = {}
         self.prefix_op_name_ = None
+        self.cls_target_obj = None
 
     def new_step(self):
         self.global_step += 1
@@ -53,6 +59,7 @@ class Config:
         else:
             self.Op_count = {}
             self.dump_state = False
+
 
 
 cfg = Config()

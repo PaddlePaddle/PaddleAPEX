@@ -44,7 +44,26 @@ class GetTargetOP:
 
     def get_target_ops(self):
         self.api_to_catch = set(self.target_op) - set(self.ignored_op)
+
+        # if profile mode is on, we will not catch max and min
         if cfg.profile_mode:
             self.api_to_catch -= set(["paddle.max", "paddle.min"])
+        self.check_api_stack()
+        return self.api_to_catch
+
+class GetTargetCls(GetTargetOP):
+    def __init__(self, yaml_path):
+        with open(yaml_path, "r") as f:
+            Ops = yaml.safe_load(f)
+            self.target_op = Ops.get("target_cls")
+            cfg.cls_target_obj = self.target_op
+            # print(self.target_op)
+            self.ignored_op = Ops.get("ignored_cls")
+            f.close()
+            if self.ignored_op is None:
+                self.ignored_op = []
+            self.api_to_catch = set(self.target_op.keys()) - set(self.ignored_op)
+    
+    def get_target_ops(self):
         self.check_api_stack()
         return self.api_to_catch

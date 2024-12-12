@@ -1,0 +1,9 @@
+ignored_cls:
+
+target_cls:
+  paddle_xpu.layers.nn.Linear:
+    extra_param:
+          -  self.weight
+          -  self.bias
+    paddle_cls:
+          paddle.nn.Linear
