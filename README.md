@@ -86,7 +86,7 @@ If you use default config file, you can modify specific variable in this file, s
 1.  Directly comparision:
 ```Shell
 cd paddleapex/apex
-python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] --dtype FP32,FP16,BF16 -mode all -op <op_name>
+python run_paddle.py -json [json_path] -backend [gpu/npu/cpu] -out[local_path/remote_path] -dtype FP32,FP16,BF16 -mode all -op <op_name>
 # mode can combine mem, acc, pro arbitary. E.g.:-mode mem,acc or -mode all
 # -op is optional args, if you want to run specific op.
 E.g.:
