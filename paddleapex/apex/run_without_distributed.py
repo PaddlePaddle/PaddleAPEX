@@ -76,7 +76,11 @@ tqdm_params = {
     "dynamic_ncols": True,  # 动态调整进度条宽度以适应控制台
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
-PROFILE_RUN_TIMES = 1
+
+
+PROFILE_RUN_TIMES = 100
+PROFILE_WARM_TIMES = 100
+
 
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -418,29 +422,22 @@ def run_profile_case(
     #     save_pth = os.path.join(out_path, "input_data", api_call_name)
     #     paddle.save(x, save_pth)
     # device warmming up
-    try:
-        device_out = run_forward(api_call_name, device_args, device_kwargs)
-        if api_info_dict["dout_list"][0] != "Failed":
-            dout = create_dout(
-                api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
-            )
-            paddle.autograd.backward([device_out], dout)
-        else:
-            need_backward = False
-    except Exception as err:
-        msg = "Failed in device warming up: %s" % str(err)
-        print_warn_log(msg)
-        return
+    if api_info_dict["dout_list"][0] == "Failed":
+        need_backward = False
     input_shape1 = get_shape(device_args)
     input_shape2 = get_shape(device_kwargs)
     input_shape_lst = merge_two_lists(input_shape1, input_shape2)
-    output_shape_lst = get_shape(device_out)
+    output_shape_lst = []
     def profile_inner_loop_():
         try:
             paddle.device.synchronize()
+            for _ in range(PROFILE_WARM_TIMES):
+                device_out = run_forward(api_call_name, device_args, device_kwargs)
+            output_shape_lst = get_shape(device_out)
+            paddle.device.synchronize()
             fwd_start_time = time.time()
             for _ in range(PROFILE_RUN_TIMES):
-                device_out = run_forward(api_call_name, device_args, device_kwargs)
+                run_forward(api_call_name, device_args, device_kwargs)
             paddle.device.synchronize()
             fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
@@ -448,28 +445,34 @@ def run_profile_case(
         except Exception as err:
             msg = "Run_forward Error: %s" % str(err)
             print_warn_log(msg)
-            return -1, -1
+            return -1, -1, output_shape_lst
         try:
             if not need_backward:
-                return fwd_time, -1
+                return fwd_time, -1, output_shape_lst
+            dout = create_dout(api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path)
+            print("create_dout------")
             paddle.device.synchronize()
-            bwd_start_time = time.time()
+            device_out_list = []
             for _ in range(PROFILE_RUN_TIMES):
-                device_out = run_forward(api_call_name, device_args, device_kwargs)
-                paddle.autograd.backward([device_out], dout)
+                device_out_list.append(run_forward(api_call_name, device_args, device_kwargs))
+            paddle.device.synchronize()
+            print("Run_backward------")
+            bwd_start_time = time.time()
+            for i in range(PROFILE_RUN_TIMES):
+                paddle.autograd.backward([device_out_list[i]], dout)
             paddle.device.synchronize()
             bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
             bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
-            bwd_time = bwd_time - fwd_time
+            # bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
-            return fwd_time, -1
-        return fwd_time, bwd_time
+            return fwd_time, -1, output_shape_lst
+        return fwd_time, bwd_time, output_shape_lst
 
     try:
-        fwd_time, bwd_time = profile_inner_loop_()
+        fwd_time, bwd_time, output_shape_lst = profile_inner_loop_()
     except Exception as err:
         msg = f"Run {api_call_name} profile Error: %s" % str(err)
         print_warn_log(msg)
@@ -477,9 +480,9 @@ def run_profile_case(
         return
 
     if not enforce_dtype:
-        log_path = os.path.join(out_path, "profile_analyze.log")
+        log_path = os.path.join(out_path, "profile_analyze" + str(dist.get_rank()) +".log")
     else:
-        log_path = os.path.join(out_path, enforce_dtype.name, "profile_analyze.log")
+        log_path = os.path.join(out_path, enforce_dtype.name, "profile_analyze" + str(dist.get_rank()) +".log")
 
     F = open(log_path, "a")
     dtype = "" if not enforce_dtype else f"*{enforce_dtype.name}"

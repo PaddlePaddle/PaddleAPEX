@@ -35,38 +35,38 @@ def split_json_by_keyword(input_file, outfiles, keywords):
 
     print("well done")
 
-input_json_files =       ["/zhouxiangquan/llama10b/dump_info/rank0_step1/forward_rank0_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank1_step1/forward_rank1_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank2_step1/forward_rank2_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank3_step1/forward_rank3_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank4_step1/forward_rank4_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank5_step1/forward_rank5_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank6_step1/forward_rank6_all.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank7_step1/forward_rank7_all.json"]
-distributed_keyword    = ["/zhouxiangquan/llama10b/dump_info/rank0_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank1_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank2_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank3_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank4_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank5_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank6_step1/distributed.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank7_step1/distributed.json"]
-model_keyword          = ["/zhouxiangquan/llama10b/dump_info/rank0_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank1_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank2_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank3_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank4_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank5_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank6_step1/class.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank7_step1/class.json"]
-common_keyword        =  ["/zhouxiangquan/llama10b/dump_info/rank0_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank1_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank2_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank3_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank4_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank5_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank6_step1/common.json",
-                          "/zhouxiangquan/llama10b/dump_info/rank7_step1/common.json"]
+input_json_files =       ["/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/forward_rank0_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/forward_rank1_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/forward_rank2_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/forward_rank3_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/forward_rank4_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/forward_rank5_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/forward_rank6_all.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/forward_rank7_all.json"]
+distributed_keyword    = ["/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/distributed.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/distributed.json"]
+model_keyword          = ["/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/class.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/class.json"]
+common_keyword        =  ["/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/common.json",
+                          "/ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/common.json"]
 
 
 

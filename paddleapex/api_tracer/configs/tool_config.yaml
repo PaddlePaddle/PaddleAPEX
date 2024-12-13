@@ -18,7 +18,7 @@ dump_mode: "real_data"
 profile_mode: True
 
 # target_step is a list, dump api function will turn on at the specific step
-target_step: [1]
+target_step: [0]
 
 # Remove duplicate apis from dump_info and keep only one api in the same value range.
 # dump_unique: True

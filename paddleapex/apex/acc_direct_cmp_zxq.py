@@ -18,6 +18,7 @@ import sys
 import time
 import paddle
 import tqdm
+import pandas as pd
 
 import paddle.distributed as dist
 
@@ -115,7 +116,10 @@ def compare_device_bench(
     api_pt_files_all = list(set(api_pt_files_bench + api_pt_files_device))
     api_pt_files_all = sorted(api_pt_files_all)
     
-    f = open(out_path + "compare_result.txt", 'a', encoding='utf-8')
+    # f = open(out_path + "compare_result.txt", 'a', encoding='utf-8')
+    errors = []
+    errors_forward_info = []
+    errors_bacward_info = []
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
         if not i % dist.get_world_size() == dist.get_rank():
             continue
@@ -157,11 +161,23 @@ def compare_device_bench(
                     msg = f"{api_file} has no grad output, please refer to run_ut warning log info."
                     Warning_list.append(msg)
                     print(msg)
-
+            
+            error_i = []
             print(api_file + " forward -------------")
-            compare_result(bench_out_tensor, device_out_tensor)
-            # print(api_file + " backward -------------")
-            # compare_result(bench_grad_tensor_list, device_grad_tensor_list)
+            compare_result(bench_out_tensor, device_out_tensor, error_i, api_file + " forward")
+            errors_forward_info = errors_forward_info + error_i
+            # for e in error_i:
+            #     errors.append(float(e.split(" ")[0]))
+            #     errors_info.append(api_file + " forward " + e)
+            
+            print(api_file + " backward -------------")
+            error_i = []
+            compare_result(bench_grad_tensor_list, device_grad_tensor_list, error_i, api_file + " backward")
+            errors_bacward_info = errors_bacward_info + error_i
+            
+            # for e in error_i:
+            #     errors.append(float(e.split(" ")[0]))
+            #     errors_info.append(api_file + " backward " + e)
             #compare.compare_output(
             #    api_file,
             #    bench_out_tensor,
@@ -173,6 +189,13 @@ def compare_device_bench(
             #)
         except Exception as err:
             print(err)
+    errors_bacward_info.sort(key=lambda x: x[1])
+    errors_forward_info.sort(key=lambda x: x[1])
+    df = pd.DataFrame(errors_bacward_info, columns=["operator_name", "error", "bench_info", "device_info"])
+    df.to_csv("log/rank" + str(dist.get_rank()) + "_backward_output.csv", index=False)
+    df = pd.DataFrame(errors_forward_info, columns=["operator_name", "error", "bench_info", "device_info"])
+    df.to_csv("log/rank" + str(dist.get_rank()) + "_forward_output.csv", index=False)
+    
     warning_log_pth = os.path.join(out_path, "./compare_warning.txt")
     File = open(warning_log_pth, "w")
     for item in Warning_list:
@@ -184,25 +207,27 @@ def normalize_t(tensor0, tensor1):
     max_val0, max_val1 = paddle.max(tensor0), paddle.max(tensor1)
     min_val = min(min_val0, min_val1)
     max_val = max(max_val0, max_val1)
+    if len(tensor0) == 1:
+        return tensor0 / max_val, tensor1 / max_val
     if min_val == max_val:
-        return paddle.ones_like(tensor), paddle.ones_like(tensor)
+        return paddle.ones_like(tensor0), paddle.ones_like(tensor1)
     return (tensor0 - min_val) / (max_val - min_val), (tensor1 - min_val) / (max_val - min_val)
     # normalized_tensor_0_1 = (tensor0 - min_val) / (max_val - min_val)
     # return normalized_tensor_0_1
     # normalized_tensor_neg1_1 = normalized_tensor_0_1 * 2 - 1
     # return normalized_tensor_neg1_1
 
-def compare_result(bench_output, device_output):
+def compare_result(bench_output, device_output, errors, name):
     if isinstance(bench_output, (list, tuple)):
         for b_out_i, n_out_i in zip(bench_output, device_output):
-            compare_result(b_out_i, n_out_i)
+            compare_result(b_out_i, n_out_i, errors, name)
     if isinstance(bench_output, paddle.Tensor):
         bench_output_o = bench_output.reshape([-1,])
         device_output_o = device_output.reshape([-1,])
         bench_output, device_output = normalize_t(bench_output_o, device_output_o)
         # bench_output = paddle.cast(bench_output, "float")
         # device_output = paddle.cast(device_output, "float")
-        diff = (bench_output - device_output).abs()
+        diff = paddle.cast((bench_output - device_output).abs(), "float")
         # abs_diff = ((bench_output - device_output) / bench_output).abs()
         num = len(diff)
         diff005 = (diff < 0.05).sum() / num
@@ -210,16 +235,22 @@ def compare_result(bench_output, device_output):
         diff0005 = (diff < 0.005).sum() / num
         diff0001 = (diff < 0.001).sum() / num
         diff00005 = (diff < 0.0005).sum() / num
-        if diff0005 < 1:
+        if diff0001 < 1 or len(bench_output) == 1:
+            diff_value, diff_index = paddle.topk(diff, k=min(10, num))
+            error_info = diff0001.numpy()
+            bench_n = paddle.cast(bench_output_o[diff_index], "float").numpy().tolist()
+            device_n = paddle.cast(device_output_o[diff_index], "float").numpy().tolist()
+            # error_info = error_info + " bench_value: " + str(bench_n) + " device_value: " + str(device_n)
+            errors.append((name, error_info, str(bench_n), str(device_n)))
             print("diff is too large---------------------------- erorr Erorr ERORR----------------------------")
             print("bench_output----------")
-            print(bench_output_o)
+            print(bench_output_o[diff_index])
             print("device_output---------")
-            print(device_output_o)
-        print("diff < 0.05: ", diff005.numpy())
-        print("diff < 0.01: ", diff001.numpy())
-        print("diff < 0.005: ", diff0005.numpy())
-        print("diff < 0.001: ", diff0001.numpy())
+            print(device_output_o[diff_index])
+        print("diff < 0.05:   ", diff005.numpy())
+        print("diff < 0.01:   ", diff001.numpy())
+        print("diff < 0.005:  ", diff0005.numpy())
+        print("diff < 0.001:  ", diff0001.numpy())
         print("diff < 0.0005: ", diff00005.numpy())
 
         # diff005  = (abs_diff < 0.05).sum() / num

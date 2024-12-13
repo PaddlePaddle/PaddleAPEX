@@ -1,4 +1,5 @@
-target_class:
+ignored_op:
+#target_class:
   -  paddlenlp.transformers.llama.modeling.LlamaMLP
   -  paddlenlp.transformers.llama.modeling.LlamaLMHead
   -  paddlenlp.transformers.llama.modeling.LlamaRMSNorm
@@ -19,9 +20,61 @@ target_class:
   -  paddlenlp.transformers.llama.modeling.LlamaPretrainingCriterion
   -  paddlenlp.transformers.llama.modeling.ConcatMaskedLoss
   -  paddlenlp.transformers.llama.modeling.LlamaForCausalLM
+target_class:
+  -  paddlenlp.transformers.llama.modeling.MoEAuxLossAutoScaler
 ignored_op:
+  -  paddle._C_ops.max
+  -  paddle._C_ops.min
+  -  paddle.empty
+  -  paddle.empty_like
+  -  paddle.reshape
+  -  paddle.reshape_
+  -  paddle.unsqueeze
+  -  paddle.unsqueeze_
+  -  paddle.square_
+  -  paddle.Tensor.squeeze
+  -  paddle.Tensor.squeeze_
+  -  paddle.Tensor.unsqueeze
+  -  paddle.Tensor.unsqueeze_
+  -  paddle.squeeze_
+  -  paddle.ones
+  -  paddle.ones_like
+  -  paddle.split
+  -  paddle.Tensor.zero_
+  -  paddle.stack
+  -  paddle.zeros
+  -  paddle.zeros_like
+distributed_op:
+  # distributed
+  -  paddle.distributed.barrier
+  -  paddle.distributed.broadcast_object_list
+  -  paddle.distributed.communication.stream.alltoall_single
+  -  paddle.distributed.communication.stream.broadcast
+  -  paddle.distributed.communication.stream.gather
+  -  paddle.distributed.communication.stream.recv
+  -  paddle.distributed.communication.stream.reduce
+  -  paddle.distributed.communication.stream.reduce_scatter
+  -  paddle.distributed.communication.stream.scatter
+  -  paddle.distributed.communication.stream.send
+  -  paddle.distributed.all_gather
+  -  paddle.distributed.all_gather_object
+  -  paddle.distributed.all_reduce
+  -  paddle.distributed.alltoall
+  -  paddle.distributed.alltoall_single
+  -  paddle.distributed.broadcast
+  -  paddle.distributed.communication.stream.all_gather
+  -  paddle.distributed.communication.stream.all_reduce
+  -  paddle.distributed.communication.stream.alltoall
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
+  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
+  -  paddle.distributed.fleet.layers.mpu.mp_ops.
+target_op:
+  -  paddle._C_ops.min
+#ignored_op:
   -  paddle._C_ops.min
   -  paddle._C_ops.max
+#target_op:
   -  paddle.empty
   -  paddle.empty_like
   -  paddle.reshape
@@ -42,55 +95,17 @@ ignored_op:
   -  paddle.zeros
   -  paddle.zeros_like
 # self-confidence, arrogance
-  # -  paddle.Tensor.__add__
-  # -  paddle.Tensor.__mul__
-  # -  paddle.Tensor.__neg__
-  # -  paddle.Tensor.add_
-# distributed
-#  -  paddle.distributed.barrier
-#  -  paddle.distributed.broadcast_object_list
-#  -  paddle.distributed.communication.stream.alltoall_single
-#  -  paddle.distributed.communication.stream.broadcast
-#  -  paddle.distributed.communication.stream.gather
-#  -  paddle.distributed.communication.stream.recv
-#  -  paddle.distributed.communication.stream.reduce
-#  -  paddle.distributed.communication.stream.reduce_scatter
-#  -  paddle.distributed.communication.stream.scatter
-#  -  paddle.distributed.communication.stream.send
-#  -  paddle.distributed.all_gather
-#  -  paddle.distributed.all_gather_object
-#  -  paddle.distributed.all_reduce
-#  -  paddle.distributed.alltoall
-#  -  paddle.distributed.alltoall_single
-#  -  paddle.distributed.broadcast
-#  -  paddle.distributed.communication.stream.all_gather
-#  -  paddle.distributed.communication.stream.all_reduce
-#  -  paddle.distributed.communication.stream.alltoall
-
-target_op:
- # distributed
-  -  paddle.distributed.barrier
-  -  paddle.distributed.broadcast_object_list
-  -  paddle.distributed.communication.stream.alltoall_single
-  -  paddle.distributed.communication.stream.broadcast
-  -  paddle.distributed.communication.stream.gather
-  -  paddle.distributed.communication.stream.recv
-  -  paddle.distributed.communication.stream.reduce
-  -  paddle.distributed.communication.stream.reduce_scatter
-  -  paddle.distributed.communication.stream.scatter
-  -  paddle.distributed.communication.stream.send
-  -  paddle.distributed.all_gather
-  -  paddle.distributed.all_gather_object
-  -  paddle.distributed.all_reduce
-  -  paddle.distributed.alltoall
-  -  paddle.distributed.alltoall_single
-  -  paddle.distributed.broadcast
-  -  paddle.distributed.communication.stream.all_gather
-  -  paddle.distributed.communication.stream.all_reduce
-  -  paddle.distributed.communication.stream.alltoall
- # #
+  -  paddle.Tensor.__add__
+  -  paddle.multiply
+  -  paddle.multiply_
+  -  paddle.Tensor.__mul__
+  -  paddle.Tensor.__neg__
+  -  paddle.Tensor.add_
+  -  paddle._C_ops.adamw
+  -  paddle._C_ops.adamw_
+  -  paddle._C_ops.layer_norm
+#target_op:
   -  paddle.nn.functional.scaled_dot_product_attention
-  # Special op, paddle has wrapped op in framework. #noqa
   -  paddle._C_ops.layer_norm #noqa
   -  paddle.nn.functional.adaptive_avg_pool1d
   -  paddle.nn.functional.adaptive_avg_pool2d
@@ -546,9 +561,9 @@ target_op:
   -  paddle.vsplit
   -  paddle.where
   -  paddle.where_
-  # -  paddle.zeros
-  # -  paddle.zeros_like
-  # -  paddle.Tensor.T
+  -  paddle.zeros
+  -  paddle.zeros_like
+  -  paddle.Tensor.T
   -  paddle.Tensor.__add__
   -  paddle.Tensor.__and__
   -  paddle.Tensor.__radd__
@@ -911,9 +926,9 @@ target_op:
   -  paddle.Tensor.where
   -  paddle.Tensor.where_
   #### experiment op:
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
-  -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
   -  paddle._C_ops.fused_gemm_epilogue
   -  paddle.optimizer.Adam
   -  paddle.optimizer.AdamW
@@ -941,10 +956,10 @@ target_op:
   -  paddle.uniform
   -  paddle._C_ops.gaussian
   -  paddle._legacy_C_ops.c_identity
-  -  paddle.distributed.fleet.layers.mpu.mp_ops.
-  -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
-  -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
-  -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
-  -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
+  # -  paddle.distributed.fleet.layers.mpu.mp_ops.
+  # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
   # -  paddlenlp.transformers.llama.fusion_ops.swiglu
 

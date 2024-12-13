@@ -19,9 +19,6 @@ from .OPTemplate import OPTemplate, HookOp, hijack_call
 
 cfg = config.cfg
 
-# from paddlenlp.test_model.test_model import SimpleModel
-# from paddlenlp.transformers.llama.modeling import LlamaLMHead, LlamaMLP
-
 def wrapped_op(op_name):
     def op_template(*args, **kwargs):
         return OPTemplate(op_name)(*args, **kwargs)
@@ -29,18 +26,10 @@ def wrapped_op(op_name):
     return op_template
 
 
-# LlamaLMHead.prefix_op_name_ = "paddlenlp.transformers.llama.modeling.LlamaLMHead"
-# LlamaLMHead.__call__ = hijack_call
-
-# LlamaMLP.prefix_op_name_ = "paddlenlp.transformers.llama.modeling.LlamaMLP"
-# LlamaMLP.__call__ = hijack_call
-
-
 def hijack_api():
     op = GetTargetOP(cfg.op_target_pth)
     target_op = op.get_target_ops()
     target_class = op.get_target_class()
-    # target_op.add("paddlenlp.test_model.test_model.SimpleModel")
     for op_name in target_op:
         parent_package, method_name = op_name.rsplit(".", maxsplit=1)
         try:
@@ -54,14 +43,13 @@ def hijack_api():
             print(op_name, str(err))
     
     for class_in in target_class:
-        print("begin class --------------------------------", class_in)
+        # print("begin class --------------------------------", class_in)
         parent_package, class_n = class_in.rsplit(".", maxsplit=1)
         try:
             class_name, model = try_import(parent_package)
             model = getattr(model, class_n)
             model.prefix_op_name_ = class_in
             model.__call__ = hijack_call
-            # print("model---!!!!!!!!!!", model)
         except Exception as err:
             print(class_in, str(err))
 

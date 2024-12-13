@@ -108,6 +108,8 @@ class API:
         self.embedding_num = 0
         self.output_num = 0
         self.dout_list = []
+        self.out_list = []
+        self.arg_index = 0
         self.is_half_precision = False
         self.is_distributed = False
         if cfg.profile_mode:
@@ -127,9 +129,13 @@ class API:
         args_info_list = self.analyze_element(inputs)
         kwargs_info_dict = self.analyze_element(kwargs)
         self.api_info_struct = {
-            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "dout_list": ["Failed"]}
+            self.op_name: {"args": args_info_list, "kwargs": kwargs_info_dict, "out_list": ["Failed"], "dout_list": ["Failed"]}
         }
         dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision, self.is_distributed)
+    
+    def update_output(self, outputs):
+        self.out_list = self.analyze_element(outputs)
+        self.api_info_struct[self.op_name].update({"out_list": self.dout_list})
 
     def record_dout(self, grad_value):
         if grad_value is not None:
@@ -179,6 +185,12 @@ class API:
         single_arg.update({"type": "paddle.Tensor"})
         single_arg.update({"dtype": str(arg.dtype.name)})
         single_arg.update({"shape": arg.shape})
+        arg_name = arg.name
+        exit_tensor = arg_name.startswith("APEX_")
+        if not exit_tensor:
+            arg.name = "APEX_" + self.op_name + "_" + str(self.arg_index)
+        single_arg.update({"name": arg.name})
+        self.arg_index = self.arg_index + 1
         try:
             with paddle.no_grad():
                 max_ = paddle.max(arg).item()
@@ -202,8 +214,10 @@ class API:
         single_arg.update({"Min": min_})
         single_arg.update({"Min_origin": min_})
         single_arg.update({"stop_gradient": arg.stop_gradient})
-        if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
+        # if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
+        if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)
+            # if not exit_tensor: 
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
             single_arg.update({"real_data_path": pt_path})
@@ -227,8 +241,8 @@ class API:
         )
         single_arg.update({"stop_gradient": arg.stop_gradient})
 
-        # if self.mode == "real_data":
-        if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
+        # if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
+        if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1

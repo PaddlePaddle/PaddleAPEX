@@ -12,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#import paddlenlp # if you wanna test nlp fusion operations
+import paddlenlp # if you wanna test nlp fusion operations
 import argparse
 import os
+from importlib import import_module
 import shutil
 import time
 import copy
+import json
+import yaml
 from tqdm import tqdm
+import pickle
 import paddle
+import paddle.distributed as dist
+from paddle.distributed import fleet
 from paddle import framework
 from paddle.base import core
 from utils import (
@@ -37,6 +43,16 @@ type_map = {
     "FP32": paddle.float32,
     "BF16": paddle.bfloat16,
 }
+
+yaml_path = "../api_tracer/configs/op_target.yaml"
+f = open(yaml_path, "r")
+Ops = yaml.safe_load(f)
+target_op = Ops.get("target_op")
+ignored_op = Ops.get("ignored_op")
+target_class = Ops.get("target_class")
+distributed_op = Ops.get("distributed_op")
+f.close()
+
 Warning_list = []
 
 current_time = time.strftime("%Y%m%d%H%M%S")
@@ -267,8 +283,8 @@ def run_forward(api_call_name, device_args, device_kwargs):
     api_call_stack = api_call_name.rsplit("*")[0]
     try:
         device_out = eval(api_call_stack)(*device_args, **device_kwargs)
+        paddle.device.synchronize()
         return device_out
-
     except Exception as err:
         msg = f"Run API {api_call_name} Forward Error: %s" % str(err)
         print_warn_log(msg)
@@ -317,26 +333,82 @@ def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=No
         return None
 
 
+def load_params(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+def create_model(api_call_name, real_data_path):
+    api_call_stack = api_call_name.rsplit("*")[0]
+    init_path = real_data_path + api_call_name + ".init_params"
+    state_path = real_data_path + api_call_name + ".state_dict"
+    init_para = load_params(init_path)
+    parent_package, class_n = api_call_stack.rsplit(".", maxsplit=1)
+    try:
+        MODULE = import_module(parent_package)
+        class_model = getattr(MODULE, class_n)
+        model = class_model(**init_para)
+        model.set_state_dict(paddle.load(state_path))
+        return model
+    except Exception as err:
+        msg = "Create Model Error: %s" % str(err)
+        print_warn_log(msg)
+        return None
+
+
+def run_model_forward(model, device_args, device_kwargs):
+    try:
+        # paddle.distributed.barrier()
+        device_out = model(*device_args, **device_kwargs)
+        paddle.device.synchronize()
+        return device_out
+    except Exception as err:
+        msg = f"Run Forward Error: %s" % str(err)
+        print_warn_log(msg)
+        Warning_list.append(msg)
+        return None
+
+
 def run_acc_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
+    api_call_stack = api_call_name.rsplit("*")[0]
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, need_backward = create_input_args(
-        api_info_dict_copy, backend, enforce_dtype, real_data_path
-    )
+        api_info_dict_copy, backend, enforce_dtype, real_data_path)
     print(f"Running {api_call_name} acc test!")
-    if api_call_name in debug_case:
+    if api_call_name in debug_case:        
         x = [device_args, device_kwargs]
         out_path = os.path.realpath(out_path) if out_path else "./"
         save_pth = os.path.join(out_path, "input_data", api_call_name)
         paddle.save(x, save_pth)
-    try:
-        device_out = run_forward(api_call_name, device_args, device_kwargs)
-    except Exception as err:
-        msg = "Run_forward Error: %s" % str(err)
-        print_warn_log(msg)
-        return
 
+    # if this case is class
+    if api_call_stack in target_class:
+        if real_data_path == None:
+            msg = (f"Running {api_call_name} acc Failed! Don't support run class without real_data_path!")
+            print_warn_log(msg)
+            Warning_list.append(msg)
+            return
+        else:
+            try:
+                model = create_model(api_call_name, real_data_path)
+                device_out = run_model_forward(model, device_args, device_kwargs)
+            except Exception as err:
+                msg = "Run_forward Error: %s" % str(err)
+                print_warn_log(msg)
+                return
+    else:
+        try:
+            device_out = run_forward(api_call_name, device_args, device_kwargs)
+            if api_call_stack in distributed_op and device_out is None:
+                print('this is distributed op: ', api_call_name)
+                device_out = device_args
+        except Exception as err:
+            msg = "Run_forward Error: %s" % str(err)
+            print_warn_log(msg)
+            return
+    
     try:
         device_grad_out = []
         if api_info_dict["dout_list"][0] != "Failed":
@@ -570,17 +642,129 @@ def arg_parser(parser):
         help="debug_op name",
         required=False,
     )
+    parser.add_argument(
+        "-class",
+        "--class_op",
+        dest="test_class",
+        default=False,
+        type=bool,
+        help="test class op",
+        required=False,
+    )
+    parser.add_argument(
+        "-class_type",
+        "--class_type",
+        dest="class_default_type",
+        default="bfloat16",
+        type=str,
+        help="the default type of class",
+        required=False,
+    )
+    parser.add_argument(
+        "-dp",
+        "--dp_degree",
+        dest="dp_degree",
+        default=1,
+        type=int,
+        help="dp_degree",
+        required=False,
+    )
+    parser.add_argument(
+        "-mp",
+        "--mp_degree",
+        dest="mp_degree",
+        default=8,
+        type=int,
+        help="mp_degree",
+        required=False,
+    )
+    parser.add_argument(
+        "-pp",
+        "--pp_degree",
+        dest="pp_degree",
+        default=1,
+        type=int,
+        help="pp_degree",
+        required=False,
+    )
+    parser.add_argument(
+        "-sd",
+        "--sharding_degree",
+        dest="sharding_degree",
+        default=1,
+        type=int,
+        help="sharding_degree",
+        required=False,
+    )
+    parser.add_argument(
+        "-dist",
+        "--distributed_op",
+        dest="distributed_op",
+        default=False,
+        type=bool,
+        help="distributed_mode",
+        required=False,
+    )
+
+def check_json(json_list):
+    data_list = []
+    for json_file in json_list:
+        f = open(json_file, 'r', encoding='utf-8')
+        data = json.load(f)
+        keys = []
+        for key, _ in data.items():
+           keys.append(key)
+        data_list.append(keys)
+        f.close()
+
+    for i in range(len(data_list[0])):
+        key = data_list[0][i]
+        for j in range(len(data_list) - 1):
+            key_j = data_list[j + 1][i]
+            if key != key_j:
+                print("op: rand0: " + str(key) + "  rank" + str(j + 1) + ": " + str(key_j))
+                return False
+    return True
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     arg_parser(parser)
     cfg = parser.parse_args()
-    print(cfg)
-    forward_content = api_json_read(cfg.json_path)
+    
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
+     
+    if cfg.test_class:
+        dist.init_parallel_env()
+        local_rank = dist.get_rank()
+        strategy = fleet.DistributedStrategy()
+        strategy.hybrid_configs = {
+            "dp_degree": cfg.dp_degree, 
+            "mp_degree": cfg.mp_degree,
+            "pp_degree": cfg.pp_degree,
+            "sharding_degree": cfg.sharding_degree}
+        fleet.init(is_collective=True, strategy=strategy)
+        paddle.set_default_dtype(cfg.class_type)
+
+        json_path_list = cfg.json_path.split(' ')
+        data_path_list = cfg.real_data.split(' ')
+    
+        if not check_json(json_path_list):
+            raise Exception("Check json faile!!!")
+        else:
+            cfg.json_path = json_path_list[local_rank]
+            cfg.real_data = data_path_list[local_rank]
+            cfg.backend = cfg.backend + ":" + str(local_rank)
+            print(cfg)
+
+            out_path = out_path + "/rank_" + str(local_rank) + "/"
+            if not os.path.exists(out_path):
+                os.makedirs(out_path, exist_ok=True)
+            cfg.out_path = out_path
+
+    forward_content = api_json_read(cfg.json_path)   
     ut_case_parsing(forward_content, cfg)
     print_info_log("UT save completed")
     warning_log_pth = os.path.join(out_path, "./warning_log.txt")

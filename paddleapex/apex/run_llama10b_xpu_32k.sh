@@ -1,6 +1,6 @@
 #!/bin/bash
 task_name_or_path="llama-10b"
-export XPUAPI_DEBUG=0x1
+#export XPUAPI_DEBUG=0x1
 #export XPURT_DISPATCH_MODE=PROFILING
 export XPU_FORCE_USERMODE_LAUNCH=1
 export PYTHONPATH=$PYTHONPATH:/zhouxiangquan/PaddleAPEX:/zhouxiangquan/PaddleNLP
@@ -63,11 +63,33 @@ export XPU_AUTO_BF16_TF32_RADIO=1
 export XPU_AUTO_BF16_TF32=1  # 开启TF32/BF16自动切换
 export XPU_AUTO_BF16_TF32_DEBUG=1   # 开启日志打印
 
+python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" acc_direct_cmp_zxq.py --bench /ssd3/zhouxiangquan/llama10b/GPU/ --device /ssd3/zhouxiangquan/llama10b/result/rank_0/ -o /ssd3/zhouxiangquan/llama10b/
+python lot_t.py
 
-python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_distributed.py \
-           -json \
-           "/zhouxiangquan/llama10b/dump_info/rank0_step5/forward_rank0_all.json /zhouxiangquan/llama10b/dump_info/rank1_step5/forward_rank1_all.json /zhouxiangquan/llama10b/dump_info/rank2_step5/forward_rank2_all.json /zhouxiangquan/llama10b/dump_info/rank3_step5/forward_rank3_all.json /zhouxiangquan/llama10b/dump_info/rank4_step5/forward_rank4_all.json /zhouxiangquan/llama10b/dump_info/rank5_step5/forward_rank5_all.json /zhouxiangquan/llama10b/dump_info/rank6_step5/forward_rank6_all.json /zhouxiangquan/llama10b/dump_info/rank7_step5/forward_rank7_all.json" \
-           -backend xpu \
-           -real \
-           "/zhouxiangquan/llama10b/dump_info/rank0_step0/ /zhouxiangquan/llama10b/dump_info/rank1_step0/ /zhouxiangquan/llama10b/dump_info/rank2_step0/ /zhouxiangquan/llama10b/dump_info/rank3_step0/ /zhouxiangquan/llama10b/dump_info/rank4_step0/ /zhouxiangquan/llama10b/dump_info/rank5_step0/ /zhouxiangquan/llama10b/dump_info/rank6_step0/ /zhouxiangquan/llama10b/dump_info/rank7_step0/" \
-           -out /zhouxiangquan/llama10b/result_32k/ -mode acc
+#python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_class.py \
+#           -json \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step1/class.json /zhouxiangquan/llama10b/dump_info/rank1_step1/class.json /zhouxiangquan/llama10b/dump_info/rank2_step1/class.json /zhouxiangquan/llama10b/dump_info/rank3_step1/class.json /zhouxiangquan/llama10b/dump_info/rank4_step1/class.json /zhouxiangquan/llama10b/dump_info/rank5_step1/class.json /zhouxiangquan/llama10b/dump_info/rank6_step1/class.json /zhouxiangquan/llama10b/dump_info/rank7_step1/class.json" \
+#           -backend xpu \
+#           -real \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step0/ /zhouxiangquan/llama10b/dump_info/rank1_step0/ /zhouxiangquan/llama10b/dump_info/rank2_step0/ /zhouxiangquan/llama10b/dump_info/rank3_step0/ /zhouxiangquan/llama10b/dump_info/rank4_step0/ /zhouxiangquan/llama10b/dump_info/rank5_step0/ /zhouxiangquan/llama10b/dump_info/rank6_step0/ /zhouxiangquan/llama10b/dump_info/rank7_step0/" \
+#           -out /zhouxiangquan/llama10b/result/ -mode acc
+#
+#
+#python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_distributed.py \
+#           -json \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank1_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank2_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank3_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank4_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank5_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank6_step1/distributed.json /zhouxiangquan/llama10b/dump_info/rank7_step1/distributed.json" \
+#           -backend xpu \
+#           -real \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step0/ /zhouxiangquan/llama10b/dump_info/rank1_step0/ /zhouxiangquan/llama10b/dump_info/rank2_step0/ /zhouxiangquan/llama10b/dump_info/rank3_step0/ /zhouxiangquan/llama10b/dump_info/rank4_step0/ /zhouxiangquan/llama10b/dump_info/rank5_step0/ /zhouxiangquan/llama10b/dump_info/rank6_step0/ /zhouxiangquan/llama10b/dump_info/rank7_step0/" \
+#           -out /zhouxiangquan/llama10b/result/ -mode acc
+#
+
+#python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_without_distributed.py \
+#           -json \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step1/common.json" \
+#           -backend xpu \
+#           -real \
+#           "/zhouxiangquan/llama10b/dump_info/rank0_step0/" \
+#           -out /zhouxiangquan/llama10b/result/rank_0/ -mode acc
+
+

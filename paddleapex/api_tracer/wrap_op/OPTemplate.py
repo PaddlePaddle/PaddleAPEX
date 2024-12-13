@@ -63,7 +63,6 @@ def hijack_call(self, *args, **kwargs):
     cls = self.__class__
     init_params = get_init_params(self)
     # print("init_params", init_params)
-
     # print("hijack_call", self.__class__.__name__)
     cfg.prefix_op_name_ = self.prefix_op_name_ + "*"
     if self.__class__.__name__ not in cfg.Op_count:
@@ -79,6 +78,7 @@ def hijack_call(self, *args, **kwargs):
         api_recorder.update_real_data(args, kwargs)
         save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
         output = self.forward(*args, **kwargs)
+        # api_recorder.update_output(output)
         # print("api_info_struct !!!!!!", api_recorder.api_info_struct)
         # print(output)
         try:
@@ -124,6 +124,7 @@ class OPTemplate:
             api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
             api_recorder.update_real_data(args, kwargs)
             output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
+            # api_recorder.update_output(output)
             try:
                 if isinstance(output, paddle.Tensor):
                     if not output.stop_gradient:
