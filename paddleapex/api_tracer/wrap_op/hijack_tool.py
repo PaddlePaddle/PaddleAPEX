@@ -43,7 +43,6 @@ def hijack_api():
             print(op_name, str(err))
     
     for class_in in target_class:
-        # print("begin class --------------------------------", class_in)
         parent_package, class_n = class_in.rsplit(".", maxsplit=1)
         try:
             class_name, model = try_import(parent_package)

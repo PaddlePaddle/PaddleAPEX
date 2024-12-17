@@ -55,15 +55,12 @@ def save_init_params_and_weight(init_params, state_dict, name, rank):
     file_path = os.path.join(directory, f"{name}.init_params")
     with open(file_path, 'wb') as f:
         pickle.dump(init_params, f)
-    # paddle.save(init_params, file_path)
     paddle.save(state_dict, os.path.join(directory, f"{name}.state_dict"))
 
 
 def hijack_call(self, *args, **kwargs):
     cls = self.__class__
     init_params = get_init_params(self)
-    # print("init_params", init_params)
-    # print("hijack_call", self.__class__.__name__)
     cfg.prefix_op_name_ = self.prefix_op_name_ + "*"
     if self.__class__.__name__ not in cfg.Op_count:
         cfg.Op_count[self.__class__.__name__] = 1
@@ -78,9 +75,6 @@ def hijack_call(self, *args, **kwargs):
         api_recorder.update_real_data(args, kwargs)
         save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
         output = self.forward(*args, **kwargs)
-        # api_recorder.update_output(output)
-        # print("api_info_struct !!!!!!", api_recorder.api_info_struct)
-        # print(output)
         try:
             if isinstance(output, paddle.Tensor):
                 if not output.stop_gradient:
@@ -124,7 +118,6 @@ class OPTemplate:
             api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
             api_recorder.update_real_data(args, kwargs)
             output = getattr(HookOp, "wrap_" + str(self.op_name_))(*args, **kwargs)
-            # api_recorder.update_output(output)
             try:
                 if isinstance(output, paddle.Tensor):
                     if not output.stop_gradient:

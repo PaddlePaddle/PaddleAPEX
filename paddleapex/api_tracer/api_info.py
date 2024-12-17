@@ -191,36 +191,35 @@ class API:
             arg.name = "APEX_" + self.op_name + "_" + str(self.arg_index)
         single_arg.update({"name": arg.name})
         self.arg_index = self.arg_index + 1
-        try:
-            with paddle.no_grad():
-                max_ = paddle.max(arg).item()
-                min_ = paddle.min(arg).item()
-        except:
-            max_ = 1
-            min_ = 0
-        if cfg.dump_unique and arg.dtype.name != "BOOL":
-            ori_max_ = max_
-            ori_min_ = min_
-            if math.isinf(ori_max_) or math.isnan(ori_max_):
-                msg = f"warning, for max_result, where is a inf or nan, need to notice"
-                print(msg)
-            if math.isinf(ori_min_) or math.isnan(ori_min_):
-                msg = f"warning, for min_result, where is a inf or nan, need to notice"
-                print(msg)
-            max_ = get_rounded_num(ori_max_, True)
-            min_ = get_rounded_num(ori_min_, False) if ori_min_ != ori_max_ else max_
-        single_arg.update({"Max": max_})
-        single_arg.update({"Max_origin": max_})
-        single_arg.update({"Min": min_})
-        single_arg.update({"Min_origin": min_})
         single_arg.update({"stop_gradient": arg.stop_gradient})
-        # if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
         if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)
-            # if not exit_tensor: 
             pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
             self.args_num += 1
             single_arg.update({"real_data_path": pt_path})
+        else:
+            try:
+                with paddle.no_grad():
+                    max_ = paddle.max(arg).item()
+                    min_ = paddle.min(arg).item()
+            except:
+                max_ = 1
+                min_ = 0
+            if cfg.dump_unique and arg.dtype.name != "BOOL":
+                ori_max_ = max_
+                ori_min_ = min_
+                if math.isinf(ori_max_) or math.isnan(ori_max_):
+                    msg = f"warning, for max_result, where is a inf or nan, need to notice"
+                    print(msg)
+                if math.isinf(ori_min_) or math.isnan(ori_min_):
+                    msg = f"warning, for min_result, where is a inf or nan, need to notice"
+                    print(msg)
+                max_ = get_rounded_num(ori_max_, True)
+                min_ = get_rounded_num(ori_min_, False) if ori_min_ != ori_max_ else max_
+            single_arg.update({"Max": max_})
+            single_arg.update({"Max_origin": max_})
+            single_arg.update({"Min": min_})
+            single_arg.update({"Min_origin": min_})
         return single_arg
 
     def _analyze_tensor(self, arg):
@@ -228,6 +227,13 @@ class API:
         single_arg.update({"type": "paddle.Tensor"})
         single_arg.update({"dtype": str(arg.dtype.name)})
         single_arg.update({"shape": arg.shape})
+        single_arg.update({"stop_gradient": arg.stop_gradient})
+        if self.mode == "real_data":
+            api_args = self.op_name + "." + str(self.args_num)
+            pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
+            self.args_num += 1
+            single_arg.update({"real_data_path": pt_path})
+            return single_arg
         if arg.dtype.name == "BF16":
             arg = paddle.cast(arg, "float32")
         max_handle, max_origin, min_handle, min_origin = get_tensor_extremum(arg)
@@ -239,14 +245,6 @@ class API:
         single_arg.update(
             {"Min_origin": transfer_types(min_origin, str(arg.dtype.name))}
         )
-        single_arg.update({"stop_gradient": arg.stop_gradient})
-
-        # if self.mode == "real_data" and (dist.get_rank() == 0 or self.is_distributed):
-        if self.mode == "real_data":
-            api_args = self.op_name + "." + str(self.args_num)
-            pt_path = dump_util.dump_real_data(api_args, arg.detach().cpu(), self.rank)
-            self.args_num += 1
-            single_arg.update({"real_data_path": pt_path})
         return single_arg
 
     def _analyze_builtin(self, arg):

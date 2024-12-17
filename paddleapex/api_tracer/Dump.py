@@ -101,7 +101,6 @@ class Dump:
             create_directory(remote_repo)
             self.pool.safe_parellel_save(tensor, file_path, remote_repo)
         else:
-            # print("sss----save----")
             save_tensor(tensor, file_path)
         return f"{api_args}.pt"
 
