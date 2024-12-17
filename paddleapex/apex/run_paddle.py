@@ -71,7 +71,9 @@ tqdm_params = {
     "dynamic_ncols": True,  # 动态调整进度条宽度以适应控制台
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
-PROFILE_RUN_TIMES = 1
+
+PROFILE_WARM_TIMES = 10
+PROFILE_RUN_TIMES  = 10
 
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -452,59 +454,91 @@ def run_profile_case(
         out_path = os.path.realpath(out_path) if out_path else "./"
         save_pth = os.path.join(out_path, "input_data", api_call_name)
         paddle.save(x, save_pth)
-    # device warmming up
-    try:
-        device_out = run_forward(api_call_name, device_args, device_kwargs)
-        if api_info_dict["dout_list"][0] != "Failed":
-            dout = create_dout(
-                api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
-            )
-            paddle.autograd.backward([device_out], dout)
-        else:
-            need_backward = False
-    except Exception as err:
-        msg = "Failed in device warming up: %s" % str(err)
-        print_warn_log(msg)
-        return
+
+    if api_info_dict["dout_list"][0] == "Failed":
+        need_backward = False
     input_shape1 = get_shape(device_args)
     input_shape2 = get_shape(device_kwargs)
     input_shape_lst = merge_two_lists(input_shape1, input_shape2)
-    output_shape_lst = get_shape(device_out)
+    output_shape_lst = []
+    model = None
     def profile_inner_loop_():
         try:
+            if api_call_stack in target_class:
+                if real_data_path == None:
+                    msg = (f"Running {api_call_name} acc Failed! Don't support run class without real_data_path!")
+                    print_warn_log(msg)
+                    Warning_list.append(msg)
+                    return -1, -1, output_shape_lst
+                else:
+                    try:
+                        model = create_model(api_call_name, real_data_path)
             paddle.device.synchronize()
-            fwd_start_time = time.time()
-            for _ in range(PROFILE_RUN_TIMES):
-                device_out = run_forward(api_call_name, device_args, device_kwargs)
-            paddle.device.synchronize()
-            fwd_end_time = time.time()
+            fwd_start_time = 0
+            fwd_end_time = 0
+            if model is not None:
+                for _ in range(PROFILE_WARM_TIMES):
+                    device_out = model(*device_args, **device_kwargs)
+                output_shape_lst = get_shape(device_out)
+                paddle.device.synchronize()
+                fwd_start_time = time.time()
+                for _ in range(PROFILE_RUN_TIMES):
+                    device_out = model(*device_args, **device_kwargs)
+                paddle.device.synchronize()
+                fwd_end_time = time.time()
+            else:
+                for _ in range(PROFILE_WARM_TIMES):
+                    device_out = run_forward(api_call_name, device_args, device_kwargs)
+                output_shape_lst = get_shape(device_out)
+                paddle.device.synchronize()
+                fwd_start_time = time.time()
+                for _ in range(PROFILE_RUN_TIMES):
+                    device_out = run_forward(api_call_name, device_args, device_kwargs)
+                paddle.device.synchronize()
+                fwd_end_time = time.time()
             fwd_time = fwd_end_time - fwd_start_time
             fwd_time = fwd_time * 1000000 / float(PROFILE_RUN_TIMES) # fwd_time is in us
         except Exception as err:
             msg = "Run_forward Error: %s" % str(err)
             print_warn_log(msg)
-            return -1, -1
+            return -1, -1, output_shape_lst
         try:
             if not need_backward:
-                return fwd_time, -1
+                return fwd_time, -1, output_shape_lst
+            bwd_start_time = 0
+            bwd_end_time = 0
+            dout = create_dout(api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path)
+            device_out_list = []
             paddle.device.synchronize()
-            bwd_start_time = time.time()
-            for _ in range(PROFILE_RUN_TIMES):
-                device_out = run_forward(api_call_name, device_args, device_kwargs)
-                paddle.autograd.backward([device_out], dout)
-            paddle.device.synchronize()
-            bwd_end_time = time.time()
+            if model is not None:
+                for _ in range(PROFILE_RUN_TIMES):
+                    device_out_list.append(model(*device_args, **device_kwargs))
+                paddle.device.synchronize()
+                bwd_start_time = time.time()
+                for i in range(PROFILE_RUN_TIMES):
+                    paddle.autograd.backward([device_out_list[i]], dout)
+                paddle.device.synchronize()
+                bwd_end_time = time.time()
+            else:
+                for _ in range(PROFILE_RUN_TIMES):
+                    device_out_list.append(run_forward(api_call_name, device_args, device_kwargs))
+                paddle.device.synchronize()
+                bwd_start_time = time.time()
+                for _ in range(PROFILE_RUN_TIMES):
+                    paddle.autograd.backward([device_out_list[i]], dout)
+                paddle.device.synchronize()
+                bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
             bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
             bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
-            return fwd_time, -1
-        return fwd_time, bwd_time
+            return fwd_time, -1, output_shape_lst
+        return fwd_time, bwd_time, output_shape_lst
 
     try:
-        fwd_time, bwd_time = profile_inner_loop_()
+        fwd_time, bwd_time, output_shape_lst = profile_inner_loop_()
     except Exception as err:
         msg = f"Run {api_call_name} profile Error: %s" % str(err)
         print_warn_log(msg)
@@ -736,17 +770,18 @@ if __name__ == "__main__":
     if os.path.exists(out_path):
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
      
-    if cfg.test_class:
+    if cfg.distributed_op:
         dist.init_parallel_env()
         local_rank = dist.get_rank()
-        strategy = fleet.DistributedStrategy()
-        strategy.hybrid_configs = {
-            "dp_degree": cfg.dp_degree, 
-            "mp_degree": cfg.mp_degree,
-            "pp_degree": cfg.pp_degree,
-            "sharding_degree": cfg.sharding_degree}
-        fleet.init(is_collective=True, strategy=strategy)
-        paddle.set_default_dtype(cfg.class_type)
+        if cfg.test_class:
+            strategy = fleet.DistributedStrategy()
+            strategy.hybrid_configs = {
+                "dp_degree": cfg.dp_degree, 
+                "mp_degree": cfg.mp_degree,
+                "pp_degree": cfg.pp_degree,
+                "sharding_degree": cfg.sharding_degree}
+            fleet.init(is_collective=True, strategy=strategy)
+            paddle.set_default_dtype(cfg.class_type)
 
         json_path_list = cfg.json_path.split(' ')
         data_path_list = cfg.real_data.split(' ')

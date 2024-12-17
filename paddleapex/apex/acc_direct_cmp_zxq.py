@@ -163,37 +163,25 @@ def compare_device_bench(
                     print(msg)
             
             error_i = []
-            print(api_file + " forward -------------")
+            msg = f"{api_file} forward -------------"
+            Warning_list.append(msg)
+            print(msg)
             compare_result(bench_out_tensor, device_out_tensor, error_i, api_file + " forward")
             errors_forward_info = errors_forward_info + error_i
-            # for e in error_i:
-            #     errors.append(float(e.split(" ")[0]))
-            #     errors_info.append(api_file + " forward " + e)
             
-            print(api_file + " backward -------------")
             error_i = []
+            msg = f"{api_file} backward -------------"
+            Warning_list.append(msg)
+            print(msg)
             compare_result(bench_grad_tensor_list, device_grad_tensor_list, error_i, api_file + " backward")
             errors_bacward_info = errors_bacward_info + error_i
-            
-            # for e in error_i:
-            #     errors.append(float(e.split(" ")[0]))
-            #     errors_info.append(api_file + " backward " + e)
-            #compare.compare_output(
-            #    api_file,
-            #    bench_out_tensor,
-            #    device_out_tensor,
-            #    bench_grad_tensor_list,
-            #    device_grad_tensor_list,
-            #    bench_BF16_flag,
-            #    device_BF16_flag,  # BF16 convert flag
-            #)
         except Exception as err:
             print(err)
     errors_bacward_info.sort(key=lambda x: x[1])
     errors_forward_info.sort(key=lambda x: x[1])
-    df = pd.DataFrame(errors_bacward_info, columns=["operator_name", "error", "bench_info", "device_info"])
+    df = pd.DataFrame(errors_bacward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_value", "diff_index"])
     df.to_csv("log/rank" + str(dist.get_rank()) + "_backward_output.csv", index=False)
-    df = pd.DataFrame(errors_forward_info, columns=["operator_name", "error", "bench_info", "device_info"])
+    df = pd.DataFrame(errors_forward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_value", "diff_index"])
     df.to_csv("log/rank" + str(dist.get_rank()) + "_forward_output.csv", index=False)
     
     warning_log_pth = os.path.join(out_path, "./compare_warning.txt")
@@ -212,10 +200,6 @@ def normalize_t(tensor0, tensor1):
     if min_val == max_val:
         return paddle.ones_like(tensor0), paddle.ones_like(tensor1)
     return (tensor0 - min_val) / (max_val - min_val), (tensor1 - min_val) / (max_val - min_val)
-    # normalized_tensor_0_1 = (tensor0 - min_val) / (max_val - min_val)
-    # return normalized_tensor_0_1
-    # normalized_tensor_neg1_1 = normalized_tensor_0_1 * 2 - 1
-    # return normalized_tensor_neg1_1
 
 def compare_result(bench_output, device_output, errors, name):
     if isinstance(bench_output, (list, tuple)):
@@ -228,7 +212,6 @@ def compare_result(bench_output, device_output, errors, name):
         # bench_output = paddle.cast(bench_output, "float")
         # device_output = paddle.cast(device_output, "float")
         diff = paddle.cast((bench_output - device_output).abs(), "float")
-        # abs_diff = ((bench_output - device_output) / bench_output).abs()
         num = len(diff)
         diff005 = (diff < 0.05).sum() / num
         diff001 = (diff < 0.01).sum() / num
@@ -240,8 +223,9 @@ def compare_result(bench_output, device_output, errors, name):
             error_info = diff0001.numpy()
             bench_n = paddle.cast(bench_output_o[diff_index], "float").numpy().tolist()
             device_n = paddle.cast(device_output_o[diff_index], "float").numpy().tolist()
-            # error_info = error_info + " bench_value: " + str(bench_n) + " device_value: " + str(device_n)
-            errors.append((name, error_info, str(bench_n), str(device_n)))
+            diff_index_n = diff_index.numpy().tolist()
+            diff_value_n = diff_value.numpy().tolist()
+            errors.append((name, error_info, str(bench_n), str(device_n), str(diff_value_n), str(diff_index_n)))
             print("diff is too large---------------------------- erorr Erorr ERORR----------------------------")
             print("bench_output----------")
             print(bench_output_o[diff_index])
@@ -252,17 +236,6 @@ def compare_result(bench_output, device_output, errors, name):
         print("diff < 0.005:  ", diff0005.numpy())
         print("diff < 0.001:  ", diff0001.numpy())
         print("diff < 0.0005: ", diff00005.numpy())
-
-        # diff005  = (abs_diff < 0.05).sum() / num
-        # diff001  = (abs_diff < 0.01).sum() / num
-        # diff0005 = (abs_diff < 0.005).sum() / num
-        # diff0001 = (abs_diff < 0.001).sum() / num
-        # print("abs_diff < 0.05: ", diff005.numpy())
-        # print("abs_diff < 0.01: ", diff001.numpy())
-        # print("abs_diff < 0.005: ", diff0005.numpy())
-        # print("abs_diff < 0.001: ", diff0001.numpy())
-
-
 
 
 if __name__ == "__main__":
