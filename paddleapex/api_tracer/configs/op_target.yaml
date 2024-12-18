@@ -1,5 +1,4 @@
-ignored_op:
-#target_class:
+target_class:
   -  paddlenlp.transformers.llama.modeling.LlamaMLP
   -  paddlenlp.transformers.llama.modeling.LlamaLMHead
   -  paddlenlp.transformers.llama.modeling.LlamaRMSNorm
@@ -20,7 +19,6 @@ ignored_op:
   -  paddlenlp.transformers.llama.modeling.LlamaPretrainingCriterion
   -  paddlenlp.transformers.llama.modeling.ConcatMaskedLoss
   -  paddlenlp.transformers.llama.modeling.LlamaForCausalLM
-target_class:
   -  paddlenlp.transformers.llama.modeling.MoEAuxLossAutoScaler
 ignored_op:
   -  paddle._C_ops.max

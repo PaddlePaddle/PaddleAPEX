@@ -116,7 +116,6 @@ def compare_device_bench(
     api_pt_files_all = list(set(api_pt_files_bench + api_pt_files_device))
     api_pt_files_all = sorted(api_pt_files_all)
     
-    # f = open(out_path + "compare_result.txt", 'a', encoding='utf-8')
     errors = []
     errors_forward_info = []
     errors_bacward_info = []

@@ -444,6 +444,7 @@ def run_acc_case(
 def run_profile_case(
     api_call_name, api_info_dict, backend, out_path, enforce_dtype=None, debug_case=[], real_data_path=None
 ):
+    api_call_stack = api_call_name.rsplit("*")[0]
     print(f"Running {api_call_name} profile test!")
     api_info_dict_copy = copy.deepcopy(api_info_dict)
     device_args, device_kwargs, need_backward = create_input_args(
@@ -461,8 +462,8 @@ def run_profile_case(
     input_shape2 = get_shape(device_kwargs)
     input_shape_lst = merge_two_lists(input_shape1, input_shape2)
     output_shape_lst = []
-    model = None
     def profile_inner_loop_():
+        is_model = False 
         try:
             if api_call_stack in target_class:
                 if real_data_path == None:
@@ -471,12 +472,12 @@ def run_profile_case(
                     Warning_list.append(msg)
                     return -1, -1, output_shape_lst
                 else:
-                    try:
-                        model = create_model(api_call_name, real_data_path)
+                    model = create_model(api_call_name, real_data_path)
+                    is_model = True
             paddle.device.synchronize()
             fwd_start_time = 0
             fwd_end_time = 0
-            if model is not None:
+            if is_model:
                 for _ in range(PROFILE_WARM_TIMES):
                     device_out = model(*device_args, **device_kwargs)
                 output_shape_lst = get_shape(device_out)
@@ -510,7 +511,7 @@ def run_profile_case(
             dout = create_dout(api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path)
             device_out_list = []
             paddle.device.synchronize()
-            if model is not None:
+            if is_model:
                 for _ in range(PROFILE_RUN_TIMES):
                     device_out_list.append(model(*device_args, **device_kwargs))
                 paddle.device.synchronize()
@@ -524,13 +525,13 @@ def run_profile_case(
                     device_out_list.append(run_forward(api_call_name, device_args, device_kwargs))
                 paddle.device.synchronize()
                 bwd_start_time = time.time()
-                for _ in range(PROFILE_RUN_TIMES):
+                for i in range(PROFILE_RUN_TIMES):
                     paddle.autograd.backward([device_out_list[i]], dout)
                 paddle.device.synchronize()
                 bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
             bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
-            bwd_time = bwd_time - fwd_time
+            # bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)
@@ -781,7 +782,7 @@ if __name__ == "__main__":
                 "pp_degree": cfg.pp_degree,
                 "sharding_degree": cfg.sharding_degree}
             fleet.init(is_collective=True, strategy=strategy)
-            paddle.set_default_dtype(cfg.class_type)
+            paddle.set_default_dtype(cfg.class_default_type)
 
         json_path_list = cfg.json_path.split(' ')
         data_path_list = cfg.real_data.split(' ')

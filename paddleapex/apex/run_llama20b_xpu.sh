@@ -46,13 +46,15 @@ export LOGITS_PRINT_INTERVAL=1
 #python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" acc_direct_cmp_zxq.py --bench /ssd3/zhouxiangquan/llama20b/GPU/ --device /ssd3/zhouxiangquan/llama20b/result/rank_0/ -o /ssd3/zhouxiangquan/llama20b/
 #python lot_t.py
 
+#python run_paddle.py -json /ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/test.json -backend xpu -real /ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/ -out /ssd3/zhouxiangquan/llama20b/result/ -mode acc
+
 python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_paddle.py \
            -json \
            "/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/forward_rank0_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/forward_rank1_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/forward_rank2_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/forward_rank3_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/forward_rank4_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/forward_rank5_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/forward_rank6_all.json /ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/forward_rank7_all.json" \
            -backend xpu \
            -real \
            "/ssd3/zhouxiangquan/llama20b/dump_info/rank0_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank1_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank2_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank3_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank4_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank5_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank6_step0/ /ssd3/zhouxiangquan/llama20b/dump_info/rank7_step0/" \
-           -out /ssd3/zhouxiangquan/llama20b/result/ -mode acc
+           -out /ssd3/zhouxiangquan/llama20b/result/ -mode pro -class 1 -dist 1
 
 #
 #python -u  -m paddle.distributed.launch  --xpus "0,1,2,3,4,5,6,7" run_distributed.py \

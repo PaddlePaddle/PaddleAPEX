@@ -33,14 +33,11 @@ def hijack_init(self, *args, **kwargs):
     self.__init__(*args, **kwargs)
 
 
-# 获取初始化参数的方法
 def get_init_params(instance):
     sig = signature(instance.__init__)
-    # 获取参数名称及默认值
     bound_args = sig.bind_partial()
     bound_args.apply_defaults()
     
-    # 提取参数值
     init_params = {}
     for param in sig.parameters.values():
         if param.name != 'self':
