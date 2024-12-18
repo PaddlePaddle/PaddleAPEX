@@ -11,7 +11,6 @@ Async_dump: False
 
 # mode must be chosen from ["real_data", "random"]
 dump_mode: "real_data"
-# dump_mode: "random"
 
 # acclerate dump process by getting extremum value on device side.
 # In profile_mode, the speed of dump is 75% of vanilla speed.
@@ -21,7 +20,6 @@ profile_mode: True
 target_step: [0]
 
 # Remove duplicate apis from dump_info and keep only one api in the same value range.
-# dump_unique: True
 dump_unique: False
 
 # Split dump_info into half-precision operators and other operators when saving json files

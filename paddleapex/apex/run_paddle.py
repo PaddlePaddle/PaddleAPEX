@@ -360,7 +360,6 @@ def create_model(api_call_name, real_data_path):
 
 def run_model_forward(model, device_args, device_kwargs):
     try:
-        # paddle.distributed.barrier()
         device_out = model(*device_args, **device_kwargs)
         paddle.device.synchronize()
         return device_out
@@ -531,7 +530,6 @@ def run_profile_case(
                 bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
             bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
-            # bwd_time = bwd_time - fwd_time
         except Exception as err:
             msg = "Run_backward Error: %s" % str(err)
             print_warn_log(msg)

@@ -20,6 +20,12 @@ target_class:
   -  paddlenlp.transformers.llama.modeling.ConcatMaskedLoss
   -  paddlenlp.transformers.llama.modeling.LlamaForCausalLM
   -  paddlenlp.transformers.llama.modeling.MoEAuxLossAutoScaler
+#fusion_ops:
+  # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
+  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
+  # -  paddlenlp.transformers.llama.fusion_ops.swiglu
 ignored_op:
   -  paddle._C_ops.max
   -  paddle._C_ops.min
@@ -43,7 +49,6 @@ ignored_op:
   -  paddle.zeros
   -  paddle.zeros_like
 distributed_op:
-  # distributed
   -  paddle.distributed.barrier
   -  paddle.distributed.broadcast_object_list
   -  paddle.distributed.communication.stream.alltoall_single
@@ -69,10 +74,8 @@ distributed_op:
   -  paddle.distributed.fleet.layers.mpu.mp_ops.
 target_op:
   -  paddle._C_ops.min
-#ignored_op:
   -  paddle._C_ops.min
   -  paddle._C_ops.max
-#target_op:
   -  paddle.empty
   -  paddle.empty_like
   -  paddle.reshape
@@ -92,7 +95,6 @@ target_op:
   -  paddle.stack
   -  paddle.zeros
   -  paddle.zeros_like
-# self-confidence, arrogance
   -  paddle.Tensor.__add__
   -  paddle.multiply
   -  paddle.multiply_
@@ -102,7 +104,6 @@ target_op:
   -  paddle._C_ops.adamw
   -  paddle._C_ops.adamw_
   -  paddle._C_ops.layer_norm
-#target_op:
   -  paddle.nn.functional.scaled_dot_product_attention
   -  paddle._C_ops.layer_norm #noqa
   -  paddle.nn.functional.adaptive_avg_pool1d
@@ -923,10 +924,6 @@ target_op:
   -  paddle.Tensor.vsplit
   -  paddle.Tensor.where
   -  paddle.Tensor.where_
-  #### experiment op:
-  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_identity
-  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_lookup_table
-  # -  paddle.distributed.fleet.layers.mpu.mp_ops._c_softmax_with_cross_entropy
   -  paddle._C_ops.fused_gemm_epilogue
   -  paddle.optimizer.Adam
   -  paddle.optimizer.AdamW
@@ -954,10 +951,4 @@ target_op:
   -  paddle.uniform
   -  paddle._C_ops.gaussian
   -  paddle._legacy_C_ops.c_identity
-  # -  paddle.distributed.fleet.layers.mpu.mp_ops.
-  # -  paddlenlp.transformers.llama.fusion_ops.fused_rotary_position_embedding
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_flash_attention
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rms_norm
-  # -  paddlenlp.transformers.llama.fusion_ops.fusion_rope
-  # -  paddlenlp.transformers.llama.fusion_ops.swiglu
 
