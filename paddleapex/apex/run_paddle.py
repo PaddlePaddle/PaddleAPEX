@@ -75,6 +75,12 @@ tqdm_params = {
 PROFILE_WARM_TIMES = 10
 PROFILE_RUN_TIMES  = 10
 
+#strategy = fleet.DistributedStrategy()
+#strategy.hybrid_configs = {
+#    "dp_degree": 1, "mp_degree": 8, "pp_degree": 1,"sharding_degree": 1,}
+#fleet.init(is_collective=True, strategy=strategy)
+#paddle.set_default_dtype("bfloat16")
+
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
         for item in arg_in:
@@ -770,8 +776,6 @@ if __name__ == "__main__":
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
      
     if cfg.distributed_op:
-        dist.init_parallel_env()
-        local_rank = dist.get_rank()
         if cfg.test_class:
             strategy = fleet.DistributedStrategy()
             strategy.hybrid_configs = {
@@ -781,6 +785,13 @@ if __name__ == "__main__":
                 "sharding_degree": cfg.sharding_degree}
             fleet.init(is_collective=True, strategy=strategy)
             paddle.set_default_dtype(cfg.class_default_type)
+            
+            hcg = fleet.get_hybrid_communicate_group()
+            model_parallel_group = hcg.get_model_parallel_group()
+            paddle.distributed.barrier(model_parallel_group)
+        
+        dist.init_parallel_env()
+        local_rank = dist.get_rank()
 
         json_path_list = cfg.json_path.split(' ')
         data_path_list = cfg.real_data.split(' ')
