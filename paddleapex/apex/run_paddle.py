@@ -319,10 +319,22 @@ def get_grad_tensor(args, kwargs):
     return device_grad_out
 
 
+def get_need_grad_out(args):
+    device_grad_out = []
+    if isinstance(args, paddle.Tensor):
+        device_grad_out.append(args)
+    if isinstance(args, (list, tuple)):
+        for x in args:
+            if isinstance(x, paddle.Tensor) and x.stop_gradient == False:
+                device_grad_out.append(x)
+    return device_grad_out
+
+
 def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=None):
     if need_backward:
         try:
-            paddle.autograd.backward([device_out], dout)
+            device_out = get_need_grad_out(device_out)
+            paddle.autograd.backward(device_out, dout)
             device_grad_out = get_grad_tensor(args, kwargs)
             device_grad_out = check_grad_list(device_grad_out)
             if device_grad_out is None:
