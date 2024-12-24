@@ -340,6 +340,7 @@ def get_need_grad_out(args):
     return device_grad_out
 
 
+<<<<<<< HEAD
 def print_tensor_name(args):
     if isinstance(args, paddle.Tensor):
         print(args.name)
@@ -378,8 +379,6 @@ def run_backward(dout_info_dict, api_call_name, device_out, dout, args, kwargs, 
     if need_backward:
         try:
             device_out = get_need_grad_out(device_out)
-            #print_tensor_name(device_out)
-            #print_tensor_name(dout)
             dout = reorder_dout(dout_info_dict, dout)
             paddle.autograd.backward(device_out, dout)
             device_grad_out = get_grad_tensor(args, kwargs)
