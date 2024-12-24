@@ -14,10 +14,9 @@
 import paddle.distributed as dist
 import paddle
 from .. import config
-from ..api_info import API
-from inspect import signature
+from ..api_info import API, get_init_params, save_init_params_and_weight
 import os
-import pickle
+from paddleapex.api_tracer.Dump import dump_util
 
 
 class HookOp:
@@ -33,26 +32,31 @@ def hijack_init(self, *args, **kwargs):
     self.__init__(*args, **kwargs)
 
 
-def get_init_params(instance):
-    sig = signature(instance.__init__)
-    bound_args = sig.bind_partial()
-    bound_args.apply_defaults()
-    
-    init_params = {}
-    for param in sig.parameters.values():
-        if param.name != 'self':
-            init_params[param.name] = getattr(instance, param.name, param.default)
-    
-    return init_params
+def create_hook_with_info(tensor, attr_index, api):
+    def grad_hook(grad):
+        if grad is not None:
+            single_arg = {}
+            single_arg.update({"type": "paddle.Tensor"})
+            single_arg.update({"dtype": str(grad.dtype.name)})
+            single_arg.update({"shape": grad.shape})
+            single_arg.update({"stop_gradient": grad.stop_gradient})
+            api_args = api.op_name + ".grad_" + str(attr_index)
+            pt_path = dump_util.dump_real_data(api_args, grad.detach().cpu(), api.rank)
+            single_arg.update({"real_data_path": pt_path})
+
+            api.dout_list.append(single_arg)
+            api.output_num -= 1
+            if api.output_num == 0:
+                api.api_info_struct[api.op_name].update({"dout_list": api.dout_list})
+    if api.mode == "real_data":
+        return grad_hook
+    else:
+        return api.record_dout
 
 
-def save_init_params_and_weight(init_params, state_dict, name, rank):
-    data_route = cfg.dump_root_path
-    directory = os.path.join(data_route, f"rank{rank}_step{cfg.global_step}")
-    file_path = os.path.join(directory, f"{name}.init_params")
-    with open(file_path, 'wb') as f:
-        pickle.dump(init_params, f)
-    paddle.save(state_dict, os.path.join(directory, f"{name}.state_dict"))
+def create_output_attr(tensor, num):
+    setattr(tensor, 'id_apex', num)
+    return 'id_apex', num
 
 
 def hijack_call(self, *args, **kwargs):
@@ -73,9 +77,11 @@ def hijack_call(self, *args, **kwargs):
         save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
         output = self.forward(*args, **kwargs)
         try:
+            out_num = 0
             if isinstance(output, paddle.Tensor):
                 if not output.stop_gradient:
-                    output.register_hook(api_recorder.record_dout)
+                    output.register_hook(create_hook_with_info(output, api_recorder.output_num, api_recorder))
+                    #output.register_hook(api_recorder.record_dout)
                     api_recorder.output_num = 1
                 else:
                     api_recorder.record_dout(None)
@@ -83,9 +89,9 @@ def hijack_call(self, *args, **kwargs):
                 need_record = False
                 for item in output:
                     if isinstance(item, paddle.Tensor) and not item.stop_gradient:
+                        item.register_hook(create_hook_with_info(item, api_recorder.output_num, api_recorder))
                         api_recorder.output_num += 1
                         need_record = True
-                        item.register_hook(api_recorder.record_dout)
                 if not need_record:
                     api_recorder.record_dout(None)
         except Exception as e:
@@ -118,7 +124,8 @@ class OPTemplate:
             try:
                 if isinstance(output, paddle.Tensor):
                     if not output.stop_gradient:
-                        output.register_hook(api_recorder.record_dout)
+                        #output.register_hook(api_recorder.record_dout)
+                        output.register_hook(create_hook_with_info(output, api_recorder.output_num, api_recorder))
                         api_recorder.output_num = 1
                     else:
                         api_recorder.record_dout(None)
@@ -126,9 +133,10 @@ class OPTemplate:
                     need_record = False
                     for item in output:
                         if isinstance(item, paddle.Tensor) and not item.stop_gradient:
-                            api_recorder.output_num += 1
                             need_record = True
-                            item.register_hook(api_recorder.record_dout)
+                            #item.register_hook(api_recorder.record_dout)
+                            item.register_hook(create_hook_with_info(item, api_recorder.output_num, api_recorder))
+                            api_recorder.output_num += 1
                     if not need_record:
                         api_recorder.record_dout(None)
             except Exception as e:

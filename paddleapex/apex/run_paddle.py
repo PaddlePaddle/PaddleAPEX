@@ -21,6 +21,7 @@ import time
 import copy
 import json
 import yaml
+import re
 from tqdm import tqdm
 import pickle
 import paddle
@@ -31,6 +32,7 @@ from paddle.base import core
 from utils import (
     print_info_log,
     gen_api_params,
+    create_model,
     api_json_read,
     check_grad_list,
     rand_like,
@@ -51,6 +53,14 @@ target_op = Ops.get("target_op")
 ignored_op = Ops.get("ignored_op")
 target_class = Ops.get("target_class")
 distributed_op = Ops.get("distributed_op")
+if target_op is None:
+    target_op = []
+if ignored_op is None:
+    ignored_op = []
+if target_class is None:
+    target_class = []
+if distributed_op is None:
+    distributed_op = []
 f.close()
 
 Warning_list = []
@@ -319,10 +329,59 @@ def get_grad_tensor(args, kwargs):
     return device_grad_out
 
 
-def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=None):
+def get_need_grad_out(args):
+    device_grad_out = []
+    if isinstance(args, paddle.Tensor):
+        device_grad_out.append(args)
+    if isinstance(args, (list, tuple)):
+        for x in args:
+            if isinstance(x, paddle.Tensor) and x.stop_gradient == False:
+                device_grad_out.append(x)
+    return device_grad_out
+
+
+def print_tensor_name(args):
+    if isinstance(args, paddle.Tensor):
+        print(args.name)
+    if isinstance(args, (list, tuple)):
+        for x in args:
+            print_tensor_name(x)
+
+
+def get_dout_sequence(dout_info_dict, order):
+    if isinstance(dout_info_dict, dict):
+        rel_data_path = dout_info_dict.get("real_data_path")
+        match = re.search(r'grad_(\d+)\.pt$', rel_data_path)
+        if match:
+            order.append(int(match.group(1)))
+        else:
+            print("match faile, check it!!!!!!")
+    elif isinstance(dout_info_dict, (list, tuple)):
+        for info in dout_info_dict:
+            get_dout_sequence(info, order)
+    else:
+        print("match faile, check it!!!!!!")
+
+
+def reorder_dout(dout_info_dict, dout):
+    if dout_info_dict[0] == "Failed":
+        return dout
+    order = []
+    get_dout_sequence(dout_info_dict, order)
+    ordered_out = [None] * len(dout)
+    for i in range(len(order)):
+        ordered_out[order[i]] = dout[i]
+    return ordered_out
+
+
+def run_backward(dout_info_dict, api_call_name, device_out, dout, args, kwargs, need_backward=None):
     if need_backward:
         try:
-            paddle.autograd.backward([device_out], dout)
+            device_out = get_need_grad_out(device_out)
+            #print_tensor_name(device_out)
+            #print_tensor_name(dout)
+            dout = reorder_dout(dout_info_dict, dout)
+            paddle.autograd.backward(device_out, dout)
             device_grad_out = get_grad_tensor(args, kwargs)
             device_grad_out = check_grad_list(device_grad_out)
             if device_grad_out is None:
@@ -338,29 +397,6 @@ def run_backward(api_call_name, device_out, dout, args, kwargs, need_backward=No
         msg = f"{api_call_name} has no tensor required grad, SKIP Backward"
         print_warn_log(msg)
         Warning_list.append(msg)
-        return None
-
-
-def load_params(filename):
-    with open(filename, 'rb') as f:
-        return pickle.load(f)
-
-
-def create_model(api_call_name, real_data_path):
-    api_call_stack = api_call_name.rsplit("*")[0]
-    init_path = real_data_path + api_call_name + ".init_params"
-    state_path = real_data_path + api_call_name + ".state_dict"
-    init_para = load_params(init_path)
-    parent_package, class_n = api_call_stack.rsplit(".", maxsplit=1)
-    try:
-        MODULE = import_module(parent_package)
-        class_model = getattr(MODULE, class_n)
-        model = class_model(**init_para)
-        model.set_state_dict(paddle.load(state_path))
-        return model
-    except Exception as err:
-        msg = "Create Model Error: %s" % str(err)
-        print_warn_log(msg)
         return None
 
 
@@ -399,10 +435,10 @@ def run_acc_case(
             return
         else:
             try:
-                model = create_model(api_call_name, real_data_path)
+                model = create_model(api_call_name.rsplit("*")[0], real_data_path + api_call_name)
                 device_out = run_model_forward(model, device_args, device_kwargs)
             except Exception as err:
-                msg = "Run_forward Error: %s" % str(err)
+                msg = "Run_class_forward Error: %s" % str(err)
                 print_warn_log(msg)
                 return
     else:
@@ -412,7 +448,7 @@ def run_acc_case(
                 print('this is distributed op: ', api_call_name)
                 device_out = device_args
         except Exception as err:
-            msg = "Run_forward Error: %s" % str(err)
+            msg = "Run_op_forward Error: %s" % str(err)
             print_warn_log(msg)
             return
     
@@ -423,7 +459,7 @@ def run_acc_case(
                 api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path
             )
             device_grad_out = run_backward(
-                api_call_name, device_out, dout, device_args, device_kwargs, need_backward
+                api_info_dict["dout_list"], api_call_name, device_out, dout, device_args, device_kwargs, need_backward
             )
         else:
             device_grad_out = None
@@ -477,7 +513,7 @@ def run_profile_case(
                     Warning_list.append(msg)
                     return -1, -1, output_shape_lst
                 else:
-                    model = create_model(api_call_name, real_data_path)
+                    model = create_model(api_call_name.rsplit("*")[0], real_data_path + api_call_name)
                     is_model = True
             paddle.device.synchronize()
             fwd_start_time = 0
@@ -514,26 +550,25 @@ def run_profile_case(
             bwd_start_time = 0
             bwd_end_time = 0
             dout = create_dout(api_info_dict["dout_list"], device_out, backend, enforce_dtype, real_data_path)
+            dout = reorder_dout(api_info_dict["dout_list"], dout)
             device_out_list = []
             paddle.device.synchronize()
-            if is_model:
-                for _ in range(PROFILE_RUN_TIMES):
-                    device_out_list.append(model(*device_args, **device_kwargs))
-                paddle.device.synchronize()
-                bwd_start_time = time.time()
-                for i in range(PROFILE_RUN_TIMES):
-                    paddle.autograd.backward([device_out_list[i]], dout)
-                paddle.device.synchronize()
-                bwd_end_time = time.time()
-            else:
-                for _ in range(PROFILE_RUN_TIMES):
-                    device_out_list.append(run_forward(api_call_name, device_args, device_kwargs))
-                paddle.device.synchronize()
-                bwd_start_time = time.time()
-                for i in range(PROFILE_RUN_TIMES):
-                    paddle.autograd.backward([device_out_list[i]], dout)
-                paddle.device.synchronize()
-                bwd_end_time = time.time()
+            for _ in range(PROFILE_RUN_TIMES):
+                if is_model:
+                    output = model(*device_args, **device_kwargs)
+                else:
+                    output = run_forward(api_call_name, device_args, device_kwargs)
+                output = get_need_grad_out(output)
+                if len(output) == 0:
+                    return fwd_time, -1, output_shape_lst
+                device_out_list.append(output)
+                     
+            paddle.device.synchronize()
+            bwd_start_time = time.time()
+            for i in range(PROFILE_RUN_TIMES):
+                paddle.autograd.backward(device_out_list[i], dout)
+            paddle.device.synchronize()
+            bwd_end_time = time.time()
             bwd_time = bwd_end_time - bwd_start_time  # bwd_time is in second
             bwd_time = bwd_time * 1000000 / float(PROFILE_RUN_TIMES) # bwd_time is in us
         except Exception as err:

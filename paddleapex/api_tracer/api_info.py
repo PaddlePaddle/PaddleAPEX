@@ -18,6 +18,9 @@ import numpy as np
 from paddleapex.api_tracer.Dump import dump_util
 from paddleapex.api_tracer.config import cfg
 import paddle.distributed as dist
+import pickle
+import os
+from inspect import signature
 
 Paddle_Type_Map = {
     "FP64": "paddle.float64",
@@ -99,12 +102,35 @@ def get_tensor_extremum(data):
     return max_result, max_result, min_result, min_result
 
 
+def get_init_params(instance):
+    sig = signature(instance.__init__)
+    bound_args = sig.bind_partial()
+    bound_args.apply_defaults()
+    
+    init_params = {}
+    for param in sig.parameters.values():
+        if param.name != 'self':
+            init_params[param.name] = getattr(instance, param.name, param.default)
+    
+    return init_params
+
+
+def save_init_params_and_weight(init_params, state_dict, name, rank):
+    data_route = cfg.dump_root_path
+    directory = os.path.join(data_route, f"rank{rank}_step{cfg.global_step}")
+    file_path = os.path.join(directory, f"{name}.init_params")
+    with open(file_path, 'wb') as f:
+        pickle.dump(init_params, f)
+    paddle.save(state_dict, os.path.join(directory, f"{name}.state_dict"))
+
+
 class API:
     def __init__(self, mode):
         self.op_name = ""
         self.rank = ""
         self.mode = mode
         self.args_num = 0
+        self.hook_num = 0
         self.embedding_num = 0
         self.output_num = 0
         self.dout_list = []
@@ -133,9 +159,11 @@ class API:
         }
         dump_util.update_api_dict(self.api_info_struct, self.rank, self.is_half_precision, self.is_distributed)
     
-    def update_output(self, outputs):
-        self.out_list = self.analyze_element(outputs)
-        self.api_info_struct[self.op_name].update({"out_list": self.dout_list})
+    def update_output(self, output):
+        if isinstance(output, paddle.Tensor):
+            setattr(tensor, 'description', self.op_name)
+        # self.out_list = self.analyze_element(outputs)
+        # self.api_info_struct[self.op_name].update({"out_list": self.dout_list})
 
     def record_dout(self, grad_value):
         if grad_value is not None:
@@ -175,10 +203,33 @@ class API:
         if element is None or isinstance(element, (bool, int, float, str, slice)):
             return self._analyze_builtin(element)
         
+        try:
+            from paddlenlp.transformers.llama.modeling import LlamaRotaryEmbedding
+            if type(element) is LlamaRotaryEmbedding:
+                return self.analyze_class(element, "paddlenlp.transformers.llama.modeling.LlamaRotaryEmbedding")
+        except Exception as e:
+            print(e)
+            print("check you environment, and ensure the path of paddlenlp is valid")
+
         print(type(element))
         print(element)
         msg = f"In op:{self.op_name}, its args type {type(element)} is unsupported at analyze_element"
         print(msg)
+
+
+    def analyze_class(self, arg, call_stack):
+        single_arg = {}
+        single_arg.update({"type": "class"})
+        single_arg.update({"dtype": str(type(arg))})
+        single_arg.update({"api_call_stack": call_stack})
+        if self.mode == "real_data":
+            api_args = self.op_name + "." + str(self.args_num)
+            self.args_num += 1
+            init_params = get_init_params(arg)
+            save_init_params_and_weight(init_params, arg.state_dict(), api_args, self.rank)
+            single_arg.update({"real_data_path": api_args})
+        return single_arg
+
 
     def effi_analyze_tensor(self, arg):
         single_arg = {}
@@ -187,10 +238,10 @@ class API:
         single_arg.update({"shape": arg.shape})
         arg_name = arg.name
         exit_tensor = arg_name.startswith("APEX_")
-        if not exit_tensor:
-            arg.name = "APEX_" + self.op_name + "_" + str(self.arg_index)
-        single_arg.update({"name": arg.name})
-        self.arg_index = self.arg_index + 1
+        # if not exit_tensor:
+        #     arg.name = "APEX_" + self.op_name + "_" + str(self.arg_index)
+        # single_arg.update({"name": arg.name})
+        # self.arg_index = self.arg_index + 1
         single_arg.update({"stop_gradient": arg.stop_gradient})
         if self.mode == "real_data":
             api_args = self.op_name + "." + str(self.args_num)

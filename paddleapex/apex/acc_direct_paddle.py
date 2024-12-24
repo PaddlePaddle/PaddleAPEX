@@ -81,10 +81,10 @@ def compare_command(args):
     details_csv_path = os.path.join(out_path, DETAILS_FILE_NAME)
     print_info_log(f"Compare task result will be saved in {result_csv_path}")
     print_info_log(f"Compare task details will be saved in {details_csv_path}")
-    bench_dir = os.path.join(args.bench_dir, "./output")
-    device_dir = os.path.join(args.device_dir, "./output")
-    bench_back_dir = os.path.join(args.bench_dir, "./output_backward")
-    device_back_dir = os.path.join(args.device_dir, "./output_backward")
+    bench_dir = os.path.join(args.bench_dir, "./rank_" + str(rank) + "/output")
+    device_dir = os.path.join(args.device_dir, "./rank_" + str(rank) + "/output")
+    bench_back_dir = os.path.join(args.bench_dir, "./rank_" + str(rank) +  "/output_backward")
+    device_back_dir = os.path.join(args.device_dir, "./rank_" + str(rank) + "/output_backward")
 
     compare_device_bench(
         result_csv_path,
@@ -120,7 +120,7 @@ def compare_device_bench(
     errors_forward_info = []
     errors_bacward_info = []
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
-        if not i % dist.get_world_size() == dist.get_rank():
+        if i < 2700:
             continue
         bench_out_tensor, device_out_tensor = None, None
         bench_grad_tensor_list, device_grad_tensor_list = None, None
@@ -142,7 +142,8 @@ def compare_device_bench(
                 Warning_list.append(msg)
                 print(msg)
                 continue
-
+            print(bench_grad_dir)
+            print(device_grad_dir)
             if bench_grad_dir and device_grad_dir:
                 bench_grad_path = os.path.join(bench_grad_dir, api_file)
                 device_grad_path = os.path.join(device_grad_dir, api_file)
@@ -178,9 +179,9 @@ def compare_device_bench(
             print(err)
     errors_bacward_info.sort(key=lambda x: x[1])
     errors_forward_info.sort(key=lambda x: x[1])
-    df = pd.DataFrame(errors_bacward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_value", "diff_index"])
+    df = pd.DataFrame(errors_bacward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_index"])
     df.to_csv("log/rank" + str(dist.get_rank()) + "_backward_output.csv", index=False)
-    df = pd.DataFrame(errors_forward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_value", "diff_index"])
+    df = pd.DataFrame(errors_forward_info, columns=["operator_name", "error<0.001", "bench_data", "device_data", "diff_index"])
     df.to_csv("log/rank" + str(dist.get_rank()) + "_forward_output.csv", index=False)
     
     warning_log_pth = os.path.join(out_path, "./compare_warning.txt")
@@ -223,8 +224,9 @@ def compare_result(bench_output, device_output, errors, name):
             bench_n = paddle.cast(bench_output_o[diff_index], "float").numpy().tolist()
             device_n = paddle.cast(device_output_o[diff_index], "float").numpy().tolist()
             diff_index_n = diff_index.numpy().tolist()
-            diff_value_n = diff_value.numpy().tolist()
-            errors.append((name, error_info, str(bench_n), str(device_n), str(diff_value_n), str(diff_index_n)))
+            # diff_value_n = diff_value.numpy().tolist()
+            # errors.append((name, error_info, str(bench_n), str(device_n), str(diff_value_n), str(diff_index_n)))
+            errors.append((name, error_info, str(bench_n), str(device_n), str(diff_index_n)))
             print("diff is too large---------------------------- erorr Erorr ERORR----------------------------")
             print("bench_output----------")
             print(bench_output_o[diff_index])

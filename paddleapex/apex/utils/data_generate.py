@@ -19,6 +19,8 @@ import numpy
 import math
 import random
 import numpy as np
+import pickle
+from importlib import import_module
 from .utils import (
     check_object_type,
     CompareException,
@@ -86,6 +88,29 @@ NUMPY_TYPE = [
 ]
 
 
+def load_params(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+def create_model(api_call_stack, real_data_path):
+    # api_call_stack = api_call_name.rsplit("*")[0]
+    init_path = real_data_path + ".init_params"
+    state_path = real_data_path + ".state_dict"
+    init_para = load_params(init_path)
+    parent_package, class_n = api_call_stack.rsplit(".", maxsplit=1)
+    try:
+        MODULE = import_module(parent_package)
+        class_model = getattr(MODULE, class_n)
+        model = class_model(**init_para)
+        model.set_state_dict(paddle.load(state_path))
+        return model
+    except Exception as err:
+        msg = "Create Model Error: %s" % str(err)
+        print_warn_log(msg)
+        return None
+
+
 def gen_data(info, real_data_path=None):
     check_object_type(info, dict)
     data_type = info.get("type")
@@ -110,6 +135,10 @@ def gen_data(info, real_data_path=None):
             data = eval(data_type)(data)
         except Exception as err:
             print_error_log("Failed to convert the type to numpy: %s" % str(err))
+    elif data_type == 'class':
+        api_call_stack = info.get("api_call_stack")
+        data_pth = os.path.join(real_data_path, rel_data_path)
+        data = create_model(api_call_stack, data_pth)
     else:
         data = info.get("value")
         if info.get("type") == "slice":
