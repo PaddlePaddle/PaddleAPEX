@@ -85,11 +85,6 @@ tqdm_params = {
 PROFILE_WARM_TIMES = 10
 PROFILE_RUN_TIMES  = 10
 
-#strategy = fleet.DistributedStrategy()
-#strategy.hybrid_configs = {
-#    "dp_degree": 1, "mp_degree": 8, "pp_degree": 1,"sharding_degree": 1,}
-#fleet.init(is_collective=True, strategy=strategy)
-#paddle.set_default_dtype("bfloat16")
 
 def recursive_delete_arg(arg_in):
     if isinstance(arg_in, (list, tuple)):
@@ -340,7 +335,6 @@ def get_need_grad_out(args):
     return device_grad_out
 
 
-<<<<<<< HEAD
 def print_tensor_name(args):
     if isinstance(args, paddle.Tensor):
         print(args.name)

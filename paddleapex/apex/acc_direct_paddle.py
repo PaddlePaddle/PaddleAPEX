@@ -120,8 +120,6 @@ def compare_device_bench(
     errors_forward_info = []
     errors_bacward_info = []
     for i, api_file in enumerate(tqdm.tqdm(api_pt_files_all, **tqdm_params)):
-        if i < 2700:
-            continue
         bench_out_tensor, device_out_tensor = None, None
         bench_grad_tensor_list, device_grad_tensor_list = None, None
         try:
