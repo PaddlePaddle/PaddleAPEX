@@ -115,9 +115,14 @@ def get_init_params(instance):
     return init_params
 
 
-def save_init_params_and_weight(init_params, state_dict, name, rank):
+def get_file_path(rank):
     data_route = cfg.dump_root_path
     directory = os.path.join(data_route, f"rank{rank}_step{cfg.global_step}")
+    return directory
+
+
+def save_init_params_and_weight(init_params, state_dict, name, rank):
+    directory = get_file_path(rank)
     file_path = os.path.join(directory, f"{name}.init_params")
     with open(file_path, 'wb') as f:
         pickle.dump(init_params, f)
@@ -207,6 +212,9 @@ class API:
             from paddlenlp.transformers.llama.modeling import LlamaRotaryEmbedding
             if type(element) is LlamaRotaryEmbedding:
                 return self.analyze_class(element, "paddlenlp.transformers.llama.modeling.LlamaRotaryEmbedding")
+            from paddlenlp.transformers.llama.configuration import LlamaConfig
+            if type(element) is LlamaConfig:
+                return self.analyze_config(element, "paddlenlp.transformers.llama.configuration.LlamaConfig")
         except Exception as e:
             print(e)
             print("check you environment, and ensure the path of paddlenlp is valid")
@@ -215,6 +223,22 @@ class API:
         print(element)
         msg = f"In op:{self.op_name}, its args type {type(element)} is unsupported at analyze_element"
         print(msg)
+
+
+    def analyze_config(self, arg, call_stack):
+        single_arg = {}
+        single_arg.update({"type": "config"})
+        single_arg.update({"dtype": str(type(arg))})
+        single_arg.update({"api_call_stack": call_stack})
+        if self.mode == "real_data":
+            api_args = self.op_name + "." + str(self.args_num)
+            self.args_num += 1
+            directory = get_file_path(self.rank)
+            file_path = os.path.join(directory, f"{api_args}.config")
+            with open(file_path, 'wb') as f:
+                pickle.dump(arg, f)
+            single_arg.update({"real_data_path": api_args})
+        return single_arg
 
 
     def analyze_class(self, arg, call_stack):

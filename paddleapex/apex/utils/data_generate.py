@@ -111,6 +111,12 @@ def create_model(api_call_stack, real_data_path):
         return None
 
 
+def create_config(api_call_stack, real_data_path):
+    config_path = real_data_path + '.config'
+    config = load_params(config_path)
+    return config
+
+
 def gen_data(info, real_data_path=None):
     check_object_type(info, dict)
     data_type = info.get("type")
@@ -139,6 +145,10 @@ def gen_data(info, real_data_path=None):
         api_call_stack = info.get("api_call_stack")
         data_pth = os.path.join(real_data_path, rel_data_path)
         data = create_model(api_call_stack, data_pth)
+    elif data_type == 'config':
+        api_call_stack = info.get("api_call_stack")
+        data_pth = os.path.join(real_data_path, rel_data_path)
+        data = create_config(api_call_stack, data_pth)
     else:
         data = info.get("value")
         if info.get("type") == "slice":

@@ -56,6 +56,7 @@ class Config:
 
     def new_step_in_training(self, global_step):
         if global_step in self.target_step:
+            self.global_step = global_step
             self.Op_count = {}
             self.dump_state = True
             return True
@@ -63,7 +64,6 @@ class Config:
 
     def reset_step_in_training(self, global_step):
         if global_step in self.target_step:
-            self.global_step = global_step
             self.dump_state = False
             return True
         return False

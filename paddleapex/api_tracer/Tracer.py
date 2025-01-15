@@ -19,7 +19,10 @@ from paddleapex.api_tracer.config import cfg
 from paddleapex.apex.utils import print_info_log
 
 class Tracer:
-    def __init__(self):
+    # def __init__(self):
+    #     hijack_api()
+    
+    def register_op(self):
         hijack_api()
 
     def start(self):

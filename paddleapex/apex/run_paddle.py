@@ -40,6 +40,8 @@ from utils import (
     print_warn_log,
 )
 
+os.environ["USE_CASUAL_MASK"] = "True"
+
 type_map = {
     "FP16": paddle.float16,
     "FP32": paddle.float32,
@@ -184,6 +186,7 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
+    return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -437,9 +440,11 @@ def run_acc_case(
     else:
         try:
             device_out = run_forward(api_call_name, device_args, device_kwargs)
-            if api_call_stack in distributed_op and device_out is None:
-                print('this is distributed op: ', api_call_name)
-                device_out = device_args
+            if api_call_stack in distributed_op:
+                from paddle.base.libpaddle import task
+                if type(device_out) is task:
+                    print('this is distributed op: ', api_call_name)
+                    device_out = device_args
         except Exception as err:
             msg = "Run_op_forward Error: %s" % str(err)
             print_warn_log(msg)
@@ -802,7 +807,10 @@ if __name__ == "__main__":
     out_path = os.path.realpath(cfg.out_path) if cfg.out_path else "./"
     if os.path.exists(out_path):
         print_warn_log("The output path already exists and the file with the same name will be overwritten.")
-     
+    
+    from paddlenlp.trainer import set_seed
+    set_seed(1026)
+
     if cfg.distributed_op:
         if cfg.test_class:
             strategy = fleet.DistributedStrategy()

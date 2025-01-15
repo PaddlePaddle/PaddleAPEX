@@ -102,7 +102,6 @@ def hijack_call(self, *args, **kwargs):
     return output
 
 
-
 class OPTemplate:
     def __init__(self, op_name):
         self.op_name_ = op_name
