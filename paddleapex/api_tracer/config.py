@@ -40,7 +40,7 @@ class Config:
         print(f"You are using Apex Toolkit, Dump mode : {self.dump_mode}, Target step : {self.target_step}, profile mode : {self.profile_mode}")
         print("*" * 100)
         time.sleep(1)
-        self.global_step = -1
+        self.global_step = 0
         self.dump_state = False
         self.Op_count = {}
         self.prefix_op_name_ = None
@@ -54,5 +54,18 @@ class Config:
             self.Op_count = {}
             self.dump_state = False
 
+    def new_step_in_training(self, global_step):
+        if global_step in self.target_step:
+            self.global_step = global_step
+            self.Op_count = {}
+            self.dump_state = True
+            return True
+        return False
+
+    def reset_step_in_training(self, global_step):
+        if global_step in self.target_step:
+            self.dump_state = False
+            return True
+        return False
 
 cfg = Config()
