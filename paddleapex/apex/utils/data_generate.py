@@ -97,15 +97,21 @@ def create_model(api_call_stack, real_data_path):
     # api_call_stack = api_call_name.rsplit("*")[0]
     init_path = real_data_path + ".init_params"
     state_path = real_data_path + ".state_dict"
-    init_para = load_params(init_path)
+    [args, kwargs] = load_params(init_path)
+    state_para = paddle.load(state_path)
     parent_package, class_n = api_call_stack.rsplit(".", maxsplit=1)
     try:
         MODULE = import_module(parent_package)
         class_model = getattr(MODULE, class_n)
-        model = class_model(**init_para)
-        model.set_state_dict(paddle.load(state_path))
+        model = class_model(*args, **kwargs)
+        model.set_state_dict(state_para)
         return model
     except Exception as err:
+        print(init_path)
+        print(args)
+        print(kwargs)
+        print(state_path)
+        print(state_para)
         msg = "Create Model Error: %s" % str(err)
         print_warn_log(msg)
         return None

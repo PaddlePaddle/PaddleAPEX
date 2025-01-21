@@ -121,6 +121,18 @@ def get_file_path(rank):
     return directory
 
 
+def save_init_params(init_params, name, rank):
+    directory = get_file_path(rank)
+    file_path = os.path.join(directory, f"{name}.init_params")
+    with open(file_path, 'wb') as f:
+        pickle.dump(init_params, f)
+
+
+def save_weight(state_dict, name, rank):
+    directory = get_file_path(rank)
+    paddle.save(state_dict, os.path.join(directory, f"{name}.state_dict"))
+
+
 def save_init_params_and_weight(init_params, state_dict, name, rank):
     directory = get_file_path(rank)
     file_path = os.path.join(directory, f"{name}.init_params")

@@ -14,7 +14,7 @@
 import paddle.distributed as dist
 import paddle
 from .. import config
-from ..api_info import API, get_init_params, save_init_params_and_weight
+from ..api_info import API, get_init_params, save_init_params_and_weight, save_init_params, save_weight
 import os
 from paddleapex.api_tracer.Dump import dump_util
 
@@ -61,7 +61,7 @@ def create_output_attr(tensor, num):
 
 def hijack_call(self, *args, **kwargs):
     cls = self.__class__
-    init_params = get_init_params(self)
+    # init_params = get_init_params(self)
     cfg.prefix_op_name_ = self.prefix_op_name_ + "*"
     if self.__class__.__name__ not in cfg.Op_count:
         cfg.Op_count[self.__class__.__name__] = 1
@@ -74,7 +74,9 @@ def hijack_call(self, *args, **kwargs):
         rank = dist.get_rank()
         api_recorder.update_APIInfo(cfg.prefix_op_name_, rank)
         api_recorder.update_real_data(args, kwargs)
-        save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
+        # save_weight(self.state_dict(), cfg.prefix_op_name_, rank)
+        # save_init_params_and_weight(init_params, self.state_dict(), cfg.prefix_op_name_, rank)
+        save_init_params_and_weight(self.apex_init_params, self.state_dict(), cfg.prefix_op_name_, rank)
         output = self.forward(*args, **kwargs)
         try:
             out_num = 0

@@ -16,6 +16,8 @@ from .. import config
 from ...utils import try_import
 from .get_target_op import GetTargetOP
 from .OPTemplate import OPTemplate, HookOp, hijack_call
+import paddle.distributed as dist
+from ..api_info import save_init_params
 
 cfg = config.cfg
 
@@ -44,11 +46,18 @@ def hijack_api():
     
     for class_in in target_class:
         parent_package, class_n = class_in.rsplit(".", maxsplit=1)
+        
         try:
             class_name, model = try_import(parent_package)
             model = getattr(model, class_n)
             model.prefix_op_name_ = class_in
             model.__call__ = hijack_call
+            ori__init__ = model.__init__
+            def hijack_init(self, *args, **kwargs):
+                self.apex_init_params = [args, kwargs]
+                ori__init__(self, *args, **kwargs)
+            model.__init__ = hijack_init
+
         except Exception as err:
             print(class_in, str(err))
 

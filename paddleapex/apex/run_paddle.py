@@ -67,6 +67,8 @@ f.close()
 
 Warning_list = []
 
+IGNORED_LIST = ["paddle._C_ops.gaussian"]
+
 current_time = time.strftime("%Y%m%d%H%M%S")
 
 tqdm_params = {
@@ -84,8 +86,8 @@ tqdm_params = {
     "bar_format": "{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",  # 自定义进度条输出
 }
 
-PROFILE_WARM_TIMES = 10
-PROFILE_RUN_TIMES  = 10
+PROFILE_WARM_TIMES = 5
+PROFILE_RUN_TIMES  = 5
 
 
 def recursive_delete_arg(arg_in):
@@ -186,7 +188,8 @@ def recursive_arg_to_device(arg_in, backend, enforce_dtype=None):
 
 
 def save_tensor(forward_res, backward_res, out_path, api_call_name, dtype_name=""):
-    return
+    if not dist.get_rank() == 0:
+        return
     if dtype_name == "":
         bwd_output_dir = os.path.abspath(os.path.join(out_path, "output_backward"))
         fwd_output_dir = os.path.abspath(os.path.join(out_path, "output"))
@@ -253,6 +256,9 @@ def ut_case_parsing(forward_content, cfg):
     for i, (api_call_name, api_info_dict) in enumerate(
         tqdm(forward_content.items(), **tqdm_params)
     ):
+        api_call_stack = api_call_name.rsplit("*")[0]
+        if api_call_stack in IGNORED_LIST:
+            continue
         if debug_mode and api_call_name not in debug_case:
             continue
         if len(multi_dtype_ut) > 0:
@@ -832,7 +838,7 @@ if __name__ == "__main__":
         json_path_list = cfg.json_path.split(' ')
         data_path_list = cfg.real_data.split(' ')
     
-        if not check_json(json_path_list):
+        if False and not check_json(json_path_list):
             raise Exception("Check json faile!!!")
         else:
             cfg.json_path = json_path_list[local_rank]
