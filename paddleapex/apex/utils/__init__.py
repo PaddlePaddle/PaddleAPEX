@@ -29,7 +29,7 @@ from .utils import (
     seed_all,
     api_json_read,
 )
-from .data_generate import gen_api_params, rand_like, gen_args
+from .data_generate import gen_api_params, create_model, rand_like, gen_args
 from .file_check_util import (
     FileCheckException,
     FileChecker,

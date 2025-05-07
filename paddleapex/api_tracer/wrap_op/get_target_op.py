@@ -25,10 +25,18 @@ class GetTargetOP:
             Ops = yaml.safe_load(f)
             self.target_op = Ops.get("target_op")
             self.ignored_op = Ops.get("ignored_op")
+            self.target_class = Ops.get("target_class")
+            self.distributed_op = Ops.get("distributed_op")
             f.close()
             if self.ignored_op is None:
                 self.ignored_op = []
-            self.api_to_catch = set(self.target_op) - set(self.ignored_op)
+            if self.target_op is None:
+                self.target_op = []
+            if self.target_class is None:
+                self.target_class = []
+            if self.distributed_op is None:
+                self.distributed_op = []
+            self.api_to_catch = set(self.target_op).union(set(self.distributed_op)) - set(self.ignored_op)
 
     def check_api_stack(self):
         for api in self.api_to_catch:
@@ -43,8 +51,10 @@ class GetTargetOP:
                 print(f"For api: {api}   ", str(err))
 
     def get_target_ops(self):
-        self.api_to_catch = set(self.target_op) - set(self.ignored_op)
         if cfg.profile_mode:
             self.api_to_catch -= set(["paddle.max", "paddle.min"])
         self.check_api_stack()
         return self.api_to_catch
+
+    def get_target_class(self):
+        return self.target_class

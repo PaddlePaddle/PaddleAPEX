@@ -16,19 +16,36 @@
 from paddleapex.api_tracer.Dump import dump_util
 from paddleapex.api_tracer.wrap_op.hijack_tool import hijack_api
 from paddleapex.api_tracer.config import cfg
-
+from paddleapex.apex.utils import print_info_log
 
 class Tracer:
-    def __init__(self):
+    # def __init__(self):
+    #     hijack_api()
+    
+    def register_op(self):
         hijack_api()
 
     def start(self):
         # Evoke stop implicity.
-        if cfg.dump_state:
-            dump_util.dump()
+        # dump_util.dump()
         # global step counting.
         cfg.new_step()
 
     def stop(self):
-        if cfg.dump_state:
-            dump_util.dump()
+        dump_util.dump()
+
+    def start_in_training(self, cur_step, acc):
+        self.acc = acc
+        self.global_step = cur_step // acc
+        self.inner_step = cur_step % acc
+        if self.inner_step == 0:
+            dump_signal = cfg.new_step_in_training(self.global_step)
+            if dump_signal:
+                print_info_log(f"Starting tracing step:{self.global_step}")
+
+    def stop_in_training(self):
+        if self.inner_step == self.acc - 1:
+            dump_signal = cfg.reset_step_in_training(self.global_step)
+            if dump_signal:
+                print_info_log(f"Stopping tracing step:{self.global_step}")
+                dump_util.dump()
